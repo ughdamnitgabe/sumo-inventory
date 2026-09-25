@@ -305,10 +305,11 @@ async function doLogin(pin) {
     // PIN travels only in this request body; it is never stored.
     const r = await edge("login", { pin });
     saveSession({ token: r.token, profile: r.profile });
+    // First-login accounts must change PIN before any other call is allowed.
+    if (r.profile && r.profile.must_change_pin) { go("#/set-pin"); return; }
     const a = await edge("areas.list");
     state.areas = a.areas || a || [];
-    if (r.profile && r.profile.must_change_pin) go("#/set-pin");
-    else go("#/home");
+    go("#/home");
   } catch (e) {
     errBox.innerHTML = `<div class="error">${esc(e.detail || "Wrong PIN. Try again.")}</div>`;
     if (state._pad) { state._pad.digits = ""; document.getElementById("pin-dots").textContent = ""; }
