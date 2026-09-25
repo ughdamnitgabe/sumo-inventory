@@ -967,10 +967,11 @@ function drawReview(notCounted, needsReview, canApprove) {
   let grandTotal = 0;
   for (const i of state.items.filter(x => x.active !== false && x.mode === "auto" && Number(x.par) > 0)) {
     const have = byItem[i.id] ? Number(byItem[i.id].count) : 0;
-    const order = Math.max(0, r025(Number(i.par) - have));
+    // Whole units only: vendors don't sell fractional cases/eaches.
+    const order = Math.max(0, Math.ceil(Number(i.par) - have - 1e-9));
     if (order <= 0) continue;
     const vid = i.vendor_id || "__none__";
-    (previewGroups[vid] = previewGroups[vid] || []).push({ item: i, have, order, line: r025(order) * (Number(i.price) || 0) });
+    (previewGroups[vid] = previewGroups[vid] || []).push({ item: i, have, order, line: order * (Number(i.price) || 0) });
   }
 
   const previewHtml = Object.keys(previewGroups).length === 0
@@ -1099,7 +1100,7 @@ function orderEmailText(vendor, lines) {
   const d = new Date().toLocaleDateString([], { month: "short", day: "numeric" });
   const total = lines.reduce((s, l) => s + l.line, 0);
   const body = lines.map(l =>
-    `- ${fmtCount(l.order)}${l.item.unit ? " " + l.item.unit : ""} ${l.item.name}  (count ${fmtCount(l.have)} / par ${fmtCount(l.item.par)})`
+    `- ${fmtCount(l.order)}${l.item.unit ? " " + l.item.unit : ""} ${l.item.name}`
   ).join("\n");
   return `To: ${vendor.email || "(no email on file)"}\nSubject: Order — ${vendor.name || "vendor"} — ${d}\n\nHi ${vendor.name || "there"},\n\nPlease send the following for ${d}:\n\n${body}\n\nEstimated total: ${fmtMoney(total)}\n\nThanks,\nSumo Sushi`;
 }
@@ -1132,10 +1133,10 @@ async function renderOrders() {
     ${state.orders.map(ord => {
       const v = vendorOf(ord.vendor_id) || {};
       const lines = ord.lines || [];
-      const total = lines.reduce((s, l) => s + (Number(l.qty) || 0) * (Number(l.price) || 0), 0);
+      const total = lines.reduce((s, l) => s + (Number(l.line_cost) || 0), 0);
       const email = orderEmailText(v, lines.map(l => ({
-        item: { name: l.name, unit: l.unit, par: l.par },
-        have: l.count, order: l.qty, line: (Number(l.qty) || 0) * (Number(l.price) || 0),
+        item: { name: l.item_name, unit: l.unit, par: l.par },
+        have: l.count, order: l.order_qty, line: Number(l.line_cost) || 0,
       })));
       return `<div class="vendor-card">
         <div class="vendor-head">
@@ -1146,8 +1147,8 @@ async function renderOrders() {
         <table class="order-table">
           <thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Cost</th></tr></thead>
           <tbody>${lines.map(l => `<tr>
-            <td>${esc(l.name)}</td><td>${fmtCount(l.qty)}${l.unit ? " " + esc(l.unit) : ""}</td>
-            <td>${fmtMoney(l.price)}</td><td>${fmtMoney((Number(l.qty) || 0) * (Number(l.price) || 0))}</td>
+            <td>${esc(l.item_name)}</td><td>${fmtCount(l.order_qty)}${l.unit ? " " + esc(l.unit) : ""}</td>
+            <td>${fmtMoney((Number(l.line_cost) || 0) / (Number(l.order_qty) || 1))}</td><td>${fmtMoney(l.line_cost)}</td>
           </tr>`).join("")}</tbody>
           <tfoot><tr><td colspan="3">Total</td><td>${fmtMoney(total)}</td></tr></tfoot>
         </table>
