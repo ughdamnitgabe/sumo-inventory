@@ -73,7 +73,21 @@ const state = {
   review: null,        // { sessionId, flags: [], aiRan: bool }
   route: null,
   saveTimers: {},      // debounced entry saves per item
+  settings: null,      // { store_name, show_prices } — loaded via settings.get
+  cardData: {},        // order-card payloads keyed by card id (for image share)
 };
+
+/** Load store settings (store name, price toggle). Cached; cheap to refresh. */
+async function loadSettings() {
+  const fallback = { store_name: "Sumo Sushi", show_prices: false };
+  try {
+    const r = await edge("settings.get");
+    state.settings = Object.assign({}, fallback, r.settings || {});
+  } catch (e) { state.settings = state.settings || fallback; }
+  return state.settings;
+}
+const storeName = () => (state.settings && state.settings.store_name) || "Sumo Sushi";
+const showPrices = () => !!(state.settings && state.settings.show_prices);
 
 /* ========================= API CLIENT =========================== */
 /** PostgREST wrapper. Sends the Supabase anon key AND the session
@@ -152,6 +166,13 @@ async function boot() {
   document.addEventListener("click", (e) => {
     const t = e.target.closest('[data-act="nav-home"]');
     if (t) go("#/home");
+  });
+  // Order-card actions (share image / copy text), delegated for the same reason.
+  document.addEventListener("click", (e) => {
+    const sh = e.target.closest("[data-share-card]");
+    if (sh) { shareOrderCard(sh.dataset.shareCard, sh); return; }
+    const cp = e.target.closest("[data-copy-card]");
+    if (cp) { copyCardText(cp.dataset.copyCard, cp); }
   });
 }
 
@@ -394,14 +415,16 @@ async function renderHome() {
   const p = state.session.profile;
   $app().innerHTML = navHtml() + `<div class="view"><div class="loading">Loading…</div></div>`;
   try {
-    const [s, v, it] = await Promise.all([
+    const [s, v, it, sg] = await Promise.all([
       edge("sessions.list").catch(() => ({ sessions: [] })),
       edge("vendors.list").catch(() => ({ vendors: [] })),
       edge("items.list").catch(() => ({ items: [] })),
+      edge("settings.get").catch(() => ({ settings: state.settings })),
     ]);
     state.sessions = s.sessions || s || [];
     state.vendors = v.vendors || v || [];
     state.items = it.items || it || [];
+    if (sg.settings) state.settings = Object.assign({ store_name: "Sumo Sushi", show_prices: false }, sg.settings);
   } catch (e) {
     if (e.code === "unauthorized" || e.status === 401) { dropSession(); go("#/login"); return; }
   }
@@ -488,12 +511,17 @@ function renderBulkPar() {
       <td>${esc(i.name)}<div class="muted" style="font-size:12px">${esc(areaName(i.area_id))}</div></td>
       <td><input type="number" inputmode="decimal" min="0" step="0.25"
            data-par-for="${esc(i.id)}" value="${Number(i.par) > 0 ? esc(i.par) : ""}" placeholder="—"></td>
+      <td><input type="number" inputmode="decimal" min="0" step="0.01"
+           data-price-for="${esc(i.id)}" value="${Number(i.price) > 0 ? esc(i.price) : ""}" placeholder="—"></td>
     </tr>`).join("");
   $app().innerHTML = navHtml() + `
   <div class="view">
     <h1>Bulk par editor</h1>
     <p class="muted">Only items with a par above 0 generate order lines. Leave blank = no par.</p>
-    <table class="bulk-par">${rows}</table>
+    <table class="bulk-par">
+      <thead><tr><th>Item</th><th>Par</th><th>Price</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
     <div style="display:flex;gap:10px;margin-top:16px" class="no-print">
       <button class="btn" data-act="back">← Back</button>
       <button class="btn btn-primary" id="par-save" style="flex:1">Save all</button>
@@ -515,7 +543,16 @@ function renderBulkPar() {
           item.par = val; n++;
         }
       }
-      msg.innerHTML = `<span style="color:var(--ok)">Saved ${n} par level${n === 1 ? "" : "s"}.</span>`;
+      for (const inp of $app().querySelectorAll("[data-price-for]")) {
+        const id = inp.dataset.priceFor;
+        const val = inp.value === "" ? 0 : Number(inp.value);
+        const item = state.items.find(i => String(i.id) === String(id));
+        if (item && Number(item.price || 0) !== val) {
+          await edge("items.update", { item_id: id, price: val });
+          item.price = val; n++;
+        }
+      }
+      msg.innerHTML = `<span style="color:var(--ok)">Saved ${n} change${n === 1 ? "" : "s"}.</span>`;
     } catch (e) { msg.innerHTML = `<div class="error">${esc(e.detail || "Save failed.")}</div>`; }
   };
   $app().querySelector('[data-act="nav-logout"]').onclick = logout;
@@ -932,14 +969,16 @@ function aiDictate() {
 async function renderReview(sessionId) {
   $app().innerHTML = navHtml() + `<div class="view"><div class="loading">Loading review…</div></div>`;
   try {
-    const [it, v, a] = await Promise.all([
+    const [it, v, a, sg] = await Promise.all([
       edge("items.list").catch(() => ({ items: state.items })),
       edge("vendors.list").catch(() => ({ vendors: state.vendors })),
       edge("areas.list").catch(() => ({ areas: state.areas })),
+      edge("settings.get").catch(() => ({ settings: state.settings })),
     ]);
     state.items = it.items || it || [];
     state.vendors = v.vendors || v || [];
     state.areas = a.areas || a || [];
+    if (sg.settings) state.settings = Object.assign({ store_name: "Sumo Sushi", show_prices: false }, sg.settings);
   } catch (e) { if (e.status === 401 || e.code === "unauthorized") { dropSession(); go("#/login"); return; } }
 
   let rows = [];
@@ -970,38 +1009,27 @@ function drawReview(notCounted, needsReview, canApprove) {
     </div>`;
 
   // Vendor order preview: auto-mode items with par>0, grouped by vendor.
+  // Rendered as the clean vendor-facing order card (no internal counts/pars).
   const byItem = c._byItem || {};
   const previewGroups = {};
-  let grandTotal = 0;
   for (const i of state.items.filter(x => x.active !== false && x.mode === "auto" && Number(x.par) > 0)) {
     const have = byItem[i.id] ? Number(byItem[i.id].count) : 0;
     // Whole units only: vendors don't sell fractional cases/eaches.
     const order = Math.max(0, Math.ceil(Number(i.par) - have - 1e-9));
     if (order <= 0) continue;
     const vid = i.vendor_id || "__none__";
-    (previewGroups[vid] = previewGroups[vid] || []).push({ item: i, have, order, line: order * (Number(i.price) || 0) });
+    (previewGroups[vid] = previewGroups[vid] || []).push({ item: i, order, line: order * (Number(i.price) || 0) });
   }
 
   const previewHtml = Object.keys(previewGroups).length === 0
     ? `<p class="muted">Nothing to order — all auto-mode pars are covered (or no pars set).</p>`
     : Object.entries(previewGroups).map(([vid, lines]) => {
         const v = vendorOf(vid);
-        const total = lines.reduce((s, l) => s + l.line, 0);
-        grandTotal += total;
-        return `<div class="vendor-card">
-          <div class="vendor-head"><div class="vendor-name">${esc(v.name || "No vendor")}</div></div>
-          <table class="order-table">
-            <thead><tr><th>Item</th><th>Count</th><th>Par</th><th>Order</th><th>Cost</th></tr></thead>
-            <tbody>${lines.map(l => `<tr>
-              <td>${esc(l.item.name)}</td><td>${fmtCount(l.have)}</td><td>${fmtCount(l.item.par)}</td>
-              <td>${fmtCount(l.order)}${l.item.unit ? " " + esc(l.item.unit) : ""}</td>
-              <td>${fmtMoney(l.line)}</td></tr>`).join("")}</tbody>
-            <tfoot><tr><td colspan="4">Vendor total</td><td>${fmtMoney(total)}</td></tr></tfoot>
-          </table>
-          <pre class="email">${esc(orderEmailText(v, lines))}</pre>
-        </div>`;
-      }).join("") +
-      `<p><strong>Grand total: ${fmtMoney(grandTotal)}</strong></p>`;
+        const d = orderCardData(v, lines.map(l => ({
+          name: l.item.name, qty: l.order, unit: l.item.unit, line: l.line,
+        })), fmtLongDate());
+        return orderCardHtml(d, { actions: false });
+      }).join("");
 
   $app().innerHTML = navHtml() + `
   <div class="view">
@@ -1103,14 +1131,242 @@ async function approveSession() {
   }
 }
 
-/** Paste-ready order email text. */
-function orderEmailText(vendor, lines) {
-  const d = new Date().toLocaleDateString([], { month: "short", day: "numeric" });
-  const total = lines.reduce((s, l) => s + l.line, 0);
-  const body = lines.map(l =>
-    `- ${fmtCount(l.order)}${l.item.unit ? " " + l.item.unit : ""} ${l.item.name}`
-  ).join("\n");
-  return `To: ${vendor.email || "(no email on file)"}\nSubject: Order — ${vendor.name || "vendor"} — ${d}\n\nHi ${vendor.name || "there"},\n\nPlease send the following for ${d}:\n\n${body}\n\nEstimated total: ${fmtMoney(total)}\n\nThanks,\nSumo Sushi`;
+/* ============ ORDER CARD TEMPLATE (vendor-facing) ============ */
+/* Clean, screenshot-ready card styled like the approved mockup:
+ * red store header, vendor name + date, item rows (name left,
+ * quantity right in red), "N items" footer. Used in the review
+ * preview and order history, and exported as a shareable PNG via
+ * canvas (works for long orders — no screenshot needed). */
+let cardSeq = 0;
+
+/** Long date label, e.g. "Friday, September 25, 2026". */
+function fmtLongDate(iso) {
+  const d = iso ? new Date(iso) : new Date();
+  try {
+    return d.toLocaleDateString([], { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+  } catch (e) { return d.toLocaleDateString(); }
+}
+
+/** Build the card payload.
+ *  vendor: {name, order_days, order_cutoff, delivery_days}
+ *  lines: [{name, qty, unit, line}] */
+function orderCardData(vendor, lines, dateLabel) {
+  const v = vendor || {};
+  const total = lines.reduce((s, l) => s + (Number(l.line) || 0), 0);
+  const showTotal = showPrices() && total > 0;
+  const meta = [];
+  if (v.order_days) meta.push("Order days: " + v.order_days);
+  if (v.order_cutoff) meta.push("Order by: " + v.order_cutoff);
+  if (v.delivery_days) meta.push("Delivery days: " + v.delivery_days);
+  const cleanLines = lines.map(l => ({
+    name: l.name,
+    qty: fmtCount(l.qty) + (l.unit ? " " + l.unit : ""),
+  }));
+  const text =
+    `Hi ${v.name || "there"},\n\n` +
+    `Please send the following for ${dateLabel}:\n\n` +
+    cleanLines.map(l => `- ${l.qty} ${l.name}`).join("\n") +
+    (showTotal ? `\n\nEstimated total: ${fmtMoney(total)}` : "") +
+    `\n\nThanks,\n${storeName()}`;
+  return {
+    id: "card-" + (++cardSeq) + "-" + Date.now().toString(36),
+    store: storeName(),
+    vendorName: v.name || "Vendor",
+    dateLabel,
+    meta,
+    lines: cleanLines,
+    total: showTotal ? fmtMoney(total) : null,
+    count: cleanLines.length,
+    text,
+  };
+}
+
+/** HTML for the card. opts.actions=false hides the buttons (review preview). */
+function orderCardHtml(d, opts = {}) {
+  state.cardData[d.id] = d;
+  return `<div class="order-card">
+    <div class="order-card-head">${esc(d.store)}</div>
+    <div class="order-card-body">
+      <div class="order-card-vendor">${esc(d.vendorName)}</div>
+      <div class="order-card-date">${esc(d.dateLabel)}</div>
+      ${d.meta.map(m => `<div class="order-card-meta">${esc(m)}</div>`).join("")}
+      <div class="order-card-lines">
+        ${d.lines.map(l => `<div class="order-card-line">
+          <span class="order-card-item">${esc(l.name)}</span>
+          <span class="order-card-qty">${esc(l.qty)}</span>
+        </div>`).join("")}
+      </div>
+      <div class="order-card-foot">${d.count} item${d.count === 1 ? "" : "s"}${d.total ? ` · Estimated total: ${esc(d.total)}` : ""}</div>
+    </div>
+    ${opts.actions === false ? "" : `<div class="order-card-actions no-print">
+      <button class="btn btn-small" data-share-card="${esc(d.id)}">📤 Share image</button>
+      <button class="btn btn-small" data-copy-card="${esc(d.id)}">📋 Copy text</button>
+    </div>`}
+  </div>`;
+}
+
+/** Render the card to a PNG blob — the full order at any length. */
+function renderOrderCardImage(d) {
+  const W = 1080, PAD = 64;
+  const RED = "#c62828", INK = "#1b1b1b", GRAY = "#6b6b6b", SEAM = "#e9e9e9";
+  const F = (w, s) => `${w} ${s}px -apple-system, "Helvetica Neue", Arial, sans-serif`;
+  const c = document.createElement("canvas");
+  const x = c.getContext("2d");
+
+  function wrap(text, maxW, font) {
+    x.font = font;
+    const words = String(text).split(/\s+/).filter(Boolean);
+    const out = [];
+    let cur = "";
+    for (const w of words) {
+      const t = cur ? cur + " " + w : w;
+      if (cur && x.measureText(t).width > maxW) { out.push(cur); cur = w; }
+      else cur = t;
+    }
+    if (cur) out.push(cur);
+    return out.length ? out : [""];
+  }
+
+  const nameFont = F(400, 44), qtyFont = F(700, 44);
+  x.font = qtyFont;
+  let qtyW = 0;
+  for (const l of d.lines) qtyW = Math.max(qtyW, x.measureText(l.qty).width);
+  const nameMaxW = Math.max(240, W - PAD * 2 - qtyW - 48);
+
+  const namePitch = 56, rowPadT = 30, rowPadB = 30;
+  const nameLines = d.lines.map(l => wrap(l.name, nameMaxW, nameFont));
+  const rowH = nameLines.map(nl => Math.max(104, rowPadT + nl.length * namePitch + rowPadB));
+
+  const metaFont = F(400, 36);
+  const metaLines = d.meta.map(m => wrap(m, W - PAD * 2, metaFont));
+  const vNameLines = wrap(d.vendorName, W - PAD * 2, F(700, 54));
+
+  let H = 150;                       // red header
+  H += 52;                           // top pad
+  H += vNameLines.length * 62;       // vendor name
+  H += 14 + 46;                      // date
+  for (const ml of metaLines) H += ml.length * 48 + 12;
+  H += 30;                           // gap before rows
+  for (const rh of rowH) H += rh;
+  H += 34;                           // gap before footer
+  H += 62;                           // footer
+  if (d.total) H += 56;              // total line
+  H += 52;                           // bottom pad
+
+  c.width = W;
+  c.height = Math.ceil(H);
+  x.fillStyle = "#ffffff";
+  x.fillRect(0, 0, W, H);
+
+  // Header band
+  x.fillStyle = RED;
+  x.fillRect(0, 0, W, 150);
+  x.fillStyle = "#ffffff";
+  x.textAlign = "center";
+  x.textBaseline = "middle";
+  let sSize = 56;
+  x.font = F(700, sSize);
+  while (x.measureText(d.store).width > W - 120 && sSize > 30) { sSize -= 4; x.font = F(700, sSize); }
+  x.fillText(d.store, W / 2, 78);
+  x.textAlign = "left";
+  x.textBaseline = "alphabetic";
+
+  let y = 150 + 52;
+  // Vendor name
+  x.fillStyle = INK;
+  x.font = F(700, 54);
+  for (const vl of vNameLines) { y += 62; x.fillText(vl, PAD, y - 8); }
+  // Date
+  y += 14;
+  x.fillStyle = GRAY;
+  x.font = F(400, 38);
+  y += 46; x.fillText(d.dateLabel, PAD, y - 8);
+  // Meta lines
+  x.font = metaFont;
+  for (const ml of metaLines) {
+    for (const t of ml) { y += 48; x.fillText(t, PAD, y - 8); }
+    y += 12;
+  }
+  y += 30;
+  // Item rows
+  d.lines.forEach((l, i) => {
+    const nl = nameLines[i], rh = rowH[i];
+    x.fillStyle = SEAM;
+    x.fillRect(PAD, y, W - PAD * 2, 2);
+    x.font = nameFont;
+    x.fillStyle = INK;
+    let ty = y + rowPadT;
+    for (const t of nl) { ty += namePitch; x.fillText(t, PAD, ty - 12); }
+    x.font = qtyFont;
+    x.fillStyle = RED;
+    x.textAlign = "right";
+    x.fillText(l.qty, W - PAD, y + rh / 2 + 16);
+    x.textAlign = "left";
+    y += rh;
+  });
+  // Footer
+  y += 34;
+  x.fillStyle = SEAM;
+  x.fillRect(PAD, y, W - PAD * 2, 2);
+  y += 62;
+  x.fillStyle = INK;
+  x.font = F(700, 44);
+  x.fillText(`${d.count} item${d.count === 1 ? "" : "s"}`, PAD, y - 8);
+  if (d.total) {
+    y += 56;
+    x.font = F(400, 40);
+    x.fillStyle = GRAY;
+    x.fillText(`Estimated total: ${d.total}`, PAD, y - 8);
+  }
+  y += 52;
+
+  return new Promise((resolve) => c.toBlob(resolve, "image/png"));
+}
+
+/** Share the card as an image (share sheet) or download it as fallback. */
+async function shareOrderCard(cardId, btn) {
+  const d = state.cardData[cardId];
+  if (!d) return;
+  const label = btn ? btn.textContent : "";
+  if (btn) btn.textContent = "…";
+  try {
+    const blob = await renderOrderCardImage(d);
+    if (!blob) throw new Error("render failed");
+    const safe = d.vendorName.replace(/[^\w]+/g, "-").slice(0, 40) || "order";
+    const file = new File([blob], `order-${safe}.png`, { type: "image/png" });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: `Order — ${d.vendorName}` });
+    } else {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = file.name;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+    }
+  } catch (e) {
+    if (!e || e.name !== "AbortError") flashError("Could not create the order image.");
+  } finally {
+    if (btn) btn.textContent = label;
+  }
+}
+
+/** Copy the card's plain-text version. */
+async function copyCardText(cardId, btn) {
+  const d = state.cardData[cardId];
+  if (!d) return;
+  const label = btn ? btn.innerHTML : "";
+  try { await navigator.clipboard.writeText(d.text); }
+  catch (e) {
+    const ta = document.createElement("textarea");
+    ta.value = d.text;
+    ta.style.cssText = "position:fixed;opacity:0";
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); } catch (e2) { /* noop */ }
+    ta.remove();
+  }
+  if (btn) { btn.textContent = "✓ Copied"; setTimeout(() => { btn.innerHTML = label; }, 2000); }
 }
 
 /* ===================== VIEW: ORDERS ============================ */
@@ -1119,12 +1375,14 @@ function orderEmailText(vendor, lines) {
 async function renderOrders() {
   $app().innerHTML = navHtml() + `<div class="view"><div class="loading">Loading orders…</div></div>`;
   try {
-    const [o, v] = await Promise.all([
+    const [o, v, sg] = await Promise.all([
       edge("orders.list").catch(() => ({ orders: [] })),
       edge("vendors.list").catch(() => ({ vendors: state.vendors })),
+      edge("settings.get").catch(() => ({ settings: state.settings })),
     ]);
     state.orders = o.orders || o || [];
     state.vendors = v.vendors || v || [];
+    if (sg.settings) state.settings = Object.assign({ store_name: "Sumo Sushi", show_prices: false }, sg.settings);
   } catch (e) { if (e.status === 401 || e.code === "unauthorized") { dropSession(); go("#/login"); return; } }
 
   const canManage = has("approve"); // manager+: mark sent/received
@@ -1140,63 +1398,33 @@ async function renderOrders() {
     ${state.orders.length === 0 ? `<p class="muted">No orders yet. Approve a count to generate orders.</p>` : ""}
     ${state.orders.map(ord => {
       const v = vendorOf(ord.vendor_id) || {};
-      const lines = ord.lines || [];
-      const total = lines.reduce((s, l) => s + (Number(l.line_cost) || 0), 0);
-      const email = orderEmailText(v, lines.map(l => ({
-        item: { name: l.item_name, unit: l.unit, par: l.par },
-        have: l.count, order: l.order_qty, line: Number(l.line_cost) || 0,
-      })));
-      return `<div class="vendor-card">
-        <div class="vendor-head">
-          <div><div class="vendor-name">${esc(v.name || ord.vendor_name || "Vendor")}</div>
-          <div class="vendor-email">${esc(v.email || "")} · ${fmtDate(ord.created_at)}</div></div>
+      const vendor = {
+        name: v.name || ord.vendor_name || "Vendor",
+        order_days: v.order_days || ord.vendor_order_days,
+        order_cutoff: v.order_cutoff || ord.vendor_order_cutoff,
+        delivery_days: v.delivery_days || ord.vendor_delivery_days,
+      };
+      const lines = (ord.lines || []).map(l => ({
+        name: l.item_name, qty: l.order_qty, unit: l.unit, line: Number(l.line_cost) || 0,
+      }));
+      const d = orderCardData(vendor, lines, fmtLongDate(ord.created_at));
+      return `<div class="order-wrap">
+        <div class="order-status-row no-print">
           ${pill(ord.status)}
+          <span style="display:flex;gap:8px">
+            ${canManage && ord.status !== "sent" && ord.status !== "received"
+              ? `<button class="btn btn-small" data-sent="${esc(ord.id)}">Mark sent</button>` : ""}
+            ${canManage && ord.status === "sent"
+              ? `<button class="btn btn-small" data-received="${esc(ord.id)}">Mark received</button>` : ""}
+          </span>
         </div>
-        <table class="order-table">
-          <thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Cost</th></tr></thead>
-          <tbody>${lines.map(l => `<tr>
-            <td>${esc(l.item_name)}</td><td>${fmtCount(l.order_qty)}${l.unit ? " " + esc(l.unit) : ""}</td>
-            <td>${fmtMoney((Number(l.line_cost) || 0) / (Number(l.order_qty) || 1))}</td><td>${fmtMoney(l.line_cost)}</td>
-          </tr>`).join("")}</tbody>
-          <tfoot><tr><td colspan="3">Total</td><td>${fmtMoney(total)}</td></tr></tfoot>
-        </table>
-        <pre class="email" id="email-${esc(ord.id)}">${esc(email)}</pre>
-        <div class="order-actions no-print">
-          <button class="btn btn-small" data-copy="${esc(ord.id)}">📋 Copy email</button>
-          ${canManage && ord.status !== "sent" && ord.status !== "received"
-            ? `<button class="btn btn-small" data-sent="${esc(ord.id)}">Mark sent</button>` : ""}
-          ${canManage && ord.status === "sent"
-            ? `<button class="btn btn-small" data-received="${esc(ord.id)}">Mark received</button>` : ""}
-        </div>
+        ${orderCardHtml(d)}
       </div>`;
     }).join("")}
     <div style="margin-top:16px" class="no-print"><button class="btn" data-act="back-home">← Home</button></div>
   </div>`;
 
-  // Copy email: clipboard API with textarea fallback.
-  $app().querySelectorAll("[data-copy]").forEach(b => b.onclick = async () => {
-    const text = document.getElementById("email-" + b.dataset.copy).textContent;
-    try {
-      await navigator.clipboard.writeText(text);
-      b.textContent = "✓ Copied";
-    } catch (e) {
-      // Fallback: select-all in a temp textarea + execCommand.
-      try {
-        const ta = document.createElement("textarea");
-        ta.value = text;
-        ta.style.position = "fixed"; ta.style.opacity = "0";
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand("copy");
-        document.body.removeChild(ta);
-        b.textContent = "✓ Copied";
-      } catch (e2) {
-        b.textContent = "Copy failed — select text manually";
-      }
-    }
-    setTimeout(() => b.textContent = "📋 Copy email", 2000);
-  });
-
+  // Card actions (share image / copy text) are wired via delegation in boot().
   $app().querySelectorAll("[data-sent]").forEach(b => b.onclick = () => setOrderStatus(b.dataset.sent, "sent"));
   $app().querySelectorAll("[data-received]").forEach(b => b.onclick = () => setOrderStatus(b.dataset.received, "received"));
   $app().querySelector('[data-act="back-home"]').onclick = () => go("#/home");
@@ -1225,16 +1453,18 @@ async function renderAdmin(tab) {
   }
   $app().innerHTML = navHtml() + `<div class="view"><div class="loading">Loading admin…</div></div>`;
   try {
-    const [it, a, v, u] = await Promise.all([
+    const [it, a, v, u, sg] = await Promise.all([
       edge("items.list").catch(() => ({ items: state.items })),
       edge("areas.list").catch(() => ({ areas: state.areas })),
       edge("vendors.list").catch(() => ({ vendors: state.vendors })),
       edge("users.list").catch(() => ({ users: [] })),
+      edge("settings.get").catch(() => ({ settings: state.settings })),
     ]);
     state.items = it.items || it || [];
     state.areas = a.areas || a || [];
     state.vendors = v.vendors || v || [];
     state.users = u.users || u || [];
+    if (sg.settings) state.settings = Object.assign({ store_name: "Sumo Sushi", show_prices: false }, sg.settings);
   } catch (e) { if (e.status === 401 || e.code === "unauthorized") { dropSession(); go("#/login"); return; } }
 
   const allTabs = [["items", "Items"], ["areas", "Areas"], ["vendors", "Vendors"], ["users", "Users"], ["io", "Import/Export"]];
@@ -1281,6 +1511,7 @@ function adminItemsHtml() {
       <div class="form-row">
         <div class="field"><label>Par</label><input id="ni-par" type="number" inputmode="decimal" min="0" step="0.25" placeholder="0"></div>
         <div class="field"><label>Unit</label><input id="ni-unit" placeholder="cs / lb / ea"></div>
+        <div class="field"><label>Price</label><input id="ni-price" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00"></div>
       </div>
       <div id="ni-err"></div>
       <button class="btn btn-primary" id="ni-add" style="width:100%">Add item</button>
@@ -1356,6 +1587,11 @@ function adminVendorsHtml() {
         <div class="field"><label>Email</label><input data-f="email" type="email" value="${esc(v.email || "")}"></div>
       </div>
       <div class="field"><label>Notes</label><input data-f="notes" value="${esc(v.notes || "")}"></div>
+      <div class="form-row">
+        <div class="field"><label>Order days</label><input data-f="order_days" value="${esc(v.order_days || "")}" placeholder="e.g. Tue, Thu"></div>
+        <div class="field"><label>Order by</label><input data-f="order_cutoff" value="${esc(v.order_cutoff || "")}" placeholder="e.g. 3pm"></div>
+      </div>
+      <div class="field"><label>Delivery days</label><input data-f="delivery_days" value="${esc(v.delivery_days || "")}" placeholder="e.g. Wed, Fri"></div>
       <button class="btn btn-primary btn-small" data-vsave style="width:100%">Save</button>
     </div>`).join("")}`;
 }
@@ -1413,6 +1649,16 @@ function adminUsersHtml() {
 /* ---------------- Import / Export tab ---------------- */
 function adminIOHtml() {
   return `<div class="admin-card">
+      <h3 style="margin-top:0">Store settings</h3>
+      <div class="field"><label>Store name <span class="muted">(order card header)</span></label>
+        <input id="set-store-name" value="${esc(storeName())}" maxlength="80"></div>
+      <label class="check-row"><input type="checkbox" id="set-show-prices" ${showPrices() ? "checked" : ""}>
+        <span><strong>Show prices in orders</strong><br>
+        <span class="muted">When off, costs and totals are hidden from order previews and order cards.</span></span></label>
+      <div id="set-msg" style="margin:8px 0"></div>
+      <button class="btn btn-primary" id="set-save" style="width:100%">Save settings</button>
+    </div>
+    <div class="admin-card">
       <h3 style="margin-top:0">Export</h3>
       <p class="muted">Download a full JSON dump of the catalog and history.</p>
       <button class="btn" id="io-export" style="width:100%">Export JSON</button>
@@ -1450,6 +1696,7 @@ function wireAdmin(tab) {
           vendor_id: document.getElementById("ni-vendor").value || null,
           par: Number(document.getElementById("ni-par").value) || 0,
           unit: document.getElementById("ni-unit").value.trim(),
+          price: Number(document.getElementById("ni-price").value) || 0,
         });
         rerender();
       } catch (e) { err.innerHTML = `<div class="error">${esc(e.detail || "Could not add item.")}</div>`; }
@@ -1571,6 +1818,19 @@ function wireAdmin(tab) {
   }
 
   if (tab === "io") {
+    document.getElementById("set-save").onclick = async () => {
+      const msg = document.getElementById("set-msg");
+      const name = document.getElementById("set-store-name").value.trim();
+      const show = document.getElementById("set-show-prices").checked;
+      if (!name) { msg.innerHTML = `<div class="error">Store name can't be empty.</div>`; return; }
+      msg.innerHTML = `<span class="muted">Saving…</span>`;
+      try {
+        await edge("settings.set", { key: "store_name", value: name });
+        await edge("settings.set", { key: "show_prices", value: show });
+        state.settings = { store_name: name, show_prices: show };
+        msg.innerHTML = `<span style="color:var(--ok)">Saved.</span>`;
+      } catch (e) { msg.innerHTML = `<div class="error">${esc(e.detail || "Could not save settings.")}</div>`; }
+    };
     document.getElementById("io-export").onclick = async () => {
       try {
         const data = await edge("export");
