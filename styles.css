@@ -41,6 +41,7 @@ body {
   display: flex; align-items: center; justify-content: space-between;
   padding: 10px 14px; background: var(--bg2); border-bottom: 1px solid var(--border);
   position: sticky; top: 0; z-index: 50;
+  padding-top: calc(10px + env(safe-area-inset-top));
 }
 .topnav .brand { font-weight: 800; font-size: 18px; letter-spacing: .5px; }
 .topnav .brand .dot { color: var(--accent-hi); }
@@ -93,7 +94,7 @@ body {
 .pin-key { min-height: 72px; font-size: 26px; border-radius: 50%; width: 84px; height: 84px;
   justify-self: center; background: var(--card2); border: 1px solid var(--border); color: var(--text); }
 .pin-key:active { background: var(--accent); }
-.pin-pad-wrap { max-width: 400px; margin: 0 auto; }
+.pin-pad-wrap { max-width: 400px; margin: 0 auto; padding-top: env(safe-area-inset-top); }
 
 /* ---------- Count view ---------- */
 .area-tabs { position: sticky; top: 57px; z-index: 40; background: var(--bg);
