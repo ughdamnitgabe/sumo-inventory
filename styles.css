@@ -44,6 +44,7 @@ body {
 }
 .topnav .brand { font-weight: 800; font-size: 18px; letter-spacing: .5px; }
 .topnav .brand .dot { color: var(--accent-hi); }
+.topnav .brand-btn { background: none; border: 0; padding: 10px 8px; margin: -10px 0 -10px -8px; cursor: pointer; color: inherit; font: inherit; }
 .topnav .user { font-size: 13px; color: var(--muted); }
 .btn {
   display: inline-flex; align-items: center; justify-content: center;

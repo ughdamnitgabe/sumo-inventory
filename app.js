@@ -148,6 +148,11 @@ async function boot() {
   }
   router();
   window.addEventListener("hashchange", router);
+  // Top-bar Home button, delegated so every view gets it without per-view wiring.
+  document.addEventListener("click", (e) => {
+    const t = e.target.closest('[data-act="nav-home"]');
+    if (t) go("#/home");
+  });
 }
 
 /** Logout: tell the server, then wipe local session. */
@@ -194,9 +199,12 @@ function go(h) { if (location.hash === h) router(); else location.hash = h; }
 function navHtml(title) {
   const p = state.session ? state.session.profile : {};
   return `<div class="topnav no-print">
-    <div><span class="brand">SUMO<span class="dot">•</span>INV</span></div>
+    <div><button class="brand-btn" data-act="nav-home" aria-label="Home"><span class="brand">SUMO<span class="dot">•</span>INV</span></button></div>
     <div class="user">${esc(p.name || "")} · ${esc(roleLabel(p.role))}</div>
-    <button class="btn btn-small btn-ghost" data-act="nav-logout" aria-label="Log out">⎋</button>
+    <div style="display:flex;gap:4px;align-items:center">
+      <button class="btn btn-small btn-ghost" data-act="nav-home" aria-label="Home">⌂</button>
+      <button class="btn btn-small btn-ghost" data-act="nav-logout" aria-label="Log out">⎋</button>
+    </div>
   </div>`;
 }
 
