@@ -43,8 +43,324 @@ function fmtMoney(n) {
 
 function fmtDate(iso) {
   if (!iso) return "";
-  return new Date(iso).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  return new Date(iso).toLocaleString([locale()], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 }
+
+/* ============================ I18N ============================== */
+/* UI language toggle (EN/ES) for staff, managers and admins.
+ * RULE: vendor-facing output (order cards, share images, copy text,
+ * vendor emails) is ALWAYS English — only the app chrome translates.
+ * The Super Admin screens also stay in English. */
+const LANG_KEY = "sumoV2lang";
+const STR = {
+en: {
+  "common.cancel": "Cancel", "common.confirm": "Confirm", "common.back": "← Back",
+  "common.save": "Save", "common.delete": "Delete", "common.name": "Name",
+  "common.notes": "Notes", "common.move": "Move", "common.notAuth": "Not authorized.",
+  "common.saving": "Saving…", "common.checking": "Checking…",
+  "common.item": "Item", "common.continue": "Continue",
+  "nav.homeAria": "Home", "nav.logoutAria": "Log out",
+  "role.manager": "Manager", "role.staff": "Staff", "role.view": "View",
+  "move.title": "Move to area", "move.current": "current",
+  "login.prompt": "Enter your PIN to sign in", "login.signin": "Sign in",
+  "login.needPin": "Enter your PIN.", "login.wrong": "Wrong PIN. Try again.",
+  "login.langToggle": "Español",
+  "setpin.title": "Set your PIN", "setpin.step1": "Enter a new PIN (min 4 digits)",
+  "setpin.step2": "Enter it again to confirm", "setpin.min4": "PIN must be at least 4 digits.",
+  "setpin.mismatch": "PINs don't match. Start over.", "setpin.fail": "Could not set PIN. Try again.",
+  "home.hi": "Hi", "home.parBanner": "Set par levels to generate orders",
+  "home.parBanner2": "items have pars.", "home.openPar": "Open bulk par editor →",
+  "home.start": "Start New Count", "home.orders": "Order History", "home.manage": "Manage",
+  "home.viewOrders": "View Orders", "home.drafts": "Draft counts",
+  "home.noDrafts": "No draft counts.", "home.count": "Count",
+  "home.review": "Review", "home.resume": "Resume", "home.view": "View",
+  "home.discard": "Abandon", "home.abandonTitle": "Abandon count?",
+  "home.abandonMsg": "This draft count will be discarded. This cannot be undone.",
+  "home.abandonYes": "Abandon", "home.abandonFail": "Could not abandon count.",
+  "home.startFail": "Could not start a new count.", "home.noSession": "Server did not return a session id.",
+  "home.replay": "🔁 Replay tour",
+  "par.title": "Bulk par editor",
+  "par.hint": "Only items with a par above 0 generate order lines. Leave blank = no par.",
+  "par.par": "Par", "par.price": "Price", "par.saveAll": "Save all",
+  "par.saved1": "Saved 1 change.", "par.savedN": "Saved {n} changes.",
+  "par.saveFail": "Save failed.", "par.change": "change", "par.changes": "changes",
+  "count.loading": "Loading count…",
+  "pill.not": "Not counted", "pill.counted": "Counted", "pill.zero": "Zero confirmed",
+  "pill.done": "Done", "pill.review": "Needs review",
+  "count.noPar": "no par", "count.dec": "Decrease", "count.inc": "Increase",
+  "count.countFor": "Count for", "count.parFor": "Par for",
+  "count.full": "Full", "count.clear": "Clear", "count.markZero": "Mark Zero",
+  "count.doneBtn": "✓ Done", "count.moveArea": "Move area",
+  "count.noParHint": "No par set — enter count",
+  "count.search": "🔍 Search items…", "count.noItems": "No items here",
+  "count.noItemsSearch": " matching your search", "count.toReview": "Review & approve →",
+  "count.aiPh": "Type or dictate counts — e.g. '12 tuna, half case salmon'",
+  "count.aiParse": "Parse with AI", "count.aiNeedText": "Type or dictate some counts first.",
+  "count.aiParsing": "Parsing…", "count.aiUnknown": "Not recognized: ",
+  "count.aiNoMatch": "No items recognized. Try being specific, e.g. \"12 tuna\".",
+  "count.aiApply": "Apply checked",
+  "count.aiApplied1": "Applied 1 count.", "count.aiAppliedN": "Applied {n} counts.",
+  "count.aiNoKey": "AI not configured — ask your super admin to add a Gemini API key (free at aistudio.google.com).",
+  "count.aiFail": "AI parse failed.",
+  "count.noVoice": "Voice input isn't available in this browser — use your phone keyboard's mic 🎤 instead.",
+  "count.saveFail": "Could not save {name} — check connection. (Your other entries are safe.)",
+  "count.moveTitle": "Move item?", "count.moveMsg": "Move {name} from {from} to {to}?",
+  "count.moveFail": "Could not move item.", "count.parFail": "Could not update par.",
+  "review.loading": "Loading review…", "review.title": "Review & approve",
+  "review.notCounted": "Not counted", "review.allCounted": "Everything has a count. 🎉",
+  "review.needsReview": "Needs review", "review.noneFlagged": "Nothing flagged.",
+  "review.noEntry": "no entry yet", "review.flagged": "flagged for review",
+  "review.open": "Open →", "review.aiCheck": "AI check", "review.runAi": "Run AI check",
+  "review.noIssues": "No issues found.", "review.aiFail": "AI check failed.",
+  "review.preview": "Vendor order preview",
+  "review.nothingToOrder": "Nothing to order — all auto-mode pars are covered (or no pars set).",
+  "review.nothingCounted": "Nothing counted yet — enter counts to see what will be ordered.",
+  "review.approveEmptyTitle": "No counts entered",
+  "review.approveEmptyMsg": "You haven't entered any counts. Approving now will generate NO orders.",
+  "review.approveEmptyYes": "Approve anyway", "review.keepCounting": "Keep counting",
+  "review.approveNoLinesTitle": "Nothing to order",
+  "review.approveNoLinesMsg": "All counted items are at or above par. Approving will generate no orders.",
+  "review.approve": "Approve count",
+  "review.onlyManagers": "Only managers or the super admin can approve.",
+  "review.approveTitle": "Approve count?",
+  "review.approveMsg": "This finalizes the count and generates orders. Continue?",
+  "review.approveYes": "Approve", "review.approveFail": "Approval failed.",
+  "review.blockTitle": "Cannot approve — these items need review:",
+  "review.blockMsg": "Open each item in the count and resolve it, then approve again.",
+  "review.info": "ℹ️ Info", "review.warn": "⚠️ Warning",
+  "orders.loading": "Loading orders…", "orders.title": "Orders",
+  "orders.print": "🖨 Print",
+  "orders.none": "No orders yet. Approve a count to generate orders.",
+  "orders.draft": "draft", "orders.sent": "sent", "orders.received": "received",
+  "orders.markSent": "Mark sent", "orders.markReceived": "Mark received",
+  "orders.share": "📤 Share image", "orders.copy": "📋 Copy text",
+  "orders.copied": "✓ Copied", "orders.imgFail": "Could not create the order image.",
+  "orders.statusFail": "Could not update order status.",
+  "admin.manage": "Manage", "admin.items": "Items", "admin.areas": "Areas",
+  "admin.vendors": "Vendors", "admin.users": "Users",
+  "users.delete": "Delete", "users.deleteTitle": "Delete user?",
+  "users.deleteMsg": "This permanently removes {name}. This cannot be undone.",
+  "users.deleteFail": "Could not delete user.",
+  "admin.addItem": "Add item", "admin.area": "Area", "admin.vendor": "Vendor",
+  "admin.unit": "Unit", "admin.price": "Price", "admin.exItem": "e.g. Bluefin tuna",
+  "admin.itemNeedName": "Item name can't be empty.",
+  "admin.addItemFail": "Could not add item.", "admin.archived": "ARCHIVED",
+  "admin.unarchive": "Unarchive", "admin.archive": "Archive",
+  "admin.mode": "Mode", "admin.modeAuto": "auto (generates orders)",
+  "admin.modeManual": "manual", "admin.countStyle": "Count style",
+  "admin.exCase": "e.g. case", "admin.pieces": "Pieces per case",
+  "admin.noVendor": "no vendor", "admin.saveItemFail": "Could not save item.",
+  "admin.archiveFail": "Could not toggle archive.",
+  "admin.addArea": "Add area", "admin.areaName": "Area name", "admin.rename": "Rename",
+  "admin.areaNeedName": "Area name can't be empty.",
+  "admin.addAreaFail": "Could not add area.", "admin.renameFail": "Could not rename area.",
+  "admin.delAreaTitle": "Delete area?", "admin.delAreaMsg": "Delete \"{name}\"? Items must be moved out first.",
+  "admin.delAreaFail": "Could not delete area — it may still have items.",
+  "admin.addVendor": "Add vendor",
+  "admin.vendorNeedName": "Vendor name can't be empty.",
+  "admin.addVendorFail": "Could not add vendor.",
+  "admin.vendorSaveFail": "Could not save vendor.",
+  "vendor.orderDays": "Order days", "vendor.orderBy": "Order by",
+  "vendor.deliveryDays": "Delivery days",
+  "admin.addUser": "Add user", "admin.role": "Role",
+  "admin.initPin": "Initial PIN (min 4 digits)",
+  "admin.userNeedName": "Name can't be empty.",
+  "admin.addUserFail": "Could not add user.", "admin.you": "you",
+  "admin.active": "active", "admin.disabled": "disabled",
+  "admin.enable": "Enable", "admin.disable": "Disable",
+  "admin.saveRole": "Save role", "admin.setNewPin": "Set new PIN (enter twice)",
+  "admin.newPin": "New PIN", "admin.confirmPin": "Confirm PIN",
+  "admin.setPinBtn": "Set PIN",
+  "admin.userStatusFail": "Could not change user status.",
+  "admin.roleFail": "Could not update role.", "admin.setPinFail": "Could not set PIN.",
+  "admin.email": "Email", "admin.moveItemTitle": "Move item?",
+  "admin.moveItemMsg": "Move {item} from {from} to {to}?",
+  "admin.moveFail": "Could not move item.",
+  "admin.pinNeed4": "PIN must be at least 4 digits.",
+  "admin.pinMismatch": "PINs don't match.",
+  "admin.protected": "protected",
+  "admin.saLocked": "Super Admin — only Gabe can change this",
+  "tour.skip": "Skip", "tour.next": "Next →", "tour.done": "Got it",
+  "tour.welcomeT": "Welcome to Sumo Inventory",
+  "tour.welcomeB": "Here's the 30-second tour. You can skip anytime.",
+  "tour.startT": "Start a count here",
+  "tour.startB": "Tap this to start a new count. You'll enter what you see on the shelves.",
+  "tour.ordersT": "Orders live here",
+  "tour.ordersB": "Finished orders appear here as clean cards you can share with vendors.",
+  "tour.langT": "English / Español",
+  "tour.langB": "Tap the 🌐 button anytime to switch languages. Orders always go out in English.",
+  "tour.c1T": "This is what you enter",
+  "tour.c1B": "Type the count in the box — or tap − / + to adjust. It saves automatically.",
+  "tour.c2T": "Areas",
+  "tour.c2B": "Switch areas with these tabs. The numbers show how many items are done.",
+  "tour.c3T": "Quick buttons",
+  "tour.c3B": "0, fractions, Full, and ✓ Done speed things up. Mark Zero if the shelf is empty.",
+  "tour.replay": "🔁 Replay tour",
+},
+es: {
+  "common.cancel": "Cancelar", "common.confirm": "Confirmar", "common.back": "← Atrás",
+  "common.save": "Guardar", "common.delete": "Eliminar", "common.name": "Nombre",
+  "common.notes": "Notas", "common.move": "Mover", "common.notAuth": "No autorizado.",
+  "common.saving": "Guardando…", "common.checking": "Revisando…",
+  "common.item": "Artículo", "common.continue": "Continuar",
+  "nav.homeAria": "Inicio", "nav.logoutAria": "Cerrar sesión",
+  "role.manager": "Gerente", "role.staff": "Personal", "role.view": "Lectura",
+  "move.title": "Mover a área", "move.current": "actual",
+  "login.prompt": "Ingresa tu PIN para entrar", "login.signin": "Entrar",
+  "login.needPin": "Ingresa tu PIN.", "login.wrong": "PIN incorrecto. Intenta de nuevo.",
+  "login.langToggle": "English",
+  "setpin.title": "Crea tu PIN", "setpin.step1": "Ingresa un PIN nuevo (mín. 4 dígitos)",
+  "setpin.step2": "Ingrésalo de nuevo para confirmar", "setpin.min4": "El PIN debe tener al menos 4 dígitos.",
+  "setpin.mismatch": "Los PIN no coinciden. Empieza de nuevo.", "setpin.fail": "No se pudo guardar el PIN. Intenta de nuevo.",
+  "home.hi": "Hola", "home.parBanner": "Pon los niveles de par para generar pedidos",
+  "home.parBanner2": "artículos tienen par.", "home.openPar": "Abrir editor de pars →",
+  "home.start": "Empezar nuevo conteo", "home.orders": "Historial de pedidos", "home.manage": "Administrar",
+  "home.viewOrders": "Ver pedidos", "home.drafts": "Conteos en borrador",
+  "home.noDrafts": "No hay conteos en borrador.", "home.count": "Conteo",
+  "home.review": "Revisar", "home.resume": "Continuar", "home.view": "Ver",
+  "home.discard": "Descartar", "home.abandonTitle": "¿Descartar conteo?",
+  "home.abandonMsg": "Este borrador se eliminará. No se puede deshacer.",
+  "home.abandonYes": "Descartar", "home.abandonFail": "No se pudo descartar el conteo.",
+  "home.startFail": "No se pudo empezar el conteo.", "home.noSession": "El servidor no devolvió un id de sesión.",
+  "home.replay": "🔁 Ver recorrido",
+  "par.title": "Editor de pars",
+  "par.hint": "Solo los artículos con par mayor a 0 generan pedidos. Vacío = sin par.",
+  "par.par": "Par", "par.price": "Precio", "par.saveAll": "Guardar todo",
+  "par.saved1": "Se guardó 1 cambio.", "par.savedN": "Se guardaron {n} cambios.",
+  "par.saveFail": "No se pudo guardar.", "par.change": "cambio", "par.changes": "cambios",
+  "count.loading": "Cargando conteo…",
+  "pill.not": "Sin contar", "pill.counted": "Contado", "pill.zero": "Cero confirmado",
+  "pill.done": "Listo", "pill.review": "Revisar",
+  "count.noPar": "sin par", "count.dec": "Disminuir", "count.inc": "Aumentar",
+  "count.countFor": "Conteo de", "count.parFor": "Par de",
+  "count.full": "Lleno", "count.clear": "Borrar", "count.markZero": "Marcar cero",
+  "count.doneBtn": "✓ Listo", "count.moveArea": "Mover de área",
+  "count.noParHint": "Sin par — ingresa el conteo",
+  "count.search": "🔍 Buscar artículos…", "count.noItems": "No hay artículos aquí",
+  "count.noItemsSearch": " que coincidan con tu búsqueda", "count.toReview": "Revisar y aprobar →",
+  "count.aiPh": "Escribe o dicta conteos — p. ej. '12 atún, medio caso de salmón'",
+  "count.aiParse": "Analizar con IA", "count.aiNeedText": "Escribe o dicta algunos conteos primero.",
+  "count.aiParsing": "Analizando…", "count.aiUnknown": "No reconocido: ",
+  "count.aiNoMatch": "No se reconoció ningún artículo. Sé específico, p. ej. \"12 atún\".",
+  "count.aiApply": "Aplicar selección",
+  "count.aiApplied1": "Se aplicó 1 conteo.", "count.aiAppliedN": "Se aplicaron {n} conteos.",
+  "count.aiNoKey": "IA no configurada — pide al super admin que agregue una clave API de Gemini (gratis en aistudio.google.com).",
+  "count.aiFail": "Falló el análisis de IA.",
+  "count.noVoice": "La voz no está disponible en este navegador — usa el micrófono 🎤 del teclado de tu teléfono.",
+  "count.saveFail": "No se pudo guardar {name} — revisa tu conexión. (Tus otros conteos están a salvo.)",
+  "count.moveTitle": "¿Mover artículo?", "count.moveMsg": "¿Mover {name} de {from} a {to}?",
+  "count.moveFail": "No se pudo mover el artículo.", "count.parFail": "No se pudo actualizar el par.",
+  "review.loading": "Cargando revisión…", "review.title": "Revisar y aprobar",
+  "review.notCounted": "Sin contar", "review.allCounted": "Todo tiene conteo. 🎉",
+  "review.needsReview": "Necesitan revisión", "review.noneFlagged": "Nada marcado.",
+  "review.noEntry": "sin entrada aún", "review.flagged": "marcado para revisión",
+  "review.open": "Abrir →", "review.aiCheck": "Revisión de IA", "review.runAi": "Ejecutar revisión de IA",
+  "review.noIssues": "Sin problemas.", "review.aiFail": "Falló la revisión de IA.",
+  "review.preview": "Vista previa del pedido",
+  "review.nothingToOrder": "Nada que pedir — los pars automáticos están cubiertos (o no hay pars).",
+  "review.nothingCounted": "Aún no hay conteos — ingresa conteos para ver lo que se pedirá.",
+  "review.approveEmptyTitle": "Sin conteos ingresados",
+  "review.approveEmptyMsg": "No has ingresado ningún conteo. Aprobar ahora NO generará pedidos.",
+  "review.approveEmptyYes": "Aprobar de todos modos", "review.keepCounting": "Seguir contando",
+  "review.approveNoLinesTitle": "Nada que pedir",
+  "review.approveNoLinesMsg": "Todos los artículos contados están en o sobre el par. Aprobar no generará pedidos.",
+  "review.approve": "Aprobar conteo",
+  "review.onlyManagers": "Solo gerentes o el super admin pueden aprobar.",
+  "review.approveTitle": "¿Aprobar conteo?",
+  "review.approveMsg": "Esto finaliza el conteo y genera los pedidos. ¿Continuar?",
+  "review.approveYes": "Aprobar", "review.approveFail": "Falló la aprobación.",
+  "review.blockTitle": "No se puede aprobar — estos artículos necesitan revisión:",
+  "review.blockMsg": "Abre cada artículo en el conteo y resuélvelo, luego aprueba de nuevo.",
+  "review.info": "ℹ️ Info", "review.warn": "⚠️ Advertencia",
+  "orders.loading": "Cargando pedidos…", "orders.title": "Pedidos",
+  "orders.print": "🖨 Imprimir",
+  "orders.none": "Aún no hay pedidos. Aprueba un conteo para generar pedidos.",
+  "orders.draft": "borrador", "orders.sent": "enviado", "orders.received": "recibido",
+  "orders.markSent": "Marcar enviado", "orders.markReceived": "Marcar recibido",
+  "orders.share": "📤 Compartir imagen", "orders.copy": "📋 Copiar texto",
+  "orders.copied": "✓ Copiado", "orders.imgFail": "No se pudo crear la imagen del pedido.",
+  "orders.statusFail": "No se pudo actualizar el estado del pedido.",
+  "admin.manage": "Administrar", "admin.items": "Artículos", "admin.areas": "Áreas",
+  "admin.vendors": "Proveedores", "admin.users": "Usuarios",
+  "users.delete": "Eliminar", "users.deleteTitle": "¿Eliminar usuario?",
+  "users.deleteMsg": "Esto elimina permanentemente a {name}. No se puede deshacer.",
+  "users.deleteFail": "No se pudo eliminar el usuario.",
+  "admin.addItem": "Agregar artículo", "admin.area": "Área", "admin.vendor": "Proveedor",
+  "admin.unit": "Unidad", "admin.price": "Precio", "admin.exItem": "p. ej. atún bluefin",
+  "admin.itemNeedName": "El nombre no puede estar vacío.",
+  "admin.addItemFail": "No se pudo agregar el artículo.", "admin.archived": "ARCHIVADO",
+  "admin.unarchive": "Desarchivar", "admin.archive": "Archivar",
+  "admin.mode": "Modo", "admin.modeAuto": "auto (genera pedidos)",
+  "admin.modeManual": "manual", "admin.countStyle": "Estilo de conteo",
+  "admin.exCase": "p. ej. caso", "admin.pieces": "Piezas por caso",
+  "admin.noVendor": "sin proveedor", "admin.saveItemFail": "No se pudo guardar el artículo.",
+  "admin.archiveFail": "No se pudo archivar.",
+  "admin.addArea": "Agregar área", "admin.areaName": "Nombre del área", "admin.rename": "Renombrar",
+  "admin.areaNeedName": "El nombre del área no puede estar vacío.",
+  "admin.addAreaFail": "No se pudo agregar el área.", "admin.renameFail": "No se pudo renombrar el área.",
+  "admin.delAreaTitle": "¿Eliminar área?", "admin.delAreaMsg": "¿Eliminar \"{name}\"? Primero mueve los artículos fuera.",
+  "admin.delAreaFail": "No se pudo eliminar el área — puede tener artículos.",
+  "admin.addVendor": "Agregar proveedor",
+  "admin.vendorNeedName": "El nombre del proveedor no puede estar vacío.",
+  "admin.addVendorFail": "No se pudo agregar el proveedor.",
+  "admin.vendorSaveFail": "No se pudo guardar el proveedor.",
+  "vendor.orderDays": "Días de pedido", "vendor.orderBy": "Pedir antes de",
+  "vendor.deliveryDays": "Días de entrega",
+  "admin.addUser": "Agregar usuario", "admin.role": "Rol",
+  "admin.initPin": "PIN inicial (mín. 4 dígitos)",
+  "admin.userNeedName": "El nombre no puede estar vacío.",
+  "admin.addUserFail": "No se pudo agregar el usuario.", "admin.you": "tú",
+  "admin.active": "activo", "admin.disabled": "desactivado",
+  "admin.enable": "Activar", "admin.disable": "Desactivar",
+  "admin.saveRole": "Guardar rol", "admin.setNewPin": "Poner PIN nuevo (dos veces)",
+  "admin.newPin": "PIN nuevo", "admin.confirmPin": "Confirmar PIN",
+  "admin.setPinBtn": "Poner PIN",
+  "admin.userStatusFail": "No se pudo cambiar el estado del usuario.",
+  "admin.roleFail": "No se pudo actualizar el rol.", "admin.setPinFail": "No se pudo poner el PIN.",
+  "admin.email": "Correo", "admin.moveItemTitle": "¿Mover artículo?",
+  "admin.moveItemMsg": "¿Mover {item} de {from} a {to}?",
+  "admin.moveFail": "No se pudo mover el artículo.",
+  "admin.pinNeed4": "El PIN debe tener al menos 4 dígitos.",
+  "admin.pinMismatch": "Los PIN no coinciden.",
+  "admin.protected": "protegido",
+  "admin.saLocked": "Super Admin — solo Gabe puede cambiar esto",
+  "tour.skip": "Omitir", "tour.next": "Siguiente →", "tour.done": "Entendido",
+  "tour.welcomeT": "Bienvenido a Sumo Inventory",
+  "tour.welcomeB": "Un recorrido de 30 segundos. Puedes omitirlo cuando quieras.",
+  "tour.startT": "Empieza un conteo aquí",
+  "tour.startB": "Toca aquí para empezar un conteo nuevo. Anotarás lo que veas en los estantes.",
+  "tour.ordersT": "Los pedidos están aquí",
+  "tour.ordersB": "Los pedidos terminados aparecen aquí como tarjetas listas para compartir con los proveedores.",
+  "tour.langT": "English / Español",
+  "tour.langB": "Toca el botón 🌐 cuando quieras para cambiar el idioma. Los pedidos siempre salen en inglés.",
+  "tour.c1T": "Aquí anotas el conteo",
+  "tour.c1B": "Escribe el número en la casilla, o toca − / + para ajustar. Se guarda automáticamente.",
+  "tour.c2T": "Áreas",
+  "tour.c2B": "Cambia de área con estas pestañas. Los números muestran cuántos artículos ya contaste.",
+  "tour.c3T": "Botones rápidos",
+  "tour.c3B": "0, fracciones, Lleno y ✓ Listo aceleran el conteo. Marca cero si el estante está vacío.",
+  "tour.replay": "🔁 Ver recorrido",
+}};
+
+/** Current UI language: "en" | "es". Persisted per device.
+ *  The super admin always gets English (no Spanish UI, no toggle) —
+ *  the stored device preference is left untouched for staff. */
+function lang() {
+  if (state.session && state.session.profile && state.session.profile.role === "superadmin") return "en";
+  return state.lang === "es" ? "es" : "en";
+}
+/** Translate a UI key. Falls back to English, then to the key itself. */
+function T(key) {
+  const d = STR[lang()] || STR.en;
+  if (d[key] != null) return d[key];
+  return STR.en[key] != null ? STR.en[key] : key;
+}
+function setLang(l) {
+  state.lang = l === "es" ? "es" : "en";
+  try { localStorage.setItem(LANG_KEY, state.lang); } catch (e) { /* noop */ }
+}
+/** Locale tag for date formatting, follows the UI language. */
+function locale() { return lang() === "es" ? "es-US" : "en-US"; }
 
 /* ===================== ROLE GATING ============================== */
 /** Single source of truth for what each role may do in the UI.
@@ -57,9 +373,12 @@ const can = {
 };
 const has = (perm) => state.session && can[perm].includes(state.session.profile.role);
 
-/** Display label for a role value. */
-const roleLabel = (r) => r === "superadmin" ? "Super Admin"
-  : r ? r.charAt(0).toUpperCase() + r.slice(1) : "";
+/** Display label for a role value. Super Admin stays English (Gabe's screens). */
+const roleLabel = (r) => {
+  if (r === "superadmin") return "Super Admin";
+  const k = { manager: "role.manager", staff: "role.staff", view: "role.view" }[r];
+  return k ? T(k) : (r ? r.charAt(0).toUpperCase() + r.slice(1) : "");
+};
 
 /* ============================ STATE ============================= */
 const state = {
@@ -75,6 +394,7 @@ const state = {
   saveTimers: {},      // debounced entry saves per item
   settings: null,      // { store_name, show_prices } — loaded via settings.get
   cardData: {},        // order-card payloads keyed by card id (for image share)
+  lang: "en",          // UI language: "en" | "es" (per device; orders always English)
 };
 
 /** Load store settings (store name, price toggle). Cached; cheap to refresh. */
@@ -146,6 +466,7 @@ function dropSession() {
 /** Boot: restore session from localStorage, verify it with a cheap
  *  call (areas.list works for any role). On 401 -> drop + login. */
 async function boot() {
+  try { state.lang = localStorage.getItem(LANG_KEY) || "en"; } catch (e) { state.lang = "en"; }
   const raw = localStorage.getItem(SESSION_KEY);
   if (raw) {
     try {
@@ -166,6 +487,11 @@ async function boot() {
   document.addEventListener("click", (e) => {
     const t = e.target.closest('[data-act="nav-home"]');
     if (t) go("#/home");
+  });
+  // Language toggle (EN/ES) in the top bar — re-render the current view.
+  document.addEventListener("click", (e) => {
+    const t = e.target.closest('[data-act="nav-lang"]');
+    if (t) { setLang(lang() === "es" ? "en" : "es"); router(); }
   });
   // Order-card actions (share image / copy text), delegated for the same reason.
   document.addEventListener("click", (e) => {
@@ -219,12 +545,14 @@ function go(h) { if (location.hash === h) router(); else location.hash = h; }
 /* ========================= TOP NAV ============================ */
 function navHtml(title) {
   const p = state.session ? state.session.profile : {};
+  const isSuper = p.role === "superadmin";
   return `<div class="topnav no-print">
     <div><button class="brand-btn" data-act="nav-home" aria-label="Home"><span class="brand">SUMO<span class="dot">•</span>INV</span></button></div>
     <div class="user">${esc(p.name || "")} · ${esc(roleLabel(p.role))}</div>
     <div style="display:flex;gap:4px;align-items:center">
-      <button class="btn btn-small btn-ghost" data-act="nav-home" aria-label="Home">⌂</button>
-      <button class="btn btn-small btn-ghost" data-act="nav-logout" aria-label="Log out">⎋</button>
+      ${isSuper ? "" : `<button class="btn btn-small btn-ghost" data-act="nav-lang" aria-label="Language" title="English / Español">🌐 ${lang() === "es" ? "EN" : "ES"}</button>`}
+      <button class="btn btn-small btn-ghost" data-act="nav-home" aria-label="${esc(T("nav.homeAria"))}">⌂</button>
+      <button class="btn btn-small btn-ghost" data-act="nav-logout" aria-label="${esc(T("nav.logoutAria"))}">⎋</button>
     </div>
   </div>`;
 }
@@ -245,12 +573,12 @@ function closeModal() {
 }
 
 /** Promise-based confirm dialog with custom text. */
-function confirmDialog(title, message, confirmLabel = "Confirm") {
+function confirmDialog(title, message, confirmLabel = null, cancelLabel = null) {
   return new Promise((resolve) => {
     showModal(`<h3>${esc(title)}</h3><p>${esc(message)}</p>
       <div class="modal-actions">
-        <button class="btn" id="cf-no">Cancel</button>
-        <button class="btn btn-danger" id="cf-yes">${esc(confirmLabel)}</button>
+        <button class="btn" id="cf-no">${esc(cancelLabel || T("common.cancel"))}</button>
+        <button class="btn btn-danger" id="cf-yes">${esc(confirmLabel || T("common.confirm"))}</button>
       </div>`);
     document.getElementById("cf-no").onclick = () => { closeModal(); resolve(false); };
     document.getElementById("cf-yes").onclick = () => { closeModal(); resolve(true); };
@@ -261,10 +589,10 @@ function confirmDialog(title, message, confirmLabel = "Confirm") {
 function pickArea(currentId) {
   return new Promise((resolve) => {
     const opts = state.areas.map(a =>
-      `<button class="btn area-opt" data-area="${a.id}">${esc(a.name)}${a.id === currentId ? " (current)" : ""}</button>`
+      `<button class="btn area-opt" data-area="${a.id}">${esc(a.name)}${a.id === currentId ? " (" + esc(T("move.current")) + ")" : ""}</button>`
     ).join("");
-    showModal(`<h3>Move to area</h3>${opts}
-      <div class="modal-actions"><button class="btn" id="pa-cancel">Cancel</button></div>`);
+    showModal(`<h3>${esc(T("move.title"))}</h3>${opts}
+      <div class="modal-actions"><button class="btn" id="pa-cancel">${esc(T("common.cancel"))}</button></div>`);
     document.getElementById("pa-cancel").onclick = () => { closeModal(); resolve(null); };
     document.getElementById("modal-back").querySelectorAll("[data-area]").forEach(b =>
       b.onclick = () => { closeModal(); resolve(b.dataset.area); });
@@ -297,7 +625,7 @@ function renderLogin() {
   $app().innerHTML = `
   <div class="view pin-pad-wrap">
     <h1 style="text-align:center">SUMO<span style="color:var(--accent-hi)">•</span>INV</h1>
-    <p class="muted" style="text-align:center">Enter your PIN to sign in</p>
+    <p class="muted" style="text-align:center">${esc(T("login.prompt"))}</p>
     <div class="pin-dots" id="pin-dots" aria-live="polite"></div>
     <div id="login-err"></div>
     <div class="pin-pad" id="pin-pad">
@@ -306,7 +634,8 @@ function renderLogin() {
       <button class="pin-key" data-k="0">0</button>
       <button class="pin-key" data-k="back" aria-label="Backspace">←</button>
     </div>
-    <div style="margin-top:16px"><button class="btn btn-primary" id="pin-go" style="width:100%">Sign in</button></div>
+    <div style="margin-top:16px"><button class="btn btn-primary" id="pin-go" style="width:100%">${esc(T("login.signin"))}</button></div>
+    <div style="text-align:center;margin-top:14px"><button class="btn btn-small btn-ghost" id="login-lang">🌐 ${esc(T("login.langToggle"))}</button></div>
   </div>`;
 
   const dots = () => document.getElementById("pin-dots").textContent = "•".repeat(pad.digits.length);
@@ -320,6 +649,7 @@ function renderLogin() {
     dots();
   });
   document.getElementById("pin-go").onclick = () => doLogin(pad.digits);
+  document.getElementById("login-lang").onclick = () => { setLang(lang() === "es" ? "en" : "es"); renderLogin(); };
   pad.digits = ""; dots();
 }
 
@@ -327,7 +657,7 @@ async function doLogin(pin) {
   const errBox = document.getElementById("login-err");
   errBox.innerHTML = "";
   if (!pin || pin.length < 1) {
-    errBox.innerHTML = `<div class="error">Enter your PIN.</div>`;
+    errBox.innerHTML = `<div class="error">${esc(T("login.needPin"))}</div>`;
     return;
   }
   try {
@@ -340,7 +670,7 @@ async function doLogin(pin) {
     state.areas = a.areas || a || [];
     go("#/home");
   } catch (e) {
-    errBox.innerHTML = `<div class="error">${esc(e.detail || "Wrong PIN. Try again.")}</div>`;
+    errBox.innerHTML = `<div class="error">${esc(e.detail || T("login.wrong"))}</div>`;
     if (state._pad) { state._pad.digits = ""; document.getElementById("pin-dots").textContent = ""; }
   }
 }
@@ -353,8 +683,8 @@ function renderSetPin() {
   state._setpin = st;
   $app().innerHTML = `
   <div class="view pin-pad-wrap">
-    <h1 style="text-align:center">Set your PIN</h1>
-    <p class="muted" style="text-align:center" id="setpin-label">Enter a new PIN (min 4 digits)</p>
+    <h1 style="text-align:center">${esc(T("setpin.title"))}</h1>
+    <p class="muted" style="text-align:center" id="setpin-label">${esc(T("setpin.step1"))}</p>
     <div class="pin-dots" id="pin-dots" aria-live="polite"></div>
     <div id="setpin-err"></div>
     <div class="pin-pad" id="pin-pad">
@@ -363,7 +693,7 @@ function renderSetPin() {
       <button class="pin-key" data-k="0">0</button>
       <button class="pin-key" data-k="back" aria-label="Backspace">←</button>
     </div>
-    <div style="margin-top:16px"><button class="btn btn-primary" id="pin-next" style="width:100%">Continue</button></div>
+    <div style="margin-top:16px"><button class="btn btn-primary" id="pin-next" style="width:100%">${esc(T("common.continue"))}</button></div>
   </div>`;
 
   const cur = () => st.step === 1 ? st.first : st.second;
@@ -384,15 +714,15 @@ function renderSetPin() {
   document.getElementById("pin-next").onclick = async () => {
     err("");
     if (st.step === 1) {
-      if (cur().length < 4) { err("PIN must be at least 4 digits."); return; }
+      if (cur().length < 4) { err(T("setpin.min4")); return; }
       st.step = 2;
-      document.getElementById("setpin-label").textContent = "Enter it again to confirm";
+      document.getElementById("setpin-label").textContent = T("setpin.step2");
       dots();
     } else {
       if (st.first !== st.second) {
-        err("PINs don't match. Start over.");
+        err(T("setpin.mismatch"));
         st.first = ""; st.second = ""; st.step = 1;
-        document.getElementById("setpin-label").textContent = "Enter a new PIN (min 4 digits)";
+        document.getElementById("setpin-label").textContent = T("setpin.step1");
         dots();
         return;
       }
@@ -402,7 +732,7 @@ function renderSetPin() {
         saveSession(state.session);
         go("#/home");
       } catch (e) {
-        err(e.detail || "Could not set PIN. Try again.");
+        err(e.detail || T("setpin.fail"));
       }
     }
   };
@@ -439,40 +769,41 @@ async function renderHome() {
     const active = state.items.filter(i => i.active !== false);
     const withPar = active.filter(i => Number(i.par) > 0).length;
     if (active.length > 0 && withPar < active.length / 2) {
-      banner = `<div class="banner">Set par levels to generate orders — ${withPar}/${active.length} items have pars.
-        <a href="#/admin/par">Open bulk par editor →</a></div>`;
+      banner = `<div class="banner">${esc(T("home.parBanner"))} — ${withPar}/${active.length} ${esc(T("home.parBanner2"))}
+        <a href="#/admin/par">${esc(T("home.openPar"))}</a></div>`;
     }
   }
 
   const cards = [];
   if (has("count")) {
-    cards.push(`<button class="menu-card" data-go="#/count/new"><span class="ico">📋</span>Start New Count</button>`);
+    cards.push(`<button class="menu-card" data-go="#/count/new"><span class="ico">📋</span>${esc(T("home.start"))}</button>`);
   }
-  cards.push(`<button class="menu-card" data-go="#/orders"><span class="ico">📦</span>Order History</button>`);
-  if (canManage) cards.push(`<button class="menu-card" data-go="#/admin/items"><span class="ico">🗃️</span>Manage</button>`);
+  cards.push(`<button class="menu-card" data-go="#/orders"><span class="ico">📦</span>${esc(T("home.orders"))}</button>`);
+  if (canManage) cards.push(`<button class="menu-card" data-go="#/admin/items"><span class="ico">🗃️</span>${esc(T("home.manage"))}</button>`);
   if (isSuper) cards.push(`<button class="menu-card" data-go="#/admin/io"><span class="ico">⚙️</span>Super Admin</button>`);
-  if (!has("count")) cards.push(`<button class="menu-card" data-go="#/orders"><span class="ico">👁</span>View Orders</button>`);
+  if (!has("count")) cards.push(`<button class="menu-card" data-go="#/orders"><span class="ico">👁</span>${esc(T("home.viewOrders"))}</button>`);
 
   $app().innerHTML = navHtml() + `
   <div class="view">
-    <h1>Hi, ${esc(p.name)}</h1>
+    <h1>${esc(T("home.hi"))}, ${esc(p.name)}</h1>
     ${banner}
     <div class="menu-grid no-print">${cards.join("")}</div>
 
-    <h2>Draft counts</h2>
+    <h2>${esc(T("home.drafts"))}</h2>
     <div id="draft-list">
-      ${drafts.length === 0 ? `<p class="muted">No draft counts.</p>` : drafts.map(d => `
+      ${drafts.length === 0 ? `<p class="muted">${esc(T("home.noDrafts"))}</p>` : drafts.map(d => `
         <div class="session-row">
-          <div><strong>Count #${esc(String(d.id).slice(0, 8))}</strong>
+          <div><strong>${esc(T("home.count"))} #${esc(String(d.id).slice(0, 8))}</strong>
             <div class="meta">${fmtDate(d.created_at)}${d.created_by_name ? " · " + esc(d.created_by_name) : ""}</div>
           </div>
           <div style="display:flex;gap:8px">
-            ${has("approve") ? `<button class="btn btn-small" data-open-review="${esc(d.id)}">Review</button>` : ""}
-            <button class="btn btn-small" data-open-count="${esc(d.id)}">${has("count") ? "Resume" : "View"}</button>
-            ${has("count") ? `<button class="btn btn-small btn-danger" data-abandon="${esc(d.id)}" aria-label="Abandon">✕</button>` : ""}
+            ${has("approve") ? `<button class="btn btn-small" data-open-review="${esc(d.id)}">${esc(T("home.review"))}</button>` : ""}
+            <button class="btn btn-small" data-open-count="${esc(d.id)}">${esc(has("count") ? T("home.resume") : T("home.view"))}</button>
+            ${has("count") ? `<button class="btn btn-small btn-danger" data-abandon="${esc(d.id)}" aria-label="${esc(T("home.discard"))}">✕</button>` : ""}
           </div>
         </div>`).join("")}
     </div>
+    ${isSuper ? "" : `<div style="text-align:center;margin-top:18px" class="no-print"><button class="btn btn-small btn-ghost" data-act="replay-tour">${esc(T("tour.replay"))}</button></div>`}
   </div>`;
 
   $app().querySelectorAll("[data-go]").forEach(b => b.onclick = () => {
@@ -482,29 +813,41 @@ async function renderHome() {
   $app().querySelectorAll("[data-open-count]").forEach(b => b.onclick = () => go("#/count/" + b.dataset.openCount));
   $app().querySelectorAll("[data-open-review]").forEach(b => b.onclick = () => go("#/review/" + b.dataset.openReview));
   $app().querySelectorAll("[data-abandon]").forEach(b => b.onclick = async () => {
-    if (await confirmDialog("Abandon count?", "This draft count will be discarded. This cannot be undone.", "Abandon")) {
+    if (await confirmDialog(T("home.abandonTitle"), T("home.abandonMsg"), T("home.abandonYes"))) {
       try { await edge("sessions.abandon", { session_id: b.dataset.abandon }); renderHome(); }
-      catch (e) { flashError(e.detail || "Could not abandon count."); }
+      catch (e) { flashError(e.detail || T("home.abandonFail")); }
     }
   });
   $app().querySelector('[data-act="nav-logout"]').onclick = logout;
+  const replay = $app().querySelector('[data-act="replay-tour"]');
+  if (replay) replay.onclick = () => startTour(homeTourSteps(), () => {});
+
+  // First-login guided tour (not for the super admin).
+  const tourKey = "sumoV2tour_" + p.id;
+  let tourSeen = false;
+  try { tourSeen = !!localStorage.getItem(tourKey); } catch (e) { /* noop */ }
+  if (!isSuper && !tourSeen) {
+    setTimeout(() => startTour(homeTourSteps(), () => {
+      try { localStorage.setItem(tourKey, "1"); } catch (e) { /* noop */ }
+    }), 350);
+  }
 }
 
 async function startNewCount() {
   try {
     const r = await edge("sessions.create");
     const id = r.session_id || r.id || (r.session && r.session.id);
-    if (!id) throw { detail: "Server did not return a session id." };
+    if (!id) throw { detail: T("home.noSession") };
     go("#/count/" + id);
   } catch (e) {
-    flashError(e.detail || "Could not start a new count.");
+    flashError(e.detail || T("home.startFail"));
   }
 }
 
 /* ================== VIEW: BULK PAR EDITOR ====================== */
 /* Simple table: item | par input, one Save. Linked from the Home banner. */
 function renderBulkPar() {
-  if (!has("manage")) { $app().innerHTML = navHtml() + `<div class="view"><div class="error">Not authorized.</div></div>`; return; }
+  if (!has("manage")) { $app().innerHTML = navHtml() + `<div class="view"><div class="error">${esc(T("common.notAuth"))}</div></div>`; return; }
   const active = state.items.filter(i => i.active !== false);
   const rows = active.map(i => `
     <tr>
@@ -516,22 +859,22 @@ function renderBulkPar() {
     </tr>`).join("");
   $app().innerHTML = navHtml() + `
   <div class="view">
-    <h1>Bulk par editor</h1>
-    <p class="muted">Only items with a par above 0 generate order lines. Leave blank = no par.</p>
+    <h1>${esc(T("par.title"))}</h1>
+    <p class="muted">${esc(T("par.hint"))}</p>
     <table class="bulk-par">
-      <thead><tr><th>Item</th><th>Par</th><th>Price</th></tr></thead>
+      <thead><tr><th>${esc(T("common.item"))}</th><th>${esc(T("par.par"))}</th><th>${esc(T("par.price"))}</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>
     <div style="display:flex;gap:10px;margin-top:16px" class="no-print">
-      <button class="btn" data-act="back">← Back</button>
-      <button class="btn btn-primary" id="par-save" style="flex:1">Save all</button>
+      <button class="btn" data-act="back">${esc(T("common.back"))}</button>
+      <button class="btn btn-primary" id="par-save" style="flex:1">${esc(T("par.saveAll"))}</button>
     </div>
     <div id="par-msg" style="margin-top:10px"></div>
   </div>`;
   $app().querySelector('[data-act="back"]').onclick = () => go("#/home");
   document.getElementById("par-save").onclick = async () => {
     const msg = document.getElementById("par-msg");
-    msg.innerHTML = `<span class="muted">Saving…</span>`;
+    msg.innerHTML = `<span class="muted">${esc(T("common.saving"))}</span>`;
     let n = 0;
     try {
       for (const inp of $app().querySelectorAll("[data-par-for]")) {
@@ -552,8 +895,8 @@ function renderBulkPar() {
           item.price = val; n++;
         }
       }
-      msg.innerHTML = `<span style="color:var(--ok)">Saved ${n} change${n === 1 ? "" : "s"}.</span>`;
-    } catch (e) { msg.innerHTML = `<div class="error">${esc(e.detail || "Save failed.")}</div>`; }
+      msg.innerHTML = `<span style="color:var(--ok)">${esc(n === 1 ? T("par.saved1") : T("par.savedN").replace("{n}", n))}</span>`;
+    } catch (e) { msg.innerHTML = `<div class="error">${esc(e.detail || T("par.saveFail"))}</div>`; }
   };
   $app().querySelector('[data-act="nav-logout"]').onclick = logout;
 }
@@ -566,7 +909,7 @@ function vendorOf(id) { return state.vendors.find(x => String(x.id) === String(i
 /* #/count/:sessionId — the counting screen.
  * Status pills: not counted / counted / zero confirmed / done / needs review. */
 async function renderCount(sessionId) {
-  $app().innerHTML = navHtml() + `<div class="view"><div class="loading">Loading count…</div></div>`;
+  $app().innerHTML = navHtml() + `<div class="view"><div class="loading">${esc(T("count.loading"))}</div></div>`;
   try {
     const [it, v, a] = await Promise.all([
       edge("items.list").catch(() => ({ items: state.items })),
@@ -626,24 +969,24 @@ function drawCount() {
 
     <div class="ai-bar no-print">
       <div class="ai-row">
-        <input class="ai-input" id="ai-text" placeholder="Type or dictate counts — e.g. '12 tuna, half case salmon'" aria-label="AI count input">
+        <input class="ai-input" id="ai-text" placeholder="${esc(T("count.aiPh"))}" aria-label="AI count input">
         <button class="btn btn-small" id="ai-mic" aria-label="Dictate">🎤</button>
       </div>
       <div class="ai-row" style="margin-top:8px">
-        <button class="btn btn-primary" id="ai-parse" style="flex:1">Parse with AI</button>
+        <button class="btn btn-primary" id="ai-parse" style="flex:1">${esc(T("count.aiParse"))}</button>
       </div>
       <div id="ai-out"></div>
     </div>
 
-    <input class="searchbar no-print" id="item-search" placeholder="🔍 Search items…" value="${esc(c.search)}" aria-label="Search items">
+    <input class="searchbar no-print" id="item-search" placeholder="${esc(T("count.search"))}" value="${esc(c.search)}" aria-label="${esc(T("count.search"))}">
 
     <div id="cards">
-      ${items.length === 0 ? `<p class="muted">No items here${q ? " matching your search" : ""}.</p>` : items.map(i => itemCardHtml(i, editable)).join("")}
+      ${items.length === 0 ? `<p class="muted">${esc(T("count.noItems"))}${q ? esc(T("count.noItemsSearch")) : ""}.</p>` : items.map(i => itemCardHtml(i, editable)).join("")}
     </div>
 
     <div style="display:flex;gap:10px;margin:18px 0" class="no-print">
-      <button class="btn" data-act="back-home">← Home</button>
-      ${has("approve") ? `<button class="btn btn-primary" data-act="to-review" style="flex:1">Review &amp; approve →</button>` : ""}
+      <button class="btn" data-act="back-home">${esc(T("common.back"))}</button>
+      ${has("approve") ? `<button class="btn btn-primary" data-act="to-review" style="flex:1">${esc(T("count.toReview"))}</button>` : ""}
     </div>
   </div>`;
 
@@ -676,6 +1019,9 @@ function drawCount() {
     const el = cards.querySelector(`[data-card="${CSS.escape(c.highlight)}"]`);
     if (el) { el.classList.add("flash"); el.scrollIntoView({ block: "center" }); }
   }
+
+  // --- first-open guided tour ("this is what you put in") ---
+  maybeCountTour(items);
 }
 
 /** Re-render after search typing without losing input focus. */
@@ -700,20 +1046,20 @@ function isDone(itemId) { const s = statusOf(itemId); return s === "done" || s =
 function pillHtml(itemId) {
   const s = statusOf(itemId);
   const map = {
-    not:     ["pill-not", "Not counted"],
-    counted: ["pill-counted", "Counted"],
-    zero:    ["pill-zero", "Zero confirmed"],
-    done:    ["pill-done", "Done"],
-    review:  ["pill-review", "Needs review"],
+    not:     ["pill-not", T("pill.not")],
+    counted: ["pill-counted", T("pill.counted")],
+    zero:    ["pill-zero", T("pill.zero")],
+    done:    ["pill-done", T("pill.done")],
+    review:  ["pill-review", T("pill.review")],
   };
   const [cls, label] = map[s] || map.not;
-  return `<span class="pill ${cls}">${label}</span>`;
+  return `<span class="pill ${cls}">${esc(label)}</span>`;
 }
 
 function itemCardHtml(item, editable) {
   const e = entryOf(item.id);
   const v = vendorOf(item.vendor_id);
-  const sub = [v.name, item.par > 0 ? `par ${fmtCount(item.par)}` : "no par", item.unit].filter(Boolean).join(" · ");
+  const sub = [v.name, item.par > 0 ? `par ${fmtCount(item.par)}` : T("count.noPar"), item.unit].filter(Boolean).join(" · ");
   const canManage = has("manage");
 
   if (!editable) {
@@ -728,10 +1074,10 @@ function itemCardHtml(item, editable) {
     <div class="card-head"><div><div class="item-name">${esc(item.name)}</div>
       <div class="item-sub">${esc(sub)}</div></div>${pillHtml(item.id)}</div>
     <div class="count-row">
-      <button class="stepper" data-cact="dec" aria-label="Decrease">−</button>
+      <button class="stepper" data-cact="dec" aria-label="${esc(T("count.dec"))}">−</button>
       <input class="count-input" data-cact="manual" inputmode="decimal" placeholder="—"
-             value="${e ? esc(fmtCount(e.count)) : ""}" aria-label="Count for ${esc(item.name)}">
-      <button class="stepper" data-cact="inc" aria-label="Increase">+</button>
+             value="${e ? esc(fmtCount(e.count)) : ""}" aria-label="${esc(T("count.countFor"))} ${esc(item.name)}">
+      <button class="stepper" data-cact="inc" aria-label="${esc(T("count.inc"))}">+</button>
     </div>
     <div class="hint" data-hint></div>
     <div class="quick-row">
@@ -739,16 +1085,16 @@ function itemCardHtml(item, editable) {
       <button class="btn" data-cact="add025">+0.25</button>
       <button class="btn" data-cact="add05">+0.5</button>
       <button class="btn" data-cact="add075">+0.75</button>
-      <button class="btn" data-cact="full">Full</button>
-      <button class="btn" data-cact="clear">Clear</button>
+      <button class="btn" data-cact="full">${esc(T("count.full"))}</button>
+      <button class="btn" data-cact="clear">${esc(T("count.clear"))}</button>
     </div>
     <div class="row2">
-      <button class="btn" data-cact="markzero">Mark Zero</button>
-      <button class="btn ${statusOf(item.id) === "done" ? "done-on" : ""}" data-cact="done">✓ Done</button>
+      <button class="btn" data-cact="markzero">${esc(T("count.markZero"))}</button>
+      <button class="btn ${statusOf(item.id) === "done" ? "done-on" : ""}" data-cact="done">${esc(T("count.doneBtn"))}</button>
     </div>
     ${canManage ? `<div class="admin-extras">
-        <span class="par-edit">Par <input inputmode="decimal" data-cact="par" value="${Number(item.par) > 0 ? esc(item.par) : ""}" placeholder="—" aria-label="Par for ${esc(item.name)}"></span>
-        <button class="btn btn-small" data-cact="move">Move area</button>
+        <span class="par-edit">${esc(T("par.par"))} <input inputmode="decimal" data-cact="par" value="${Number(item.par) > 0 ? esc(item.par) : ""}" placeholder="—" aria-label="${esc(T("count.parFor"))} ${esc(item.name)}"></span>
+        <button class="btn btn-small" data-cact="move">${esc(T("count.moveArea"))}</button>
       </div>` : ""}
   </div>`;
 }
@@ -794,7 +1140,7 @@ function onCardChange(ev) {
     if (isNaN(n) || n < 0) return;
     edge("items.update", { item_id: item.id, par: n })
       .then(() => { item.par = n; drawCount(); })
-      .catch(e => flashError(e.detail || "Could not update par."));
+      .catch(e => flashError(e.detail || T("count.parFail")));
   }
 }
 
@@ -806,7 +1152,7 @@ function fullCount(item, card) {
     setCount(item, r025(par), "counted");
   } else {
     const hint = card.querySelector("[data-hint]");
-    if (hint) hint.textContent = "No par set — enter count";
+    if (hint) hint.textContent = T("count.noParHint");
     const inp = card.querySelector('[data-cact="manual"]');
     if (inp) { inp.focus(); inp.select(); }
   }
@@ -858,7 +1204,7 @@ function persistEntry(item) {
         },
         { "Prefer": "resolution=merge-duplicates" });
     } catch (err) {
-      flashError("Could not save " + item.name + " — check connection. (Your other entries are safe.)");
+      flashError(T("count.saveFail").replace("{name}", item.name));
     }
   }, 400);
 }
@@ -869,22 +1215,22 @@ async function moveItem(item) {
   const newId = await pickArea(item.area_id);
   if (!newId || String(newId) === String(item.area_id)) return;
   const newName = areaName(newId);
-  const ok = await confirmDialog("Move item?", `Move ${item.name} from ${oldName} to ${newName}?`, "Move");
+  const ok = await confirmDialog(T("count.moveTitle"), T("count.moveMsg").replace("{name}", item.name).replace("{from}", oldName).replace("{to}", newName), T("common.move"));
   if (!ok) return;
   try {
     await edge("items.move", { item_id: item.id, area_id: newId });
     item.area_id = newId;
     state.count.areaId = newId;
     drawCount();
-  } catch (e) { flashError(e.detail || "Could not move item."); }
+  } catch (e) { flashError(e.detail || T("count.moveFail")); }
 }
 
 /* ---- AI: parse + dictate ---- */
 async function aiParse() {
   const out = document.getElementById("ai-out");
   const text = document.getElementById("ai-text").value.trim();
-  if (!text) { out.innerHTML = `<div class="error">Type or dictate some counts first.</div>`; return; }
-  out.innerHTML = `<p class="muted">Parsing…</p>`;
+  if (!text) { out.innerHTML = `<div class="error">${esc(T("count.aiNeedText"))}</div>`; return; }
+  out.innerHTML = `<p class="muted">${esc(T("count.aiParsing"))}</p>`;
   try {
     const r = await edge("ai-parse", { session_id: state.count.sessionId, text });
     // Edge returns {matches:[{item_id, quantity, unit_note, confidence}], unknown:[...]}.
@@ -894,8 +1240,8 @@ async function aiParse() {
     }));
     const unknown = r.unknown || [];
     const unknownHtml = unknown.length
-      ? `<p class="muted">Not recognized: ${esc(unknown.join(", "))}</p>` : "";
-    if (!drafts.length) { out.innerHTML = `<p class="muted">No items recognized. Try being specific, e.g. "12 tuna".</p>${unknownHtml}`; return; }
+      ? `<p class="muted">${esc(T("count.aiUnknown"))}${esc(unknown.join(", "))}</p>` : "";
+    if (!drafts.length) { out.innerHTML = `<p class="muted">${esc(T("count.aiNoMatch"))}</p>${unknownHtml}`; return; }
     out.innerHTML = `<div class="ai-drafts">
       ${drafts.map((d, i) => {
         const it = itemById(d.item_id) || {};
@@ -906,7 +1252,7 @@ async function aiParse() {
           <span class="conf">${d.confidence != null ? Math.round(d.confidence * 100) + "%" : ""}</span></span>
         </label>`;
       }).join("")}
-      <button class="btn btn-primary" id="ai-apply" style="width:100%">Apply checked</button>
+      <button class="btn btn-primary" id="ai-apply" style="width:100%">${esc(T("count.aiApply"))}</button>
       ${unknownHtml}
     </div>`;
     out._drafts = drafts;
@@ -925,14 +1271,14 @@ async function aiParse() {
         n++;
       });
       document.getElementById("ai-text").value = "";
-      out.innerHTML = `<p class="muted">Applied ${n} count${n === 1 ? "" : "s"}.</p>`;
+      out.innerHTML = `<p class="muted">${esc(n === 1 ? T("count.aiApplied1") : T("count.aiAppliedN").replace("{n}", n))}</p>`;
       drawCount();
     };
   } catch (e) {
     if (e.code === "ai_not_configured") {
-      out.innerHTML = `<div class="notice">AI not configured — ask your super admin to add a Gemini API key (free at aistudio.google.com).</div>`;
+      out.innerHTML = `<div class="notice">${esc(T("count.aiNoKey"))}</div>`;
     } else {
-      out.innerHTML = `<div class="error">${esc(e.detail || "AI parse failed.")}</div>`;
+      out.innerHTML = `<div class="error">${esc(e.detail || T("count.aiFail"))}</div>`;
     }
   }
 }
@@ -942,12 +1288,12 @@ function aiDictate() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) {
     const out = document.getElementById("ai-out");
-    out.innerHTML = `<div class="notice">Voice input isn't available in this browser — use your phone keyboard's mic 🎤 instead.</div>`;
+    out.innerHTML = `<div class="notice">${esc(T("count.noVoice"))}</div>`;
     return;
   }
   try {
     const rec = new SR();
-    rec.lang = "en-US";
+    rec.lang = locale();
     const btn = document.getElementById("ai-mic");
     btn.textContent = "⏺";
     rec.onresult = (ev) => {
@@ -959,15 +1305,105 @@ function aiDictate() {
     rec.onerror = rec.onend = () => { btn.textContent = "🎤"; };
     rec.start();
   } catch (e) {
-    document.getElementById("ai-out").innerHTML = `<div class="notice">Voice input isn't available — use your phone keyboard's mic 🎤 instead.</div>`;
+    document.getElementById("ai-out").innerHTML = `<div class="notice">${esc(T("count.noVoice"))}</div>`;
   }
+}
+
+/* ===================== GUIDED TOUR ============================= */
+/* First-login walkthrough so staff don't need a verbal briefing:
+ *  - home tour: first Home visit (staff/manager/view; not superadmin)
+ *  - count tour: first count-screen open ("this is what you put in")
+ * Per device + profile, skippable, replayable from Home. */
+function startTour(steps, onEnd) {
+  if (!steps.length) { if (onEnd) onEnd(); return; }
+  if (document.getElementById("tour-ov")) return; // one tour at a time
+  let i = 0, ended = false;
+  const ov = document.createElement("div");
+  ov.id = "tour-ov";
+  ov.className = "no-print";
+  ov.innerHTML = `<div class="tour-dim"></div>
+    <div class="tour-ring" id="tour-ring" hidden></div>
+    <div class="tour-card">
+      <div class="tour-step" id="tour-step"></div>
+      <h3 id="tour-title"></h3>
+      <p id="tour-body"></p>
+      <div class="tour-actions">
+        <button class="btn btn-small" id="tour-skip"></button>
+        <button class="btn btn-primary btn-small" id="tour-next"></button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  const dim = ov.querySelector(".tour-dim");
+  const ring = ov.querySelector("#tour-ring");
+  function end() {
+    if (ended) return; ended = true;
+    ov.remove();
+    if (onEnd) onEnd();
+  }
+  function show() {
+    const s = steps[i];
+    const el = s.sel ? document.querySelector(s.sel) : null;
+    if (el) {
+      // Instant scroll, then measure — reliable on mobile (smooth scroll
+      // would leave the ring mispositioned mid-animation).
+      el.scrollIntoView({ block: "center" });
+      const r = el.getBoundingClientRect();
+      ring.hidden = false;
+      ring.style.left = Math.max(4, r.left - 6) + "px";
+      ring.style.top = Math.max(4, r.top - 6) + "px";
+      ring.style.width = (r.width + 12) + "px";
+      ring.style.height = (r.height + 12) + "px";
+      dim.style.display = "none"; // the ring's shadow is the dim now
+    } else {
+      ring.hidden = true;
+      dim.style.display = "";
+    }
+    document.getElementById("tour-step").textContent = (i + 1) + " / " + steps.length;
+    document.getElementById("tour-title").textContent = s.title;
+    document.getElementById("tour-body").textContent = s.body;
+    document.getElementById("tour-skip").textContent = T("tour.skip");
+    document.getElementById("tour-next").textContent = i === steps.length - 1 ? T("tour.done") : T("tour.next");
+  }
+  document.getElementById("tour-skip").onclick = end;
+  document.getElementById("tour-next").onclick = () => { i++; if (i >= steps.length) end(); else show(); };
+  show();
+}
+
+function homeTourSteps() {
+  const steps = [{ sel: null, title: T("tour.welcomeT"), body: T("tour.welcomeB") }];
+  if (has("count")) steps.push({ sel: '[data-go="#/count/new"]', title: T("tour.startT"), body: T("tour.startB") });
+  steps.push({ sel: '[data-go="#/orders"]', title: T("tour.ordersT"), body: T("tour.ordersB") });
+  steps.push({ sel: '[data-act="nav-lang"]', title: T("tour.langT"), body: T("tour.langB") });
+  return steps;
+}
+
+function countTourSteps() {
+  return [
+    { sel: ".item-card .count-input", title: T("tour.c1T"), body: T("tour.c1B") },
+    { sel: ".area-tabs", title: T("tour.c2T"), body: T("tour.c2B") },
+    { sel: ".item-card .quick-row", title: T("tour.c3T"), body: T("tour.c3B") },
+  ];
+}
+
+/** First-open tour for the count screen. Flag is set before showing so
+ *  re-renders (every keystroke) can never retrigger it. */
+function maybeCountTour(items) {
+  if (!state.session || has("superadmin")) return;
+  if (!items || !items.length) return;
+  if (state._countTourShown) return;
+  let seen = false;
+  try { seen = !!localStorage.getItem("sumoV2tour_count_" + state.session.profile.id); } catch (e) { /* noop */ }
+  if (seen) return;
+  state._countTourShown = true;
+  try { localStorage.setItem("sumoV2tour_count_" + state.session.profile.id, "1"); } catch (e) { /* noop */ }
+  setTimeout(() => startTour(countTourSteps(), () => {}), 500);
 }
 
 /* ===================== VIEW: REVIEW ============================ */
 /* #/review/:sessionId — approve draft counts.
  * Sections: "Not counted" + "Needs review" (v1 omitted the latter). */
 async function renderReview(sessionId) {
-  $app().innerHTML = navHtml() + `<div class="view"><div class="loading">Loading review…</div></div>`;
+  $app().innerHTML = navHtml() + `<div class="view"><div class="loading">${esc(T("review.loading"))}</div></div>`;
   try {
     const [it, v, a, sg] = await Promise.all([
       edge("items.list").catch(() => ({ items: state.items })),
@@ -1005,53 +1441,64 @@ function drawReview(notCounted, needsReview, canApprove) {
   const rowHtml = (i, label) => `
     <div class="review-row">
       <div><strong>${esc(i.name)}</strong><div class="muted" style="font-size:13px">${esc(areaName(i.area_id))} · ${esc(label)}</div></div>
-      <button class="btn btn-small" data-jump="${esc(i.id)}">Open →</button>
+      <button class="btn btn-small" data-jump="${esc(i.id)}">${esc(T("review.open"))}</button>
     </div>`;
 
   // Vendor order preview: auto-mode items with par>0, grouped by vendor.
   // Rendered as the clean vendor-facing order card (no internal counts/pars).
+  // IMPORTANT: only items WITH an entry generate order lines — this matches
+  // the server (sessions.approve ignores uncounted items). Uncounted items
+  // must never appear as phantom orders.
   const byItem = c._byItem || {};
+  const entryCount = Object.keys(byItem).length;
   const previewGroups = {};
+  let orderLineCount = 0;
   for (const i of state.items.filter(x => x.active !== false && x.mode === "auto" && Number(x.par) > 0)) {
-    const have = byItem[i.id] ? Number(byItem[i.id].count) : 0;
+    const e = byItem[i.id];
+    if (!e) continue; // not counted -> no order line, listed under "Not counted" instead
+    const have = Number(e.count);
     // Whole units only: vendors don't sell fractional cases/eaches.
     const order = Math.max(0, Math.ceil(Number(i.par) - have - 1e-9));
     if (order <= 0) continue;
+    orderLineCount++;
     const vid = i.vendor_id || "__none__";
     (previewGroups[vid] = previewGroups[vid] || []).push({ item: i, order, line: order * (Number(i.price) || 0) });
   }
+  c._orderLineCount = orderLineCount;
+  c._entryCount = entryCount;
 
+  const emptyPreviewMsg = entryCount === 0 ? T("review.nothingCounted") : T("review.nothingToOrder");
   const previewHtml = Object.keys(previewGroups).length === 0
-    ? `<p class="muted">Nothing to order — all auto-mode pars are covered (or no pars set).</p>`
+    ? `<p class="muted">${esc(emptyPreviewMsg)}</p>`
     : Object.entries(previewGroups).map(([vid, lines]) => {
         const v = vendorOf(vid);
         const d = orderCardData(v, lines.map(l => ({
           name: l.item.name, qty: l.order, unit: l.item.unit, line: l.line,
-        })), fmtLongDate());
+        })), fmtLongDateEn());
         return orderCardHtml(d, { actions: false });
       }).join("");
 
   $app().innerHTML = navHtml() + `
   <div class="view">
-    <h1>Review &amp; approve</h1>
+    <h1>${esc(T("review.title"))}</h1>
     <div id="approve-err"></div>
 
-    <h2>Not counted (${notCounted.length})</h2>
-    ${notCounted.length === 0 ? `<p class="muted">Everything has a count. 🎉</p>` : notCounted.map(i => rowHtml(i, "no entry yet")).join("")}
+    <h2>${esc(T("review.notCounted"))} (${notCounted.length})</h2>
+    ${notCounted.length === 0 ? `<p class="muted">${esc(T("review.allCounted"))}</p>` : notCounted.map(i => rowHtml(i, T("review.noEntry"))).join("")}
 
-    <h2>Needs review (${needsReview.length})</h2>
-    ${needsReview.length === 0 ? `<p class="muted">Nothing flagged.</p>` : needsReview.map(i => rowHtml(i, "flagged for review")).join("")}
+    <h2>${esc(T("review.needsReview"))} (${needsReview.length})</h2>
+    ${needsReview.length === 0 ? `<p class="muted">${esc(T("review.noneFlagged"))}</p>` : needsReview.map(i => rowHtml(i, T("review.flagged"))).join("")}
 
-    <h2>AI check</h2>
-    <div class="no-print"><button class="btn" id="ai-check">Run AI check</button></div>
-    <div id="ai-flags" style="margin-top:10px">${c.aiRan && c.flags.length === 0 ? `<p class="muted">No issues found.</p>` : ""}</div>
+    <h2>${esc(T("review.aiCheck"))}</h2>
+    <div class="no-print"><button class="btn" id="ai-check">${esc(T("review.runAi"))}</button></div>
+    <div id="ai-flags" style="margin-top:10px">${c.aiRan && c.flags.length === 0 ? `<p class="muted">${esc(T("review.noIssues"))}</p>` : ""}</div>
 
-    <h2>Vendor order preview</h2>
+    <h2>${esc(T("review.preview"))}</h2>
     ${previewHtml}
 
     <div style="display:flex;gap:10px;margin:18px 0" class="no-print">
-      <button class="btn" data-act="back-home">← Home</button>
-      ${canApprove ? `<button class="btn btn-primary" id="approve-btn" style="flex:1">Approve count</button>` : `<p class="muted">Only managers or the super admin can approve.</p>`}
+      <button class="btn" data-act="back-home">${esc(T("common.back"))}</button>
+      ${canApprove ? `<button class="btn btn-primary" id="approve-btn" style="flex:1">${esc(T("review.approve"))}</button>` : `<p class="muted">${esc(T("review.onlyManagers"))}</p>`}
     </div>
   </div>`;
 
@@ -1073,16 +1520,16 @@ function renderFlags() {
   const c = state.review;
   document.getElementById("ai-flags").innerHTML = c.flags.map(f => `
     <div class="flag-${f.level === "info" ? "info" : "warn"}">
-      <strong>${f.level === "info" ? "ℹ️ Info" : "⚠️ Warning"}:</strong> ${esc(f.text)}
+      <strong>${esc(f.level === "info" ? T("review.info") : T("review.warn"))}:</strong> ${esc(f.text)}
     </div>`).join("");
 }
 
 function renderBlocking() {
   const c = state.review;
   const box = document.getElementById("approve-err");
-  box.innerHTML = `<div class="error"><strong>Cannot approve — these items need review:</strong>
+  box.innerHTML = `<div class="error"><strong>${esc(T("review.blockTitle"))}</strong>
     <ul>${c.blocking.map(b => `<li>${esc(b.item_name || b.name || b)}</li>`).join("")}</ul>
-    Open each item in the count and resolve it, then approve again.</div>`;
+    ${esc(T("review.blockMsg"))}</div>`;
   box.scrollIntoView();
 }
 
@@ -1090,7 +1537,7 @@ function renderBlocking() {
 async function aiReview() {
   const c = state.review;
   const box = document.getElementById("ai-flags");
-  box.innerHTML = `<p class="muted">Checking…</p>`;
+  box.innerHTML = `<p class="muted">${esc(T("common.checking"))}</p>`;
   try {
     const r = await edge("ai-review", { session_id: c.sessionId });
     // Edge returns {flags:[{item_id, message, severity}]}.
@@ -1099,13 +1546,13 @@ async function aiReview() {
       text: f.message || f.text || "",
     }));
     c.aiRan = true;
-    if (!c.flags.length) box.innerHTML = `<p class="muted">No issues found.</p>`;
+    if (!c.flags.length) box.innerHTML = `<p class="muted">${esc(T("review.noIssues"))}</p>`;
     else renderFlags();
   } catch (e) {
     if (e.code === "ai_not_configured") {
-      box.innerHTML = `<div class="notice">AI not configured — ask your super admin to add a Gemini API key (free at aistudio.google.com).</div>`;
+      box.innerHTML = `<div class="notice">${esc(T("count.aiNoKey"))}</div>`;
     } else {
-      box.innerHTML = `<div class="error">${esc(e.detail || "AI check failed.")}</div>`;
+      box.innerHTML = `<div class="error">${esc(e.detail || T("review.aiFail"))}</div>`;
     }
   }
 }
@@ -1116,7 +1563,19 @@ async function approveSession() {
   const c = state.review;
   const box = document.getElementById("approve-err");
   box.innerHTML = "";
-  if (!await confirmDialog("Approve count?", "This finalizes the count and generates orders. Continue?", "Approve")) return;
+  const entryCount = c._entryCount || 0;
+  const lineCount = c._orderLineCount || 0;
+  let ok;
+  if (entryCount === 0) {
+    // Nothing was counted — approving would silently generate zero orders.
+    ok = await confirmDialog(T("review.approveEmptyTitle"), T("review.approveEmptyMsg"), T("review.approveEmptyYes"), T("review.keepCounting"));
+  } else if (lineCount === 0) {
+    // Counts exist but everything is at/above par — no orders will result.
+    ok = await confirmDialog(T("review.approveNoLinesTitle"), T("review.approveNoLinesMsg"), T("review.approveEmptyYes"), T("common.cancel"));
+  } else {
+    ok = await confirmDialog(T("review.approveTitle"), T("review.approveMsg"), T("review.approveYes"));
+  }
+  if (!ok) return;
   try {
     await edge("sessions.approve", { session_id: c.sessionId });
     go("#/orders");
@@ -1126,7 +1585,7 @@ async function approveSession() {
       if (!Array.isArray(c.blocking)) c.blocking = [c.blocking];
       renderBlocking();
     } else {
-      box.innerHTML = `<div class="error">${esc(e.detail || "Approval failed.")}</div>`;
+      box.innerHTML = `<div class="error">${esc(e.detail || T("review.approveFail"))}</div>`;
     }
   }
 }
@@ -1143,7 +1602,15 @@ let cardSeq = 0;
 function fmtLongDate(iso) {
   const d = iso ? new Date(iso) : new Date();
   try {
-    return d.toLocaleDateString([], { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+    return d.toLocaleDateString([locale()], { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+  } catch (e) { return d.toLocaleDateString(); }
+}
+
+/** Card dates are ALWAYS English — vendor orders never translate. */
+function fmtLongDateEn(iso) {
+  const d = iso ? new Date(iso) : new Date();
+  try {
+    return d.toLocaleDateString(["en-US"], { weekday: "long", year: "numeric", month: "long", day: "numeric" });
   } catch (e) { return d.toLocaleDateString(); }
 }
 
@@ -1199,8 +1666,8 @@ function orderCardHtml(d, opts = {}) {
       <div class="order-card-foot">${d.count} item${d.count === 1 ? "" : "s"}${d.total ? ` · Estimated total: ${esc(d.total)}` : ""}</div>
     </div>
     ${opts.actions === false ? "" : `<div class="order-card-actions no-print">
-      <button class="btn btn-small" data-share-card="${esc(d.id)}">📤 Share image</button>
-      <button class="btn btn-small" data-copy-card="${esc(d.id)}">📋 Copy text</button>
+      <button class="btn btn-small" data-share-card="${esc(d.id)}">${esc(T("orders.share"))}</button>
+      <button class="btn btn-small" data-copy-card="${esc(d.id)}">${esc(T("orders.copy"))}</button>
     </div>`}
   </div>`;
 }
@@ -1345,7 +1812,7 @@ async function shareOrderCard(cardId, btn) {
       setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
     }
   } catch (e) {
-    if (!e || e.name !== "AbortError") flashError("Could not create the order image.");
+    if (!e || e.name !== "AbortError") flashError(T("orders.imgFail"));
   } finally {
     if (btn) btn.textContent = label;
   }
@@ -1366,14 +1833,14 @@ async function copyCardText(cardId, btn) {
     try { document.execCommand("copy"); } catch (e2) { /* noop */ }
     ta.remove();
   }
-  if (btn) { btn.textContent = "✓ Copied"; setTimeout(() => { btn.innerHTML = label; }, 2000); }
+  if (btn) { btn.textContent = T("orders.copied"); setTimeout(() => { btn.innerHTML = label; }, 2000); }
 }
 
 /* ===================== VIEW: ORDERS ============================ */
 /* #/orders — order history: per-vendor cards with lines, costs,
  * email text, copy button, status transitions. */
 async function renderOrders() {
-  $app().innerHTML = navHtml() + `<div class="view"><div class="loading">Loading orders…</div></div>`;
+  $app().innerHTML = navHtml() + `<div class="view"><div class="loading">${esc(T("orders.loading"))}</div></div>`;
   try {
     const [o, v, sg] = await Promise.all([
       edge("orders.list").catch(() => ({ orders: [] })),
@@ -1386,16 +1853,17 @@ async function renderOrders() {
   } catch (e) { if (e.status === 401 || e.code === "unauthorized") { dropSession(); go("#/login"); return; } }
 
   const canManage = has("approve"); // manager+: mark sent/received
+  const statusLabel = (s) => s === "sent" ? T("orders.sent") : s === "received" ? T("orders.received") : T("orders.draft");
   const pill = (s) => {
     const cls = s === "sent" ? "pill-sent" : s === "received" ? "pill-received" : "pill-draft";
-    return `<span class="pill ${cls}">${esc(s || "draft")}</span>`;
+    return `<span class="pill ${cls}">${esc(statusLabel(s))}</span>`;
   };
 
   $app().innerHTML = navHtml() + `
   <div class="view">
-    <h1>Orders</h1>
-    <div class="no-print" style="margin-bottom:10px"><button class="btn btn-small" onclick="window.print()">🖨 Print</button></div>
-    ${state.orders.length === 0 ? `<p class="muted">No orders yet. Approve a count to generate orders.</p>` : ""}
+    <h1>${esc(T("orders.title"))}</h1>
+    <div class="no-print" style="margin-bottom:10px"><button class="btn btn-small" onclick="window.print()">${esc(T("orders.print"))}</button></div>
+    ${state.orders.length === 0 ? `<p class="muted">${esc(T("orders.none"))}</p>` : ""}
     ${state.orders.map(ord => {
       const v = vendorOf(ord.vendor_id) || {};
       const vendor = {
@@ -1407,21 +1875,21 @@ async function renderOrders() {
       const lines = (ord.lines || []).map(l => ({
         name: l.item_name, qty: l.order_qty, unit: l.unit, line: Number(l.line_cost) || 0,
       }));
-      const d = orderCardData(vendor, lines, fmtLongDate(ord.created_at));
+      const d = orderCardData(vendor, lines, fmtLongDateEn(ord.created_at));
       return `<div class="order-wrap">
         <div class="order-status-row no-print">
           ${pill(ord.status)}
           <span style="display:flex;gap:8px">
             ${canManage && ord.status !== "sent" && ord.status !== "received"
-              ? `<button class="btn btn-small" data-sent="${esc(ord.id)}">Mark sent</button>` : ""}
+              ? `<button class="btn btn-small" data-sent="${esc(ord.id)}">${esc(T("orders.markSent"))}</button>` : ""}
             ${canManage && ord.status === "sent"
-              ? `<button class="btn btn-small" data-received="${esc(ord.id)}">Mark received</button>` : ""}
+              ? `<button class="btn btn-small" data-received="${esc(ord.id)}">${esc(T("orders.markReceived"))}</button>` : ""}
           </span>
         </div>
         ${orderCardHtml(d)}
       </div>`;
     }).join("")}
-    <div style="margin-top:16px" class="no-print"><button class="btn" data-act="back-home">← Home</button></div>
+    <div style="margin-top:16px" class="no-print"><button class="btn" data-act="back-home">${esc(T("common.back"))}</button></div>
   </div>`;
 
   // Card actions (share image / copy text) are wired via delegation in boot().
@@ -1435,7 +1903,7 @@ async function setOrderStatus(orderId, status) {
   try {
     await edge("orders.update-status", { order_id: orderId, status });
     renderOrders();
-  } catch (e) { flashError(e.detail || "Could not update order status."); }
+  } catch (e) { flashError(e.detail || T("orders.statusFail")); }
 }
 
 /* ====================== VIEW: ADMIN ============================ */
@@ -1446,8 +1914,8 @@ async function renderAdmin(tab) {
   const canManage = has("manage");
   const isSuper = has("superadmin");
   if (!canManage && !isSuper) {
-    $app().innerHTML = navHtml() + `<div class="view"><div class="error">Not authorized.</div>
-      <button class="btn" onclick="location.hash='#/home'">← Home</button></div>`;
+    $app().innerHTML = navHtml() + `<div class="view"><div class="error">${esc(T("common.notAuth"))}</div>
+      <button class="btn" onclick="location.hash='#/home'">${esc(T("common.back"))}</button></div>`;
     $app().querySelector('[data-act="nav-logout"]').onclick = logout;
     return;
   }
@@ -1467,7 +1935,7 @@ async function renderAdmin(tab) {
     if (sg.settings) state.settings = Object.assign({ store_name: "Sumo Sushi", show_prices: false }, sg.settings);
   } catch (e) { if (e.status === 401 || e.code === "unauthorized") { dropSession(); go("#/login"); return; } }
 
-  const allTabs = [["items", "Items"], ["areas", "Areas"], ["vendors", "Vendors"], ["users", "Users"], ["io", "Import/Export"]];
+  const allTabs = [["items", T("admin.items")], ["areas", T("admin.areas")], ["vendors", T("admin.vendors")], ["users", T("admin.users")], ["io", "Import/Export"]];
   // Managers get Items/Areas/Vendors/Users; Import/Export is superadmin-only.
   const tabs = allTabs.filter(([id]) => id === "io" ? isSuper : canManage);
   if (!tabs.some(([id]) => id === tab)) tab = tabs[0][0];
@@ -1480,12 +1948,12 @@ async function renderAdmin(tab) {
 
   $app().innerHTML = navHtml() + `
   <div class="view">
-    <h1>${tab === "io" ? "Super Admin" : "Manage"}</h1>
+    <h1>${tab === "io" ? "Super Admin" : esc(T("admin.manage"))}</h1>
     <div class="admin-tabs no-print">
       ${tabs.map(([id, label]) => `<button class="admin-tab ${tab === id ? "active" : ""}" data-atab="${id}">${label}</button>`).join("")}
     </div>
     <div id="admin-body">${body}</div>
-    <div style="margin-top:16px" class="no-print"><button class="btn" data-act="back-home">← Home</button></div>
+    <div style="margin-top:16px" class="no-print"><button class="btn" data-act="back-home">${esc(T("common.back"))}</button></div>
   </div>`;
 
   $app().querySelectorAll("[data-atab]").forEach(b => b.onclick = () => go("#/admin/" + b.dataset.atab));
@@ -1502,51 +1970,51 @@ function adminItemsHtml() {
     `<option value="${esc(v.id)}" ${String(v.id) === String(sel) ? "selected" : ""}>${esc(v.name)}</option>`).join("");
 
   return `<div class="admin-card">
-      <h3 style="margin-top:0">Add item</h3>
-      <div class="field"><label>Name</label><input id="ni-name" placeholder="e.g. Bluefin tuna"></div>
+      <h3 style="margin-top:0">${esc(T("admin.addItem"))}</h3>
+      <div class="field"><label>${esc(T("common.name"))}</label><input id="ni-name" placeholder="${esc(T("admin.exItem"))}"></div>
       <div class="form-row">
-        <div class="field"><label>Area</label><select id="ni-area">${areaOpts()}</select></div>
-        <div class="field"><label>Vendor</label><select id="ni-vendor">${vendorOpts()}</select></div>
+        <div class="field"><label>${esc(T("admin.area"))}</label><select id="ni-area">${areaOpts()}</select></div>
+        <div class="field"><label>${esc(T("admin.vendor"))}</label><select id="ni-vendor">${vendorOpts()}</select></div>
       </div>
       <div class="form-row">
         <div class="field"><label>Par</label><input id="ni-par" type="number" inputmode="decimal" min="0" step="0.25" placeholder="0"></div>
-        <div class="field"><label>Unit</label><input id="ni-unit" placeholder="cs / lb / ea"></div>
-        <div class="field"><label>Price</label><input id="ni-price" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00"></div>
+        <div class="field"><label>${esc(T("admin.unit"))}</label><input id="ni-unit" placeholder="cs / lb / ea"></div>
+        <div class="field"><label>${esc(T("admin.price"))}</label><input id="ni-price" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00"></div>
       </div>
       <div id="ni-err"></div>
-      <button class="btn btn-primary" id="ni-add" style="width:100%">Add item</button>
+      <button class="btn btn-primary" id="ni-add" style="width:100%">${esc(T("admin.addItem"))}</button>
     </div>
     ${state.items.map(i => `
     <div class="admin-card" data-item="${esc(i.id)}">
       <div class="card-head">
         <div><strong>${esc(i.name)}</strong>
-          <div class="muted" style="font-size:13px">${esc(areaName(i.area_id))} · ${esc(vendorOf(i.vendor_id).name || "no vendor")}${i.active === false ? " · ARCHIVED" : ""}</div>
+          <div class="muted" style="font-size:13px">${esc(areaName(i.area_id))} · ${esc(vendorOf(i.vendor_id).name || T("admin.noVendor"))}${i.active === false ? " · " + esc(T("admin.archived")) : ""}</div>
         </div>
-        <button class="btn btn-small" data-ai-toggle>${i.active === false ? "Unarchive" : "Archive"}</button>
+        <button class="btn btn-small" data-ai-toggle>${esc(i.active === false ? T("admin.unarchive") : T("admin.archive"))}</button>
       </div>
       <div class="form-row" style="margin-top:8px">
-        <div class="field"><label>Name</label><input data-f="name" value="${esc(i.name)}"></div>
-        <div class="field"><label>Unit</label><input data-f="unit" value="${esc(i.unit || "")}"></div>
+        <div class="field"><label>${esc(T("common.name"))}</label><input data-f="name" value="${esc(i.name)}"></div>
+        <div class="field"><label>${esc(T("admin.unit"))}</label><input data-f="unit" value="${esc(i.unit || "")}"></div>
       </div>
       <div class="form-row">
         <div class="field"><label>Par</label><input data-f="par" type="number" inputmode="decimal" min="0" step="0.25" value="${Number(i.par) > 0 ? esc(i.par) : ""}" placeholder="—"></div>
-        <div class="field"><label>Price</label><input data-f="price" type="number" inputmode="decimal" min="0" step="0.01" value="${Number(i.price) > 0 ? esc(i.price) : ""}" placeholder="—"></div>
+        <div class="field"><label>${esc(T("admin.price"))}</label><input data-f="price" type="number" inputmode="decimal" min="0" step="0.01" value="${Number(i.price) > 0 ? esc(i.price) : ""}" placeholder="—"></div>
       </div>
       <div class="form-row">
-        <div class="field"><label>Mode</label><select data-f="mode">
-          <option value="auto" ${i.mode === "auto" ? "selected" : ""}>auto (generates orders)</option>
-          <option value="manual" ${i.mode !== "auto" ? "selected" : ""}>manual</option></select></div>
-        <div class="field"><label>Count style</label><input data-f="count_style" value="${esc(i.count_style || "")}" placeholder="e.g. case"></div>
+        <div class="field"><label>${esc(T("admin.mode"))}</label><select data-f="mode">
+          <option value="auto" ${i.mode === "auto" ? "selected" : ""}>${esc(T("admin.modeAuto"))}</option>
+          <option value="manual" ${i.mode !== "auto" ? "selected" : ""}>${esc(T("admin.modeManual"))}</option></select></div>
+        <div class="field"><label>${esc(T("admin.countStyle"))}</label><input data-f="count_style" value="${esc(i.count_style || "")}" placeholder="${esc(T("admin.exCase"))}"></div>
       </div>
       <div class="form-row">
-        <div class="field"><label>Pieces per case</label><input data-f="pieces_per_case" type="number" inputmode="numeric" min="0" value="${esc(i.pieces_per_case || "")}" placeholder="—"></div>
-        <div class="field"><label>Area</label><select data-f="area_id">${areaOpts(i.area_id)}</select></div>
+        <div class="field"><label>${esc(T("admin.pieces"))}</label><input data-f="pieces_per_case" type="number" inputmode="numeric" min="0" value="${esc(i.pieces_per_case || "")}" placeholder="—"></div>
+        <div class="field"><label>${esc(T("admin.area"))}</label><select data-f="area_id">${areaOpts(i.area_id)}</select></div>
       </div>
-      <div class="field"><label>Vendor</label><select data-f="vendor_id">${vendorOpts(i.vendor_id)}</select></div>
-      <div class="field"><label>Notes</label><input data-f="notes" value="${esc(i.notes || "")}"></div>
+      <div class="field"><label>${esc(T("admin.vendor"))}</label><select data-f="vendor_id">${vendorOpts(i.vendor_id)}</select></div>
+      <div class="field"><label>${esc(T("common.notes"))}</label><input data-f="notes" value="${esc(i.notes || "")}"></div>
       <div style="display:flex;gap:8px;margin-top:8px">
-        <button class="btn btn-primary btn-small" data-ai-save style="flex:1">Save</button>
-        <button class="btn btn-small" data-ai-move>Move area</button>
+        <button class="btn btn-primary btn-small" data-ai-save style="flex:1">${esc(T("common.save"))}</button>
+        <button class="btn btn-small" data-ai-move>${esc(T("common.move"))}</button>
       </div>
     </div>`).join("")}`;
 }
@@ -1554,17 +2022,17 @@ function adminItemsHtml() {
 /* ---------------- Areas tab ---------------- */
 function adminAreasHtml() {
   return `<div class="admin-card">
-      <h3 style="margin-top:0">Add area</h3>
-      <div class="field"><label>Name</label><input id="na-name" placeholder="e.g. Walk-in"></div>
+      <h3 style="margin-top:0">${esc(T("admin.addArea"))}</h3>
+      <div class="field"><label>${esc(T("common.name"))}</label><input id="na-name" placeholder="e.g. Walk-in"></div>
       <div id="na-err"></div>
-      <button class="btn btn-primary" id="na-add" style="width:100%">Add area</button>
+      <button class="btn btn-primary" id="na-add" style="width:100%">${esc(T("admin.addArea"))}</button>
     </div>
     ${state.areas.map(a => `
     <div class="admin-card" data-area-row="${esc(a.id)}">
-      <div class="field"><label>Area name</label><input data-aname value="${esc(a.name)}"></div>
+      <div class="field"><label>${esc(T("admin.areaName"))}</label><input data-aname value="${esc(a.name)}"></div>
       <div style="display:flex;gap:8px">
-        <button class="btn btn-small btn-primary" data-arename style="flex:1">Rename</button>
-        <button class="btn btn-small btn-danger" data-adelete>Delete</button>
+        <button class="btn btn-small btn-primary" data-arename style="flex:1">${esc(T("admin.rename"))}</button>
+        <button class="btn btn-small btn-danger" data-adelete>${esc(T("common.delete"))}</button>
       </div>
     </div>`).join("")}`;
 }
@@ -1572,27 +2040,27 @@ function adminAreasHtml() {
 /* ---------------- Vendors tab ---------------- */
 function adminVendorsHtml() {
   return `<div class="admin-card">
-      <h3 style="margin-top:0">Add vendor</h3>
+      <h3 style="margin-top:0">${esc(T("admin.addVendor"))}</h3>
       <div class="form-row">
-        <div class="field"><label>Name</label><input id="nv-name" placeholder="e.g. True World Foods"></div>
-        <div class="field"><label>Email</label><input id="nv-email" type="email" placeholder="orders@…"></div>
+        <div class="field"><label>${esc(T("common.name"))}</label><input id="nv-name" placeholder="e.g. True World Foods"></div>
+        <div class="field"><label>${esc(T("admin.email"))}</label><input id="nv-email" type="email" placeholder="orders@…"></div>
       </div>
       <div id="nv-err"></div>
-      <button class="btn btn-primary" id="nv-add" style="width:100%">Add vendor</button>
+      <button class="btn btn-primary" id="nv-add" style="width:100%">${esc(T("admin.addVendor"))}</button>
     </div>
     ${state.vendors.map(v => `
     <div class="admin-card" data-vendor="${esc(v.id)}">
       <div class="form-row">
-        <div class="field"><label>Name</label><input data-f="name" value="${esc(v.name)}"></div>
-        <div class="field"><label>Email</label><input data-f="email" type="email" value="${esc(v.email || "")}"></div>
+        <div class="field"><label>${esc(T("common.name"))}</label><input data-f="name" value="${esc(v.name)}"></div>
+        <div class="field"><label>${esc(T("admin.email"))}</label><input data-f="email" type="email" value="${esc(v.email || "")}"></div>
       </div>
-      <div class="field"><label>Notes</label><input data-f="notes" value="${esc(v.notes || "")}"></div>
+      <div class="field"><label>${esc(T("common.notes"))}</label><input data-f="notes" value="${esc(v.notes || "")}"></div>
       <div class="form-row">
-        <div class="field"><label>Order days</label><input data-f="order_days" value="${esc(v.order_days || "")}" placeholder="e.g. Tue, Thu"></div>
-        <div class="field"><label>Order by</label><input data-f="order_cutoff" value="${esc(v.order_cutoff || "")}" placeholder="e.g. 3pm"></div>
+        <div class="field"><label>${esc(T("vendor.orderDays"))}</label><input data-f="order_days" value="${esc(v.order_days || "")}" placeholder="e.g. Tue, Thu"></div>
+        <div class="field"><label>${esc(T("vendor.orderBy"))}</label><input data-f="order_cutoff" value="${esc(v.order_cutoff || "")}" placeholder="e.g. 3pm"></div>
       </div>
-      <div class="field"><label>Delivery days</label><input data-f="delivery_days" value="${esc(v.delivery_days || "")}" placeholder="e.g. Wed, Fri"></div>
-      <button class="btn btn-primary btn-small" data-vsave style="width:100%">Save</button>
+      <div class="field"><label>${esc(T("vendor.deliveryDays"))}</label><input data-f="delivery_days" value="${esc(v.delivery_days || "")}" placeholder="e.g. Wed, Fri"></div>
+      <button class="btn btn-primary btn-small" data-vsave style="width:100%">${esc(T("common.save"))}</button>
     </div>`).join("")}`;
 }
 
@@ -1606,42 +2074,46 @@ function adminUsersHtml() {
     .filter(r => viewerIsSuper || r !== "superadmin")
     .map(r => `<option value="${r}" ${r === sel ? "selected" : ""}>${roleLabel(r)}</option>`).join("");
   return `<div class="admin-card">
-      <h3 style="margin-top:0">Add user</h3>
+      <h3 style="margin-top:0">${esc(T("admin.addUser"))}</h3>
       <div class="form-row">
-        <div class="field"><label>Name</label><input id="nu-name" placeholder="e.g. Kenji"></div>
-        <div class="field"><label>Role</label><select id="nu-role">${roleOpts("staff")}</select></div>
+        <div class="field"><label>${esc(T("common.name"))}</label><input id="nu-name" placeholder="e.g. Kenji"></div>
+        <div class="field"><label>${esc(T("admin.role"))}</label><select id="nu-role">${roleOpts("staff")}</select></div>
       </div>
-      <div class="field"><label>Initial PIN (min 4 digits)</label><input id="nu-pin" inputmode="numeric" placeholder="••••"></div>
+      <div class="field"><label>${esc(T("admin.initPin"))}</label><input id="nu-pin" inputmode="numeric" placeholder="••••"></div>
       <div id="nu-err"></div>
-      <button class="btn btn-primary" id="nu-add" style="width:100%">Add user</button>
+      <button class="btn btn-primary" id="nu-add" style="width:100%">${esc(T("admin.addUser"))}</button>
     </div>
     ${state.users.map(u => {
     const isSA = u.role === "superadmin";
+    const isMe = String(u.id) === String(me);
     return `
     <div class="admin-card" data-user="${esc(u.id)}">
       <div class="card-head">
-        <div><strong>${esc(u.name)}</strong>${String(u.id) === String(me) ? ' <span class="pill pill-counted">you</span>' : ""}
+        <div><strong>${esc(u.name)}</strong>${isMe ? ` <span class="pill pill-counted">${esc(T("admin.you"))}</span>` : ""}
           ${isSA ? ' <span class="pill pill-counted">Super Admin</span>' : ""}
-          <div class="muted" style="font-size:13px">${u.active === false ? "disabled" : "active"}</div></div>
+          <div class="muted" style="font-size:13px">${esc(u.active === false ? T("admin.disabled") : T("admin.active"))}</div></div>
         ${isSA
           ? (viewerIsSuper
-              ? `<span class="muted" style="font-size:13px">protected</span>`
-              : `<span class="muted" style="font-size:13px">Super Admin — only Gabe can change this</span>`)
-          : `<button class="btn btn-small" data-u-toggle>${u.active === false ? "Enable" : "Disable"}</button>`}
+              ? `<span class="muted" style="font-size:13px">${esc(T("admin.protected"))}</span>`
+              : `<span class="muted" style="font-size:13px">${esc(T("admin.saLocked"))}</span>`)
+          : `<div style="display:flex;gap:8px">
+              <button class="btn btn-small" data-u-toggle data-enable="${u.active === false ? "1" : ""}">${esc(u.active === false ? T("admin.enable") : T("admin.disable"))}</button>
+              ${isMe ? "" : `<button class="btn btn-small btn-danger" data-u-delete>${esc(T("users.delete"))}</button>`}
+            </div>`}
       </div>
       ${isSA
-        ? `<div class="field" style="margin-top:8px"><label>Role</label><div><strong>Super Admin</strong></div></div>`
+        ? `<div class="field" style="margin-top:8px"><label>${esc(T("admin.role"))}</label><div><strong>Super Admin</strong></div></div>`
         : `<div class="form-row" style="margin-top:8px">
-        <div class="field"><label>Role</label><select data-uf="role">${roleOpts(u.role)}</select></div>
-        <div class="field"><label>&nbsp;</label><button class="btn btn-small" data-u-role style="width:100%">Save role</button></div>
+        <div class="field"><label>${esc(T("admin.role"))}</label><select data-uf="role">${roleOpts(u.role)}</select></div>
+        <div class="field"><label>&nbsp;</label><button class="btn btn-small" data-u-role style="width:100%">${esc(T("admin.saveRole"))}</button></div>
       </div>`}
       ${isSA && !viewerIsSuper ? "" : `
-      <div class="field"><label>Set new PIN (enter twice)</label>
+      <div class="field"><label>${esc(T("admin.setNewPin"))}</label>
         <div class="form-row">
-          <input data-upin1 inputmode="numeric" placeholder="New PIN">
-          <input data-upin2 inputmode="numeric" placeholder="Confirm PIN">
+          <input data-upin1 inputmode="numeric" placeholder="${esc(T("admin.newPin"))}">
+          <input data-upin2 inputmode="numeric" placeholder="${esc(T("admin.confirmPin"))}">
         </div></div>
-      <button class="btn btn-small" data-u-pin style="width:100%">Set PIN</button>`}
+      <button class="btn btn-small" data-u-pin style="width:100%">${esc(T("admin.setPinBtn"))}</button>`}
     </div>`;
     }).join("")}`;
 }
@@ -1687,7 +2159,7 @@ function wireAdmin(tab) {
     document.getElementById("ni-add").onclick = async () => {
       const name = document.getElementById("ni-name").value.trim();
       const err = document.getElementById("ni-err");
-      if (!name) { err.innerHTML = `<div class="error">Item name can't be empty.</div>`; return; }
+      if (!name) { err.innerHTML = `<div class="error">${esc(T("admin.itemNeedName"))}</div>`; return; }
       err.innerHTML = "";
       try {
         await edge("items.create", {
@@ -1699,7 +2171,7 @@ function wireAdmin(tab) {
           price: Number(document.getElementById("ni-price").value) || 0,
         });
         rerender();
-      } catch (e) { err.innerHTML = `<div class="error">${esc(e.detail || "Could not add item.")}</div>`; }
+      } catch (e) { err.innerHTML = `<div class="error">${esc(e.detail || T("admin.addItemFail"))}</div>`; }
     };
     body.querySelectorAll("[data-item]").forEach(card => {
       const id = card.dataset.item;
@@ -1711,22 +2183,24 @@ function wireAdmin(tab) {
         data.pieces_per_case = data.pieces_per_case === "" ? null : Number(data.pieces_per_case);
         if (!data.vendor_id) data.vendor_id = null;
         try { await edge("items.update", { item_id: id, ...data }); flashSaved(card); }
-        catch (e) { flashError(e.detail || "Could not save item."); }
+        catch (e) { flashError(e.detail || T("admin.saveItemFail")); }
       };
       card.querySelector("[data-ai-toggle]").onclick = async () => {
         const item = itemById(id);
         try { await edge("items.update", { item_id: id, active: item.active === false }); rerender(); }
-        catch (e) { flashError(e.detail || "Could not toggle archive."); }
+        catch (e) { flashError(e.detail || T("admin.archiveFail")); }
       };
       card.querySelector("[data-ai-move]").onclick = async () => {
         const item = itemById(id);
         const oldName = areaName(item.area_id);
         const newId = await pickArea(item.area_id);
         if (!newId || String(newId) === String(item.area_id)) return;
-        const ok = await confirmDialog("Move item?", `Move ${item.name} from ${oldName} to ${areaName(newId)}?`, "Move");
+        const ok = await confirmDialog(T("admin.moveItemTitle"),
+          T("admin.moveItemMsg").replace("{item}", item.name).replace("{from}", oldName).replace("{to}", areaName(newId)),
+          T("common.move"));
         if (!ok) return;
         try { await edge("items.move", { item_id: id, area_id: newId }); rerender(); }
-        catch (e) { flashError(e.detail || "Could not move item."); }
+        catch (e) { flashError(e.detail || T("admin.moveFail")); }
       };
     });
   }
@@ -1735,23 +2209,23 @@ function wireAdmin(tab) {
     document.getElementById("na-add").onclick = async () => {
       const name = document.getElementById("na-name").value.trim();
       const err = document.getElementById("na-err");
-      if (!name) { err.innerHTML = `<div class="error">Area name can't be empty.</div>`; return; }
+      if (!name) { err.innerHTML = `<div class="error">${esc(T("admin.areaNeedName"))}</div>`; return; }
       try { await edge("areas.create", { name }); rerender(); }
-      catch (e) { err.innerHTML = `<div class="error">${esc(e.detail || "Could not add area.")}</div>`; }
+      catch (e) { err.innerHTML = `<div class="error">${esc(e.detail || T("admin.addAreaFail"))}</div>`; }
     };
     body.querySelectorAll("[data-area-row]").forEach(card => {
       const id = card.dataset.areaRow;
       card.querySelector("[data-arename]").onclick = async () => {
         const name = card.querySelector("[data-aname]").value.trim();
-        if (!name) { flashError("Area name can't be empty."); return; }
+        if (!name) { flashError(T("admin.areaNeedName")); return; }
         try { await edge("areas.rename", { area_id: id, name }); rerender(); }
-        catch (e) { flashError(e.detail || "Could not rename area."); }
+        catch (e) { flashError(e.detail || T("admin.renameFail")); }
       };
       card.querySelector("[data-adelete]").onclick = async () => {
         const a = state.areas.find(x => String(x.id) === String(id));
-        if (await confirmDialog("Delete area?", `Delete "${a ? a.name : id}"? Items must be moved out first.`, "Delete")) {
+        if (await confirmDialog(T("admin.delAreaTitle"), T("admin.delAreaMsg").replace("{name}", a ? a.name : id), T("common.delete"))) {
           try { await edge("areas.delete", { area_id: id }); rerender(); }
-          catch (e) { flashError(e.detail || "Could not delete area — it may still have items."); }
+          catch (e) { flashError(e.detail || T("admin.delAreaFail")); }
         }
       };
     });
@@ -1761,11 +2235,11 @@ function wireAdmin(tab) {
     document.getElementById("nv-add").onclick = async () => {
       const name = document.getElementById("nv-name").value.trim();
       const err = document.getElementById("nv-err");
-      if (!name) { err.innerHTML = `<div class="error">Vendor name can't be empty.</div>`; return; }
+      if (!name) { err.innerHTML = `<div class="error">${esc(T("admin.vendorNeedName"))}</div>`; return; }
       try {
         await edge("vendors.create", { name, email: document.getElementById("nv-email").value.trim() });
         rerender();
-      } catch (e) { err.innerHTML = `<div class="error">${esc(e.detail || "Could not add vendor.")}</div>`; }
+      } catch (e) { err.innerHTML = `<div class="error">${esc(e.detail || T("admin.addVendorFail"))}</div>`; }
     };
     body.querySelectorAll("[data-vendor]").forEach(card => {
       const id = card.dataset.vendor;
@@ -1773,7 +2247,7 @@ function wireAdmin(tab) {
         const data = {};
         card.querySelectorAll("[data-f]").forEach(inp => data[inp.dataset.f] = inp.value);
         try { await edge("vendors.update", { vendor_id: id, ...data }); flashSaved(card); }
-        catch (e) { flashError(e.detail || "Could not save vendor."); }
+        catch (e) { flashError(e.detail || T("admin.vendorSaveFail")); }
       };
     });
   }
@@ -1783,12 +2257,12 @@ function wireAdmin(tab) {
       const name = document.getElementById("nu-name").value.trim();
       const pin = document.getElementById("nu-pin").value.trim();
       const err = document.getElementById("nu-err");
-      if (!name) { err.innerHTML = `<div class="error">Name can't be empty.</div>`; return; }
-      if (pin.length < 4) { err.innerHTML = `<div class="error">PIN must be at least 4 digits.</div>`; return; }
+      if (!name) { err.innerHTML = `<div class="error">${esc(T("admin.userNeedName"))}</div>`; return; }
+      if (pin.length < 4) { err.innerHTML = `<div class="error">${esc(T("admin.pinNeed4"))}</div>`; return; }
       try {
         await edge("users.create", { name, role: document.getElementById("nu-role").value, pin });
         rerender();
-      } catch (e) { err.innerHTML = `<div class="error">${esc(e.detail || "Could not add user.")}</div>`; }
+      } catch (e) { err.innerHTML = `<div class="error">${esc(e.detail || T("admin.addUserFail"))}</div>`; }
     };
     body.querySelectorAll("[data-user]").forEach(card => {
       const id = card.dataset.user;
@@ -1796,23 +2270,35 @@ function wireAdmin(tab) {
       // guard each wiring so one missing button can't break the rest.
       const tgl = card.querySelector("[data-u-toggle]");
       if (tgl) tgl.onclick = async () => {
-        try { await edge("users.disable", { user_id: id }); rerender(); }
-        catch (e) { flashError(e.detail || "Could not change user status."); }
+        try {
+          // Enable flips active back on; disable uses the dedicated endpoint
+          // (it also kills the user's sessions). users.disable can NOT re-enable.
+          if (tgl.dataset.enable) await edge("users.update", { user_id: id, active: true });
+          else await edge("users.disable", { user_id: id });
+          rerender();
+        } catch (e) { flashError(e.detail || T("admin.userStatusFail")); }
+      };
+      const del = card.querySelector("[data-u-delete]");
+      if (del) del.onclick = async () => {
+        const nm = (card.querySelector(".card-head strong") || {}).textContent || "this user";
+        if (!await confirmDialog(T("users.deleteTitle"), T("users.deleteMsg").replace("{name}", nm.trim()), T("users.delete"))) return;
+        try { await edge("users.delete", { user_id: id }); rerender(); }
+        catch (e) { flashError(e.detail || T("users.deleteFail")); }
       };
       const roleBtn = card.querySelector("[data-u-role]");
       if (roleBtn) roleBtn.onclick = async () => {
         const role = card.querySelector('[data-uf="role"]').value;
         try { await edge("users.update", { user_id: id, role }); flashSaved(card); }
-        catch (e) { flashError(e.detail || "Could not update role."); }
+        catch (e) { flashError(e.detail || T("admin.roleFail")); }
       };
       const pinBtn = card.querySelector("[data-u-pin]");
       if (pinBtn) pinBtn.onclick = async () => {
         const p1 = card.querySelector("[data-upin1]").value.trim();
         const p2 = card.querySelector("[data-upin2]").value.trim();
-        if (p1.length < 4) { flashError("PIN must be at least 4 digits."); return; }
-        if (p1 !== p2) { flashError("PINs don't match."); return; }
+        if (p1.length < 4) { flashError(T("admin.pinNeed4")); return; }
+        if (p1 !== p2) { flashError(T("admin.pinMismatch")); return; }
         try { await edge("users.set-pin", { user_id: id, pin: p1 }); flashSaved(card); }
-        catch (e) { flashError(e.detail || "Could not set PIN."); }
+        catch (e) { flashError(e.detail || T("admin.setPinFail")); }
       };
     });
   }
