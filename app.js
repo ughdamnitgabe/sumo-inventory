@@ -150,6 +150,13 @@ en: {
   "admin.modeManual": "manual", "admin.countStyle": "Count style",
   "admin.exCase": "e.g. case", "admin.pieces": "Pieces per case",
   "admin.noVendor": "no vendor", "admin.saveItemFail": "Could not save item.",
+  "admin.csvTitle": "Bulk edit (CSV)",
+  "admin.csvHelp": "Download the catalog as a spreadsheet, edit pars, areas, vendors and prices, then upload it back. Blank id = new item. Unknown area/vendor names are skipped.",
+  "admin.csvDownload": "Download CSV", "admin.csvFile": "CSV file",
+  "admin.csvUpload": "Upload & apply", "admin.csvNeedFile": "Choose a CSV file first.",
+  "admin.csvBadFile": "Could not read that CSV file.",
+  "admin.csvResult": "Updated {u}, added {c}.", "admin.csvErrors": "{n} rows skipped:",
+  "admin.csvRow": "Row {r} ({name}): {error}",
   "admin.archiveFail": "Could not toggle archive.",
   "admin.addArea": "Add area", "admin.areaName": "Area name", "admin.rename": "Rename",
   "admin.areaNeedName": "Area name can't be empty.",
@@ -294,6 +301,13 @@ es: {
   "admin.modeManual": "manual", "admin.countStyle": "Estilo de conteo",
   "admin.exCase": "p. ej. caso", "admin.pieces": "Piezas por caso",
   "admin.noVendor": "sin proveedor", "admin.saveItemFail": "No se pudo guardar el artículo.",
+  "admin.csvTitle": "Edición masiva (CSV)",
+  "admin.csvHelp": "Descargue el catálogo como hoja de cálculo, edite pares, áreas, proveedores y precios, y súbalo de nuevo. id vacío = artículo nuevo. Los nombres de área/proveedor desconocidos se omiten.",
+  "admin.csvDownload": "Descargar CSV", "admin.csvFile": "Archivo CSV",
+  "admin.csvUpload": "Subir y aplicar", "admin.csvNeedFile": "Elija primero un archivo CSV.",
+  "admin.csvBadFile": "No se pudo leer ese archivo CSV.",
+  "admin.csvResult": "Actualizados {u}, agregados {c}.", "admin.csvErrors": "{n} filas omitidas:",
+  "admin.csvRow": "Fila {r} ({name}): {error}",
   "admin.archiveFail": "No se pudo archivar.",
   "admin.addArea": "Agregar área", "admin.areaName": "Nombre del área", "admin.rename": "Renombrar",
   "admin.areaNeedName": "El nombre del área no puede estar vacío.",
@@ -2018,6 +2032,16 @@ function adminItemsHtml() {
     `<option value="${esc(v.id)}" ${String(v.id) === String(sel) ? "selected" : ""}>${esc(v.name)}</option>`).join("");
 
   return `<div class="admin-card">
+      <h3 style="margin-top:0">${esc(T("admin.csvTitle"))}</h3>
+      <p class="muted">${esc(T("admin.csvHelp"))}</p>
+      <button class="btn" id="csv-download" style="width:100%">${esc(T("admin.csvDownload"))}</button>
+      <div class="field" style="margin-top:10px"><label>${esc(T("admin.csvFile"))}</label>
+        <input type="file" id="csv-file" accept=".csv,text/csv"></div>
+      <div id="csv-err"></div>
+      <button class="btn btn-primary" id="csv-upload" style="width:100%">${esc(T("admin.csvUpload"))}</button>
+      <div id="csv-result" style="margin-top:10px"></div>
+    </div>
+    <div class="admin-card">
       <h3 style="margin-top:0">${esc(T("admin.addItem"))}</h3>
       <div class="field"><label>${esc(T("common.name"))}</label><input id="ni-name" placeholder="${esc(T("admin.exItem"))}"></div>
       <div class="form-row">
@@ -2199,11 +2223,93 @@ function adminIOHtml() {
 }
 
 /* ---------------- Admin wiring ---------------- */
+/* ---------------- CSV bulk edit ---------------- */
+function csvEsc(v) {
+  const s = String(v ?? "");
+  return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+function itemsToCsv(items) {
+  const lines = ["id,name,area,vendor,par,unit,price,active"];
+  for (const i of items) {
+    lines.push([
+      i.id, i.name, i.area_name || "", i.vendor_name || "",
+      Number(i.par) > 0 ? i.par : "", i.unit || "",
+      Number(i.price) > 0 ? i.price : "", i.active === false ? "FALSE" : "TRUE",
+    ].map(csvEsc).join(","));
+  }
+  return lines.join("\r\n");
+}
+/** Parse CSV text into rows of strings. Handles quoted fields, embedded commas/newlines. */
+function parseCsv(text) {
+  const rows = [];
+  let row = [], cur = "", q = false;
+  for (let k = 0; k < text.length; k++) {
+    const ch = text[k];
+    if (q) {
+      if (ch === '"') {
+        if (text[k + 1] === '"') { cur += '"'; k++; }
+        else q = false;
+      } else cur += ch;
+    } else if (ch === '"') q = true;
+    else if (ch === ",") { row.push(cur); cur = ""; }
+    else if (ch === "\n") { row.push(cur); rows.push(row); row = []; cur = ""; }
+    else if (ch !== "\r") cur += ch;
+  }
+  if (cur !== "" || row.length) { row.push(cur); rows.push(row); }
+  return rows.filter(r => r.length > 1 || String(r[0] ?? "").trim() !== "");
+}
+
 function wireAdmin(tab) {
   const body = document.getElementById("admin-body");
   const rerender = () => renderAdmin(tab);
 
   if (tab === "items") {
+    document.getElementById("csv-download").onclick = () => {
+      const blob = new Blob([itemsToCsv(state.items)], { type: "text/csv" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "sumo-items-" + new Date().toISOString().slice(0, 10) + ".csv";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    };
+    document.getElementById("csv-upload").onclick = async () => {
+      const err = document.getElementById("csv-err");
+      const res = document.getElementById("csv-result");
+      err.innerHTML = ""; res.innerHTML = "";
+      const f = document.getElementById("csv-file").files[0];
+      if (!f) { err.innerHTML = `<div class="error">${esc(T("admin.csvNeedFile"))}</div>`; return; }
+      let text;
+      try { text = await f.text(); }
+      catch (e) { err.innerHTML = `<div class="error">${esc(T("admin.csvBadFile"))}</div>`; return; }
+      const parsed = parseCsv(text);
+      if (!parsed.length) { err.innerHTML = `<div class="error">${esc(T("admin.csvBadFile"))}</div>`; return; }
+      let start = 0;
+      if (String(parsed[0][0] ?? "").trim().toLowerCase() === "id") start = 1;
+      const cols = ["id", "name", "area", "vendor", "par", "unit", "price", "active"];
+      const rows = [];
+      for (let k = start; k < parsed.length; k++) {
+        const o = {};
+        cols.forEach((c, ci) => { o[c] = parsed[k][ci] ?? ""; });
+        if (!String(o.id).trim() && !String(o.name).trim()) continue;
+        rows.push(o);
+      }
+      if (!rows.length) { err.innerHTML = `<div class="error">${esc(T("admin.csvBadFile"))}</div>`; return; }
+      try {
+        const r = await edge("items.bulk", { rows });
+        let html = `<div class="ok">${esc(T("admin.csvResult").replace("{u}", r.updated).replace("{c}", r.created))}</div>`;
+        if (r.errors && r.errors.length) {
+          html += `<div class="error" style="margin-top:8px">${esc(T("admin.csvErrors").replace("{n}", r.errors.length))}</div><ul class="muted">` +
+            r.errors.map(e => `<li>${esc(T("admin.csvRow").replace("{r}", e.row).replace("{name}", e.name || "—").replace("{error}", e.error))}</li>`).join("") +
+            `</ul>`;
+        }
+        res.innerHTML = html;
+        rerender();
+      } catch (e) {
+        err.innerHTML = `<div class="error">${esc(e.detail || T("admin.csvBadFile"))}</div>`;
+      }
+    };
     document.getElementById("ni-add").onclick = async () => {
       const name = document.getElementById("ni-name").value.trim();
       const err = document.getElementById("ni-err");
