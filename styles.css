@@ -43,8 +43,11 @@ body {
   position: sticky; top: 0; z-index: 50;
   padding-top: calc(10px + env(safe-area-inset-top));
 }
-.topnav .brand { font-weight: 800; font-size: 18px; letter-spacing: .5px; }
+.topnav .brand { font-weight: 800; font-size: 16px; letter-spacing: .5px; display: inline-flex; align-items: center; gap: 8px; flex: 0 0 auto; }
 .topnav .brand .dot { color: var(--accent-hi); }
+.topnav .user { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 0 1 auto; }
+.logo-badge.nav-logo { width: 30px; height: 30px; }
+.logo-badge.nav-logo img { width: 24px; height: 24px; }
 .topnav .brand-btn { background: none; border: 0; padding: 10px 8px; margin: -10px 0 -10px -8px; cursor: pointer; color: inherit; font: inherit; }
 .topnav .user { font-size: 13px; color: var(--muted); }
 .btn {

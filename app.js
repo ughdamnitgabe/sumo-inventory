@@ -608,7 +608,7 @@ function navHtml(title) {
   const p = state.session ? state.session.profile : {};
   const isSuper = p.role === "superadmin";
   return `<div class="topnav no-print">
-    <div><button class="brand-btn" data-act="nav-home" aria-label="Home"><span class="brand">SUMO<span class="dot">•</span>INV</span></button></div>
+    <div><button class="brand-btn" data-act="nav-home" aria-label="Home"><span class="brand"><span class="logo-badge nav-logo"><img src="logo.png" alt=""></span>Sumo Sushi Warm Springs</span></button></div>
     <div class="user">${esc(p.name || "")} · ${esc(roleLabel(p.role))}</div>
     <div style="display:flex;gap:4px;align-items:center">
       ${isSuper ? "" : `<button class="btn btn-small btn-ghost" data-act="nav-lang" aria-label="Language" title="English / Español">🌐 ${lang() === "es" ? "EN" : "ES"}</button>`}
@@ -685,7 +685,10 @@ function renderLogin() {
   state._pad = pad;
   $app().innerHTML = `
   <div class="view pin-pad-wrap">
-    <h1 style="text-align:center">SUMO<span style="color:var(--accent-hi)">•</span>INV</h1>
+    <div style="text-align:center">
+      <span class="logo-badge" style="width:84px;height:84px"><img src="logo.png" alt="Sumo Sushi logo" style="width:68px;height:68px"></span>
+      <h1 style="margin:12px 0 0">Sumo Sushi Warm Springs</h1>
+    </div>
     <p class="muted" style="text-align:center">${esc(T("login.prompt"))}</p>
     <div class="pin-dots" id="pin-dots" aria-live="polite"></div>
     <div id="login-err"></div>
