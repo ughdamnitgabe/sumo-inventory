@@ -224,7 +224,11 @@ table.bulk-par input { width: 90px; min-height: 44px; font-size: 16px; text-alig
 .order-card { background: #fff; border-radius: 14px; overflow: hidden; margin-bottom: 18px;
   box-shadow: 0 1px 4px rgba(0,0,0,.08); border: 1px solid var(--border); }
 .order-card-head { background: #c62828; color: #fff; font-weight: 800; font-size: 22px;
-  text-align: center; padding: 14px 12px; letter-spacing: .5px; }
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  padding: 14px 12px; letter-spacing: .5px; }
+.logo-badge { display: inline-flex; width: 46px; height: 46px; border-radius: 50%;
+  background: #fff; align-items: center; justify-content: center; overflow: hidden; flex: 0 0 auto; }
+.logo-badge img { width: 36px; height: 36px; object-fit: contain; }
 .order-card-body { padding: 18px; }
 .order-card-vendor { font-size: 20px; font-weight: 800; color: #1b1b1b; }
 .order-card-date { color: #6b6b6b; margin-top: 2px; font-size: 15px; }

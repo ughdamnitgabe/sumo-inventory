@@ -1652,7 +1652,7 @@ function orderCardData(vendor, lines, dateLabel) {
 function orderCardHtml(d, opts = {}) {
   state.cardData[d.id] = d;
   return `<div class="order-card">
-    <div class="order-card-head">${esc(d.store)}</div>
+    <div class="order-card-head"><span class="logo-badge"><img src="logo.png" alt="Sumo Sushi logo"></span><span>${esc(d.store)}</span></div>
     <div class="order-card-body">
       <div class="order-card-vendor">${esc(d.vendorName)}</div>
       <div class="order-card-date">${esc(d.dateLabel)}</div>
@@ -1673,7 +1673,22 @@ function orderCardHtml(d, opts = {}) {
 }
 
 /** Render the card to a PNG blob — the full order at any length. */
-function renderOrderCardImage(d) {
+let logoImgPromise = null;
+/** Load the Sumo logo for the card header (resolves null if unavailable — header falls back to text). */
+function loadLogo() {
+  if (!logoImgPromise) {
+    logoImgPromise = new Promise((resolve) => {
+      try {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(null);
+        img.src = "logo.png";
+      } catch (e) { resolve(null); }
+    });
+  }
+  return logoImgPromise;
+}
+async function renderOrderCardImage(d) {
   const W = 1080, PAD = 64;
   const RED = "#c62828", INK = "#1b1b1b", GRAY = "#6b6b6b", SEAM = "#e9e9e9";
   const F = (w, s) => `${w} ${s}px -apple-system, "Helvetica Neue", Arial, sans-serif`;
@@ -1742,13 +1757,31 @@ function renderOrderCardImage(d) {
   // Header band
   x.fillStyle = RED;
   x.fillRect(0, 0, W, 150);
+
+  const logo = await loadLogo();
   x.fillStyle = "#ffffff";
-  x.textAlign = "center";
   x.textBaseline = "middle";
   let sSize = 56;
-  x.font = F(700, sSize);
-  while (x.measureText(d.store).width > W - 120 && sSize > 30) { sSize -= 4; x.font = F(700, sSize); }
-  x.fillText(d.store, W / 2, 78);
+  if (logo) {
+    // White badge with the sumo mark, store name beside it.
+    const bcx = PAD + 58, bcy = 75, br = 58;
+    x.beginPath();
+    x.arc(bcx, bcy, br, 0, Math.PI * 2);
+    x.fill();
+    const sc = 92 / Math.max(logo.width, logo.height);
+    const lw = logo.width * sc, lh = logo.height * sc;
+    x.drawImage(logo, bcx - lw / 2, bcy - lh / 2, lw, lh);
+    x.textAlign = "left";
+    const tx = PAD + 132, maxW = W - tx - 48;
+    x.font = F(700, sSize);
+    while (x.measureText(d.store).width > maxW && sSize > 30) { sSize -= 4; x.font = F(700, sSize); }
+    x.fillText(d.store, tx, 78);
+  } else {
+    x.textAlign = "center";
+    x.font = F(700, sSize);
+    while (x.measureText(d.store).width > W - 120 && sSize > 30) { sSize -= 4; x.font = F(700, sSize); }
+    x.fillText(d.store, W / 2, 78);
+  }
   x.textAlign = "left";
   x.textBaseline = "alphabetic";
 
