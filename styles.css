@@ -126,7 +126,7 @@ body {
 .stepper { flex: 0 0 64px; height: 64px; font-size: 30px; border-radius: var(--radius);
   background: var(--card2); border: 1px solid var(--border); color: var(--text); }
 .stepper:active { background: var(--accent); }
-.count-input { flex: 1; min-height: 64px; font-size: 28px; text-align: center;
+.count-input { flex: 1 1 auto; min-width: 0; width: 100%; min-height: 64px; font-size: 28px; text-align: center;
   border-radius: var(--radius); border: 1px solid var(--border); background: var(--bg2); color: var(--text); }
 .hint { font-size: 13px; color: var(--warn); margin-top: 6px; min-height: 18px; }
 .quick-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-top: 10px; }
