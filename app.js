@@ -166,6 +166,7 @@ en: {
   "admin.killFail": "Could not change app status.",
   "dead.title": "This app has been disabled.",
   "dead.msg": "Contact your administrator for access.",
+  "dead.adminLogin": "Administrator sign-in",
   "admin.archiveFail": "Could not toggle archive.",
   "admin.addArea": "Add area", "admin.areaName": "Area name", "admin.rename": "Rename",
   "admin.areaNeedName": "Area name can't be empty.",
@@ -326,6 +327,7 @@ es: {
   "admin.killFail": "No se pudo cambiar el estado.",
   "dead.title": "Esta aplicación ha sido desactivada.",
   "dead.msg": "Contacte a su administrador para obtener acceso.",
+  "dead.adminLogin": "Acceso de administrador",
   "admin.archiveFail": "No se pudo archivar.",
   "admin.addArea": "Agregar área", "admin.areaName": "Nombre del área", "admin.rename": "Renombrar",
   "admin.areaNeedName": "El nombre del área no puede estar vacío.",
@@ -475,10 +477,9 @@ async function edge(action, payload = {}) {
   let data = {};
   try { data = await res.json(); } catch (e) { /* non-JSON */ }
   if (data && data.error) {
-    // Kill switch: once tripped, a non-superadmin client stays on the
-    // shutdown notice for the rest of the session.
-    if (data.error === "app_disabled" && (!state.session || !state.session.profile ||
-        state.session.profile.role !== "superadmin")) {
+    // Kill switch: the server only sends app_disabled to non-superadmins
+    // (superadmins are never gated), so this client is done for the session.
+    if (data.error === "app_disabled") {
       state.killed = true;
       showKilled();
     }
@@ -510,16 +511,9 @@ async function boot() {
   if (raw) {
     try {
       state.session = JSON.parse(raw);
-      // Kill switch: check the flag before doing anything else.
-      try {
-        const kg = await edge("settings.get");
-        if (kg && kg.settings && kg.settings.app_disabled &&
-            (!state.session.profile || state.session.profile.role !== "superadmin")) {
-          state.killed = true;
-          showKilled();
-          return;
-        }
-      } catch (e) { /* settings.get failed: fall through to normal boot */ }
+      // NOTE: when the kill switch is on, areas.list throws app_disabled for
+      // non-superadmins (superadmins are never gated server-side), so the
+      // server — not the saved login copy — decides who sees the dead screen.
       const r = await edge("areas.list");
       state.areas = r.areas || r || [];
       if (state.session.profile && state.session.profile.must_change_pin) {
@@ -527,6 +521,7 @@ async function boot() {
         return;
       }
     } catch (e) {
+      if (e && e.code === "app_disabled") { state.killed = true; showKilled(); return; }
       dropSession(); // bad/expired token -> force login
     }
   }
@@ -563,12 +558,20 @@ async function logout() {
  *  #/login  #/set-pin  #/home  #/count/:id  #/review/:id
  *  #/orders  #/admin[:/tab]  #/admin/par (bulk par editor)
  *  Admin tabs: items/areas/vendors/users (manager+), io = import/export (superadmin only) */
-/** Full-screen shutdown notice shown when the kill switch is on. */
+/** Full-screen shutdown notice shown when the kill switch is on.
+ *  Includes an admin escape hatch: a superadmin can always sign back in. */
 function showKilled() {
   $app().innerHTML = `<div class="view"><div class="admin-card" style="margin-top:48px;text-align:center;padding:36px 22px">
     <div style="font-size:22px;font-weight:800;margin-bottom:10px">${esc(T("dead.title"))}</div>
-    <p class="muted" style="margin:0">${esc(T("dead.msg"))}</p>
+    <p class="muted">${esc(T("dead.msg"))}</p>
+    <div style="margin-top:20px"><button class="btn btn-small btn-ghost" id="killed-login">${esc(T("dead.adminLogin"))}</button></div>
   </div></div>`;
+  document.getElementById("killed-login").onclick = () => {
+    state.killed = false;
+    dropSession();
+    location.hash = "#/login";
+    router();
+  };
 }
 
 function router() {
