@@ -157,6 +157,15 @@ en: {
   "admin.csvBadFile": "Could not read that CSV file.",
   "admin.csvResult": "Updated {u}, added {c}.", "admin.csvErrors": "{n} rows skipped:",
   "admin.csvRow": "Row {r} ({name}): {error}",
+  "admin.killTitle": "Kill switch",
+  "admin.killHelp": "Shutting off the app blocks everyone except superadmins. Counts, approvals and orders stop working immediately. Nothing is deleted — you can turn it back on at any time.",
+  "admin.killLive": "LIVE", "admin.killDead": "SHUT OFF",
+  "admin.killOff": "Shut off app", "admin.killOn": "Re-enable app",
+  "admin.killType": "Type SHUT OFF to confirm.", "admin.killConfirmPh": "SHUT OFF",
+  "admin.killMismatch": "Confirmation did not match — nothing was changed.",
+  "admin.killFail": "Could not change app status.",
+  "dead.title": "This app has been disabled.",
+  "dead.msg": "Contact your administrator for access.",
   "admin.archiveFail": "Could not toggle archive.",
   "admin.addArea": "Add area", "admin.areaName": "Area name", "admin.rename": "Rename",
   "admin.areaNeedName": "Area name can't be empty.",
@@ -308,6 +317,15 @@ es: {
   "admin.csvBadFile": "No se pudo leer ese archivo CSV.",
   "admin.csvResult": "Actualizados {u}, agregados {c}.", "admin.csvErrors": "{n} filas omitidas:",
   "admin.csvRow": "Fila {r} ({name}): {error}",
+  "admin.killTitle": "Interruptor de apagado",
+  "admin.killHelp": "Apagar la aplicación bloquea a todos excepto a los superadministradores. Los conteos, aprobaciones y pedidos dejan de funcionar de inmediato. No se elimina nada — puede volver a encenderla en cualquier momento.",
+  "admin.killLive": "ACTIVA", "admin.killDead": "APAGADA",
+  "admin.killOff": "Apagar aplicación", "admin.killOn": "Reactivar aplicación",
+  "admin.killType": "Escriba SHUT OFF para confirmar.", "admin.killConfirmPh": "SHUT OFF",
+  "admin.killMismatch": "La confirmación no coincide — no se cambió nada.",
+  "admin.killFail": "No se pudo cambiar el estado.",
+  "dead.title": "Esta aplicación ha sido desactivada.",
+  "dead.msg": "Contacte a su administrador para obtener acceso.",
   "admin.archiveFail": "No se pudo archivar.",
   "admin.addArea": "Agregar área", "admin.areaName": "Nombre del área", "admin.rename": "Renombrar",
   "admin.areaNeedName": "El nombre del área no puede estar vacío.",
@@ -457,6 +475,13 @@ async function edge(action, payload = {}) {
   let data = {};
   try { data = await res.json(); } catch (e) { /* non-JSON */ }
   if (data && data.error) {
+    // Kill switch: once tripped, a non-superadmin client stays on the
+    // shutdown notice for the rest of the session.
+    if (data.error === "app_disabled" && (!state.session || !state.session.profile ||
+        state.session.profile.role !== "superadmin")) {
+      state.killed = true;
+      showKilled();
+    }
     throw { code: data.error, detail: data.detail, status: res.status, data };
   }
   if (!res.ok) throw { code: "edge_" + res.status, status: res.status, data };
@@ -485,6 +510,16 @@ async function boot() {
   if (raw) {
     try {
       state.session = JSON.parse(raw);
+      // Kill switch: check the flag before doing anything else.
+      try {
+        const kg = await edge("settings.get");
+        if (kg && kg.settings && kg.settings.app_disabled &&
+            (!state.session.profile || state.session.profile.role !== "superadmin")) {
+          state.killed = true;
+          showKilled();
+          return;
+        }
+      } catch (e) { /* settings.get failed: fall through to normal boot */ }
       const r = await edge("areas.list");
       state.areas = r.areas || r || [];
       if (state.session.profile && state.session.profile.must_change_pin) {
@@ -528,7 +563,16 @@ async function logout() {
  *  #/login  #/set-pin  #/home  #/count/:id  #/review/:id
  *  #/orders  #/admin[:/tab]  #/admin/par (bulk par editor)
  *  Admin tabs: items/areas/vendors/users (manager+), io = import/export (superadmin only) */
+/** Full-screen shutdown notice shown when the kill switch is on. */
+function showKilled() {
+  $app().innerHTML = `<div class="view"><div class="admin-card" style="margin-top:48px;text-align:center;padding:36px 22px">
+    <div style="font-size:22px;font-weight:800;margin-bottom:10px">${esc(T("dead.title"))}</div>
+    <p class="muted" style="margin:0">${esc(T("dead.msg"))}</p>
+  </div></div>`;
+}
+
 function router() {
+  if (state.killed) { showKilled(); return; }
   let hash = location.hash || "#/login";
   const needAuth = !hash.startsWith("#/login") && !hash.startsWith("#/set-pin");
 
@@ -2192,7 +2236,18 @@ function adminUsersHtml() {
 
 /* ---------------- Import / Export tab ---------------- */
 function adminIOHtml() {
-  return `<div class="admin-card">
+  const killed = !!(state.settings && state.settings.app_disabled);
+  return `<div class="admin-card" style="border:2px solid #c62828">
+      <h3 style="margin-top:0">${esc(T("admin.killTitle"))}</h3>
+      <p class="muted">${esc(T("admin.killHelp"))}</p>
+      <div style="margin:10px 0;font-size:16px">${killed ? "🔴" : "🟢"} <strong>${esc(killed ? T("admin.killDead") : T("admin.killLive"))}</strong></div>
+      ${killed ? "" : `<div class="field"><label>${esc(T("admin.killType"))}</label>
+        <input id="kill-confirm" placeholder="${esc(T("admin.killConfirmPh"))}" autocomplete="off"></div>`}
+      <div id="kill-err"></div>
+      <button class="btn ${killed ? "" : "btn-danger"}" id="kill-toggle" style="width:100%">
+        ${esc(killed ? T("admin.killOn") : T("admin.killOff"))}</button>
+    </div>
+    <div class="admin-card">
       <h3 style="margin-top:0">Store settings</h3>
       <div class="field"><label>Store name <span class="muted">(order card header)</span></label>
         <input id="set-store-name" value="${esc(storeName())}" maxlength="80"></div>
@@ -2458,6 +2513,26 @@ function wireAdmin(tab) {
   }
 
   if (tab === "io") {
+    const killBtn = document.getElementById("kill-toggle");
+    if (killBtn) killBtn.onclick = async () => {
+      const killed = !!(state.settings && state.settings.app_disabled);
+      const err = document.getElementById("kill-err");
+      err.innerHTML = "";
+      if (!killed) {
+        const inp = document.getElementById("kill-confirm");
+        if (!inp || inp.value.trim() !== "SHUT OFF") {
+          err.innerHTML = `<div class="error">${esc(T("admin.killMismatch"))}</div>`;
+          return;
+        }
+      } else {
+        if (!await confirmDialog(T("admin.killTitle"), T("admin.killOn") + "?", T("admin.killOn"))) return;
+      }
+      try {
+        const r = await edge("admin.kill", { disabled: !killed });
+        state.settings = Object.assign({}, state.settings, { app_disabled: !!r.app_disabled });
+        rerender();
+      } catch (e) { err.innerHTML = `<div class="error">${esc(e.detail || T("admin.killFail"))}</div>`; }
+    };
     document.getElementById("set-save").onclick = async () => {
       const msg = document.getElementById("set-msg");
       const name = document.getElementById("set-store-name").value.trim();
