@@ -1722,6 +1722,20 @@ function renderOrderCardImage(d) {
 
   c.width = W;
   c.height = Math.ceil(H);
+
+  // Rounded card with transparent corners — sits cleanly in the iOS share
+  // bubble instead of a square white slab the OS has to mask (which left a
+  // faint sliver along the edges).
+  const R = 48;
+  x.save();
+  x.beginPath();
+  x.moveTo(R, 0);
+  x.arcTo(W, 0, W, H, R);
+  x.arcTo(W, H, 0, H, R);
+  x.arcTo(0, H, 0, 0, R);
+  x.arcTo(0, 0, W, 0, R);
+  x.closePath();
+  x.clip();
   x.fillStyle = "#ffffff";
   x.fillRect(0, 0, W, H);
 
@@ -1787,6 +1801,7 @@ function renderOrderCardImage(d) {
   }
   y += 52;
 
+  x.restore(); // release the rounded-corner clip
   return new Promise((resolve) => c.toBlob(resolve, "image/png"));
 }
 
