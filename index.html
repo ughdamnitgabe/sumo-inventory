@@ -8,11 +8,26 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icon-512.png" />
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css" id="app-css" />
   <title>Sumo Inventory</title>
 </head>
 <body>
   <div id="app"><div class="loading">Loading&#8230;</div></div>
-  <script src="app.js"></script>
+  <script>
+    // Always fetch the newest code: iOS home-screen web apps cache
+    // aggressively, so bust the cache on every launch.
+    (function () {
+      var v = Date.now();
+      var css = document.getElementById("app-css");
+      if (css) css.href = "styles.css?v=" + v;
+      var s = document.createElement("script");
+      s.src = "app.js?v=" + v;
+      s.onerror = function () {
+        var el = document.querySelector("#app .loading");
+        if (el) el.textContent = "Failed to load. Check your connection and reopen.";
+      };
+      document.body.appendChild(s);
+    })();
+  </script>
 </body>
 </html>
