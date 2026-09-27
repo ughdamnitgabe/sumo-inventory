@@ -129,6 +129,12 @@ body {
   background: var(--card); font-size: 13px; font-weight: 600; cursor: pointer; }
 .check-list .check input { width: 18px; height: 18px; margin: 0; padding: 0; flex: 0 0 auto;
   accent-color: var(--accent); }
+/* Vendor day picker chips */
+.day-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 4px; }
+.day-chip { min-height: 40px; min-width: 54px; padding: 6px 10px; border-radius: 10px;
+  border: 1px solid var(--border); background: var(--card); color: var(--muted);
+  font-size: 13px; font-weight: 700; cursor: pointer; }
+.day-chip.active { border-color: var(--accent); background: #331714; color: var(--text); }
 .searchbar { width: 100%; min-height: var(--tap); font-size: 16px; padding: 10px 14px;
   border-radius: var(--radius); border: 1px solid var(--border); background: var(--card);
   color: var(--text); margin: 10px 0; }

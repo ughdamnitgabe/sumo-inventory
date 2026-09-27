@@ -186,6 +186,8 @@ en: {
   "admin.vendorSaveFail": "Could not save vendor.",
   "vendor.orderDays": "Order days", "vendor.orderBy": "Order by",
   "vendor.deliveryDays": "Delivery days",
+  "day.mon": "Mon", "day.tue": "Tue", "day.wed": "Wed", "day.thu": "Thu",
+  "day.fri": "Fri", "day.sat": "Sat", "day.sun": "Sun",
   "admin.addUser": "Add user", "admin.role": "Role",
   "admin.initPin": "Initial PIN (min 4 digits)",
   "admin.userNeedName": "Name can't be empty.",
@@ -354,6 +356,8 @@ es: {
   "admin.vendorSaveFail": "No se pudo guardar el proveedor.",
   "vendor.orderDays": "Días de pedido", "vendor.orderBy": "Pedir antes de",
   "vendor.deliveryDays": "Días de entrega",
+  "day.mon": "lun", "day.tue": "mar", "day.wed": "mié", "day.thu": "jue",
+  "day.fri": "vie", "day.sat": "sáb", "day.sun": "dom",
   "admin.addUser": "Agregar usuario", "admin.role": "Rol",
   "admin.initPin": "PIN inicial (mín. 4 dígitos)",
   "admin.userNeedName": "El nombre no puede estar vacío.",
@@ -2316,6 +2320,53 @@ function adminAreasHtml() {
 }
 
 /* ---------------- Vendors tab ---------------- */
+/* ---------------- Vendors tab: day chips + time dropdown ---------------- */
+/** Canonical short day keys, Monday-first. Stored as "Tue, Thu". */
+const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+const DAY_EN = { mon: "Mon", tue: "Tue", wed: "Wed", thu: "Thu", fri: "Fri", sat: "Sat", sun: "Sun" };
+const DAY_FULL = {
+  mon: ["monday", "lunes", "lun"], tue: ["tuesday", "martes", "mar"],
+  wed: ["wednesday", "miercoles", "miércoles", "mie", "mié"], thu: ["thursday", "jueves", "jue"],
+  fri: ["friday", "viernes", "vie"], sat: ["saturday", "sabado", "sábado", "sab", "sáb"],
+  sun: ["sunday", "domingo", "dom"],
+};
+/** Parse a free-text day list ("Tue, Thu", "tuesday thursday", "mar/jue") into day keys. */
+function parseDays(str) {
+  const found = [];
+  String(str || "").toLowerCase().split(/[,\s;\/|]+/).forEach(t => {
+    if (!t) return;
+    const d = DAYS.find(k => t === k || t === DAY_EN[k].toLowerCase() || DAY_FULL[k].includes(t));
+    if (d && !found.includes(d)) found.push(d);
+  });
+  return found;
+}
+/** Toggle chips for a multi-day field; canonical value lives in the hidden input. */
+function dayChips(field, current) {
+  const sel = parseDays(current);
+  return `<div class="day-chips" data-daychips="${field}">` + DAYS.map(d =>
+    `<button type="button" class="day-chip${sel.includes(d) ? " active" : ""}" data-day="${d}">${esc(T("day." + d))}</button>`
+  ).join("") + `</div><input type="hidden" data-f="${field}" value="${esc(sel.map(d => DAY_EN[d]).join(", "))}">`;
+}
+/** 12-hour label for the order-by dropdown. */
+function fmtTime(h, m) {
+  const ap = h < 12 ? "AM" : "PM";
+  const hh = h % 12 === 0 ? 12 : h % 12;
+  return hh + ":" + (m === 0 ? "00" : "30") + " " + ap;
+}
+/** Order-cutoff dropdown: 6:00 AM – 10:00 PM in 30-min steps. Unmatched saved values are preserved. */
+function timeOpts(current) {
+  const cur = String(current || "");
+  const opts = [`<option value="">—</option>`];
+  let matched = !cur;
+  for (let h = 6; h <= 22; h++) for (const m of [0, 30]) {
+    if (h === 22 && m === 30) break;
+    const label = fmtTime(h, m);
+    if (label === cur) matched = true;
+    opts.push(`<option value="${label}"${label === cur ? " selected" : ""}>${label}</option>`);
+  }
+  if (!matched) opts.splice(1, 0, `<option value="${esc(cur)}" selected>${esc(cur)}</option>`);
+  return opts.join("");
+}
 function adminVendorsHtml() {
   return `<div class="admin-card">
       <h3 style="margin-top:0">${esc(T("admin.addVendor"))}</h3>
@@ -2334,10 +2385,10 @@ function adminVendorsHtml() {
       </div>
       <div class="field"><label>${esc(T("common.notes"))}</label><input data-f="notes" value="${esc(v.notes || "")}"></div>
       <div class="form-row">
-        <div class="field"><label>${esc(T("vendor.orderDays"))}</label><input data-f="order_days" value="${esc(v.order_days || "")}" placeholder="e.g. Tue, Thu"></div>
-        <div class="field"><label>${esc(T("vendor.orderBy"))}</label><input data-f="order_cutoff" value="${esc(v.order_cutoff || "")}" placeholder="e.g. 3pm"></div>
+        <div class="field"><label>${esc(T("vendor.orderDays"))}</label>${dayChips("order_days", v.order_days)}</div>
+        <div class="field"><label>${esc(T("vendor.orderBy"))}</label><select data-f="order_cutoff">${timeOpts(v.order_cutoff)}</select></div>
       </div>
-      <div class="field"><label>${esc(T("vendor.deliveryDays"))}</label><input data-f="delivery_days" value="${esc(v.delivery_days || "")}" placeholder="e.g. Wed, Fri"></div>
+      <div class="field"><label>${esc(T("vendor.deliveryDays"))}</label>${dayChips("delivery_days", v.delivery_days)}</div>
       <button class="btn btn-primary btn-small" data-vsave style="width:100%">${esc(T("common.save"))}</button>
     </div>`).join("")}`;
 }
@@ -2606,6 +2657,17 @@ function wireAdmin(tab) {
     };
     body.querySelectorAll("[data-vendor]").forEach(card => {
       const id = card.dataset.vendor;
+      // Day chips: toggle + keep the hidden data-f input canonical ("Tue, Thu").
+      card.querySelectorAll("[data-daychips]").forEach(wrap => {
+        const hidden = card.querySelector(`input[data-f="${wrap.dataset.daychips}"]`);
+        wrap.querySelectorAll("[data-day]").forEach(chip => {
+          chip.onclick = () => {
+            chip.classList.toggle("active");
+            hidden.value = [...wrap.querySelectorAll("[data-day].active")]
+              .map(c => DAY_EN[c.dataset.day]).join(", ");
+          };
+        });
+      });
       card.querySelector("[data-vsave]").onclick = async () => {
         const data = {};
         card.querySelectorAll("[data-f]").forEach(inp => data[inp.dataset.f] = inp.value);
