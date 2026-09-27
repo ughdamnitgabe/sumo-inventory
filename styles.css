@@ -107,6 +107,25 @@ body {
 .area-tab .pill-mini { margin-left: 6px; font-size: 11px; background: var(--card2);
   border-radius: 999px; padding: 2px 7px; color: var(--muted); }
 .area-tab.active { border-color: var(--accent); background: #331714; }
+/* By location / By item segmented control */
+.mode-toggle { position: sticky; top: 57px; z-index: 41; background: var(--bg);
+  display: flex; gap: 0; padding: 8px 10px 0; }
+.mode-toggle .mode-btn { flex: 1; min-height: 44px; font-size: 15px; font-weight: 700;
+  border: 1px solid var(--border); background: var(--card); color: var(--muted); cursor: pointer; }
+.mode-toggle .mode-btn:first-child { border-radius: 12px 0 0 12px; }
+.mode-toggle .mode-btn:last-child { border-radius: 0 12px 12px 0; border-left: none; }
+.mode-toggle .mode-btn.active { background: #331714; border-color: var(--accent); color: var(--text); }
+/* Multi-location: per-area rows inside an item group card */
+.area-row { border-top: 1px solid var(--border); margin-top: 12px; padding-top: 12px; }
+.area-row-head { display: flex; justify-content: space-between; align-items: center;
+  font-weight: 700; font-size: 15px; margin-bottom: 8px; }
+.total-line { margin-top: 6px; font-size: 14px; font-weight: 700; color: var(--accent); }
+/* Checkbox lists (item locations in manage + modal) */
+.check-list { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0; }
+.check { display: inline-flex; align-items: center; gap: 6px; min-height: 44px;
+  padding: 8px 12px; border: 1px solid var(--border); border-radius: 999px;
+  background: var(--card); font-size: 14px; cursor: pointer; }
+.check input { width: 18px; height: 18px; accent-color: var(--accent); }
 .searchbar { width: 100%; min-height: var(--tap); font-size: 16px; padding: 10px 14px;
   border-radius: var(--radius); border: 1px solid var(--border); background: var(--card);
   color: var(--text); margin: 10px 0; }

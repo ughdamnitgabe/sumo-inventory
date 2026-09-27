@@ -91,6 +91,10 @@ en: {
   "count.countFor": "Count for", "count.parFor": "Par for",
   "count.full": "Full", "count.clear": "Clear", "count.markZero": "Mark Zero",
   "count.doneBtn": "✓ Done", "count.moveArea": "Move area",
+  "count.byLocation": "By location", "count.byItem": "By item",
+  "count.totalLine": "Total {t} / par {p}",
+  "count.areasBtn": "Locations", "count.areasTitle": "Locations for {name}",
+  "count.areasHint": "Check every location where this item is kept. The first checked is the primary location.",
   "count.noParHint": "No par set — enter count",
   "count.search": "🔍 Search items…", "count.noItems": "No items here",
   "count.noItemsSearch": " matching your search", "count.toReview": "Review & approve →",
@@ -108,6 +112,7 @@ en: {
   "count.moveFail": "Could not move item.", "count.parFail": "Could not update par.",
   "review.loading": "Loading review…", "review.title": "Review & approve",
   "review.notCounted": "Not counted", "review.allCounted": "Everything has a count. 🎉",
+  "review.missingIn": "missing: {areas}", "review.partial": "Some items still need counts in other locations.",
   "review.needsReview": "Needs review", "review.noneFlagged": "Nothing flagged.",
   "review.noEntry": "no entry yet", "review.flagged": "flagged for review",
   "review.open": "Open →", "review.aiCheck": "AI check", "review.runAi": "Run AI check",
@@ -151,7 +156,9 @@ en: {
   "admin.exCase": "e.g. case", "admin.pieces": "Pieces per case",
   "admin.noVendor": "no vendor", "admin.saveItemFail": "Could not save item.",
   "admin.csvTitle": "Bulk edit (CSV)",
-  "admin.csvHelp": "Download the catalog as a spreadsheet, edit pars, areas, vendors and prices, then upload it back. Blank id = new item. Unknown area/vendor names are skipped.",
+  "admin.areasLabel": "Locations", "admin.areasHint": "First checked = primary location.",
+  "admin.noArea": "No location",
+  "admin.csvHelp": "Download the catalog as a spreadsheet, edit pars, areas, vendors and prices, then upload it back. Blank id = new item. List several areas separated by commas. Unknown area/vendor names are skipped.",
   "admin.csvDownload": "Download CSV", "admin.csvFile": "CSV file",
   "admin.csvUpload": "Upload & apply", "admin.csvNeedFile": "Choose a CSV file first.",
   "admin.csvBadFile": "Could not read that CSV file.",
@@ -252,6 +259,10 @@ es: {
   "count.countFor": "Conteo de", "count.parFor": "Par de",
   "count.full": "Lleno", "count.clear": "Borrar", "count.markZero": "Marcar cero",
   "count.doneBtn": "✓ Listo", "count.moveArea": "Mover de área",
+  "count.byLocation": "Por ubicación", "count.byItem": "Por artículo",
+  "count.totalLine": "Total {t} / par {p}",
+  "count.areasBtn": "Ubicaciones", "count.areasTitle": "Ubicaciones de {name}",
+  "count.areasHint": "Marca cada ubicación donde se guarda este artículo. La primera marcada es la ubicación principal.",
   "count.noParHint": "Sin par — ingresa el conteo",
   "count.search": "🔍 Buscar artículos…", "count.noItems": "No hay artículos aquí",
   "count.noItemsSearch": " que coincidan con tu búsqueda", "count.toReview": "Revisar y aprobar →",
@@ -269,6 +280,7 @@ es: {
   "count.moveFail": "No se pudo mover el artículo.", "count.parFail": "No se pudo actualizar el par.",
   "review.loading": "Cargando revisión…", "review.title": "Revisar y aprobar",
   "review.notCounted": "Sin contar", "review.allCounted": "Todo tiene conteo. 🎉",
+  "review.missingIn": "falta: {areas}", "review.partial": "Algunos artículos aún necesitan conteos en otras ubicaciones.",
   "review.needsReview": "Necesitan revisión", "review.noneFlagged": "Nada marcado.",
   "review.noEntry": "sin entrada aún", "review.flagged": "marcado para revisión",
   "review.open": "Abrir →", "review.aiCheck": "Revisión de IA", "review.runAi": "Ejecutar revisión de IA",
@@ -312,6 +324,8 @@ es: {
   "admin.exCase": "p. ej. caso", "admin.pieces": "Piezas por caso",
   "admin.noVendor": "sin proveedor", "admin.saveItemFail": "No se pudo guardar el artículo.",
   "admin.csvTitle": "Edición masiva (CSV)",
+  "admin.areasLabel": "Ubicaciones", "admin.areasHint": "La primera marcada = ubicación principal.",
+  "admin.noArea": "Sin ubicación",
   "admin.csvHelp": "Descargue el catálogo como hoja de cálculo, edite pares, áreas, proveedores y precios, y súbalo de nuevo. id vacío = artículo nuevo. Los nombres de área/proveedor desconocidos se omiten.",
   "admin.csvDownload": "Descargar CSV", "admin.csvFile": "Archivo CSV",
   "admin.csvUpload": "Subir y aplicar", "admin.csvNeedFile": "Elija primero un archivo CSV.",
@@ -647,19 +661,6 @@ function confirmDialog(title, message, confirmLabel = null, cancelLabel = null) 
 }
 
 /** Area picker modal -> resolves with area id or null. */
-function pickArea(currentId) {
-  return new Promise((resolve) => {
-    const opts = state.areas.map(a =>
-      `<button class="btn area-opt" data-area="${a.id}">${esc(a.name)}${a.id === currentId ? " (" + esc(T("move.current")) + ")" : ""}</button>`
-    ).join("");
-    showModal(`<h3>${esc(T("move.title"))}</h3>${opts}
-      <div class="modal-actions"><button class="btn" id="pa-cancel">${esc(T("common.cancel"))}</button></div>`);
-    document.getElementById("pa-cancel").onclick = () => { closeModal(); resolve(null); };
-    document.getElementById("modal-back").querySelectorAll("[data-area]").forEach(b =>
-      b.onclick = () => { closeModal(); resolve(b.dataset.area); });
-  });
-}
-
 /** Flash an error at the top of the current view. */
 function flashError(msg) {
   let el = document.getElementById("flash");
@@ -915,7 +916,7 @@ function renderBulkPar() {
   const active = state.items.filter(i => i.active !== false);
   const rows = active.map(i => `
     <tr>
-      <td>${esc(i.name)}<div class="muted" style="font-size:12px">${esc(areaName(i.area_id))}</div></td>
+      <td>${esc(i.name)}<div class="muted" style="font-size:12px">${esc(itemAreas(i).map(a => a.name).filter(Boolean).join(", "))}</div></td>
       <td><input type="number" inputmode="decimal" min="0" step="0.25"
            data-par-for="${esc(i.id)}" value="${Number(i.par) > 0 ? esc(i.par) : ""}" placeholder="—"></td>
       <td><input type="number" inputmode="decimal" min="0" step="0.01"
@@ -992,44 +993,64 @@ async function renderCount(sessionId) {
   let entries = {};
   try {
     const rows = await api("GET", `/entries?session_id=eq.${encodeURIComponent(sessionId)}&select=*`);
-    for (const r of rows || []) entries[r.item_id] = { count: r.count, status: r.status, note: r.note };
+    for (const r of rows || []) entries[entryKey(r.item_id, r.area_id)] = { count: r.count, status: r.status, note: r.note };
   } catch (e) { /* session may be new / RLS edge — start empty */ }
 
   const activeItems = state.items.filter(i => i.active !== false);
-  const areasUsed = state.areas.filter(a => activeItems.some(i => String(i.area_id) === String(a.id)));
+  const areasUsed = state.areas.filter(a => activeItems.some(i => areaIdsOf(i).includes(String(a.id))));
   const firstArea = areasUsed[0] && areasUsed[0].id;
 
+  const prevAreaId = state.count && state.count.areaId;
   state.count = {
     sessionId, entries, search: "",
-    areaId: highlight ? (activeItems.find(i => String(i.id) === String(highlight)) || {}).area_id || firstArea : firstArea,
-    highlight,
+    mode: highlight ? "item" : (state.count && state.count.mode) || "location",
+    areaId: firstArea,
+    highlight: highlight || null,
   };
+  // Keep the previously selected tab if it still has items.
+  if (state.count.mode === "location" && prevAreaId &&
+      areasUsed.some(a => String(a.id) === String(prevAreaId))) {
+    state.count.areaId = prevAreaId;
+  }
 
   drawCount();
   $app().querySelector('[data-act="nav-logout"]').onclick = logout;
+}
+
+/** Items visible on the count screen for the current mode + search. */
+function visibleItems() {
+  const c = state.count;
+  const q = c.search.trim().toLowerCase();
+  let items = state.items.filter(i => i.active !== false);
+  if (c.mode === "location") items = items.filter(i => areaIdsOf(i).includes(String(c.areaId)));
+  else items = items.slice().sort((a, b) =>
+    (primaryAreaOf(a)?.name || "").localeCompare(primaryAreaOf(b)?.name || "") || a.name.localeCompare(b.name));
+  if (q) items = items.filter(i => i.name.toLowerCase().includes(q));
+  return items;
 }
 
 function drawCount() {
   const c = state.count;
   const editable = has("count");
   const q = c.search.trim().toLowerCase();
+  const items = visibleItems();
 
-  // Items for the current tab, optionally filtered by search (v1 lacked this).
-  let items = state.items.filter(i => i.active !== false && String(i.area_id) === String(c.areaId));
-  if (q) items = items.filter(i => i.name.toLowerCase().includes(q));
-
-  const tabs = state.areas
-    .filter(a => state.items.some(i => i.active !== false && String(i.area_id) === String(a.id)))
+  const tabs = c.mode === "location" ? state.areas
+    .filter(a => state.items.some(i => i.active !== false && areaIdsOf(i).includes(String(a.id))))
     .map(a => {
-      const list = state.items.filter(i => i.active !== false && String(i.area_id) === String(a.id));
-      const done = list.filter(i => isDone(i.id)).length;
+      const list = state.items.filter(i => i.active !== false && areaIdsOf(i).includes(String(a.id)));
+      const done = list.filter(i => isDone(i.id, a.id)).length;
       return `<button class="area-tab ${String(a.id) === String(c.areaId) ? "active" : ""}" data-area="${esc(a.id)}">
         ${esc(a.name)}<span class="pill-mini">${done}/${list.length}</span></button>`;
-    }).join("");
+    }).join("") : "";
 
   $app().innerHTML = navHtml() + `
   <div class="view" style="padding-top:0">
-    <div class="area-tabs no-print">${tabs}</div>
+    <div class="mode-toggle no-print" role="tablist">
+      <button class="mode-btn ${c.mode === "location" ? "active" : ""}" data-mode="location">${esc(T("count.byLocation"))}</button>
+      <button class="mode-btn ${c.mode === "item" ? "active" : ""}" data-mode="item">${esc(T("count.byItem"))}</button>
+    </div>
+    ${c.mode === "location" ? `<div class="area-tabs no-print">${tabs}</div>` : ""}
 
     <div class="ai-bar no-print">
       <div class="ai-row">
@@ -1045,7 +1066,7 @@ function drawCount() {
     <input class="searchbar no-print" id="item-search" placeholder="${esc(T("count.search"))}" value="${esc(c.search)}" aria-label="${esc(T("count.search"))}">
 
     <div id="cards">
-      ${items.length === 0 ? `<p class="muted">${esc(T("count.noItems"))}${q ? esc(T("count.noItemsSearch")) : ""}.</p>` : items.map(i => itemCardHtml(i, editable)).join("")}
+      ${items.length === 0 ? `<p class="muted">${esc(T("count.noItems"))}${q ? esc(T("count.noItemsSearch")) : ""}.</p>` : items.map(i => c.mode === "location" ? itemCardHtml(i, c.areaId, editable) : itemGroupHtml(i, editable)).join("")}
     </div>
 
     <div style="display:flex;gap:10px;margin:18px 0" class="no-print">
@@ -1053,6 +1074,11 @@ function drawCount() {
       ${has("approve") ? `<button class="btn btn-primary" data-act="to-review" style="flex:1">${esc(T("count.toReview"))}</button>` : ""}
     </div>
   </div>`;
+
+  // --- mode toggle ---
+  $app().querySelectorAll("[data-mode]").forEach(b => b.onclick = () => {
+    if (c.mode !== b.dataset.mode) { c.mode = b.dataset.mode; c.highlight = null; drawCount(); }
+  });
 
   // --- area tabs ---
   $app().querySelectorAll("[data-area]").forEach(t => t.onclick = () => {
@@ -1098,17 +1124,48 @@ function drawCountKeepFocus() {
 }
 
 /* ---- entry helpers ---- */
-function entryOf(itemId) { return state.count.entries[itemId] || null; }
+// An item's locations, primary first. Falls back to the legacy area_id.
+function itemAreas(item) {
+  if (item.areas && item.areas.length) return item.areas;
+  if (item.area_id) return [{ id: item.area_id, name: item.area_name || areaName(item.area_id) }];
+  return [];
+}
+function areaIdsOf(item) { return itemAreas(item).map(a => String(a.id)); }
+function primaryAreaOf(item) { const a = itemAreas(item); return a[0] || null; }
 
-function statusOf(itemId) {
-  const e = entryOf(itemId);
+function entryKey(itemId, areaId) { return `${itemId}::${areaId ?? ""}`; }
+function entryOf(itemId, areaId) { return state.count.entries[entryKey(itemId, areaId)] || null; }
+
+function statusOf(itemId, areaId) {
+  const e = entryOf(itemId, areaId);
   if (!e) return "not";
   return e.status || "counted";
 }
-function isDone(itemId) { const s = statusOf(itemId); return s === "done" || s === "counted" || s === "zero" || s === "review"; }
+function isDone(itemId, areaId) { const s = statusOf(itemId, areaId); return s === "done" || s === "counted" || s === "zero" || s === "review"; }
 
-function pillHtml(itemId) {
-  const s = statusOf(itemId);
+/** Aggregate status of an item across all its locations. */
+function itemStatus(item) {
+  const sts = itemAreas(item).map(a => statusOf(item.id, a.id));
+  if (!sts.length || sts.every(s => s === "not")) return "not";
+  if (sts.some(s => s === "review")) return "review";
+  if (sts.every(s => s === "done")) return "done";
+  if (sts.every(s => s === "zero")) return "zero";
+  return "counted";
+}
+/** Total on hand across all locations. */
+function itemTotal(item) {
+  return r025(itemAreas(item).reduce((t, a) => {
+    const e = entryOf(item.id, a.id);
+    return t + (e ? Number(e.count) || 0 : 0);
+  }, 0));
+}
+/** Location ids of this item that have no entry yet. */
+function missingAreaIds(item) {
+  return areaIdsOf(item).filter(id => !entryOf(item.id, id));
+}
+
+function pillHtml(item, areaId) {
+  const s = areaId === undefined ? itemStatus(item) : statusOf(item.id, areaId);
   const map = {
     not:     ["pill-not", T("pill.not")],
     counted: ["pill-counted", T("pill.counted")],
@@ -1120,24 +1177,17 @@ function pillHtml(itemId) {
   return `<span class="pill ${cls}">${esc(label)}</span>`;
 }
 
-function itemCardHtml(item, editable) {
-  const e = entryOf(item.id);
-  const v = vendorOf(item.vendor_id);
-  const sub = [v.name, item.par > 0 ? `par ${fmtCount(item.par)}` : T("count.noPar"), item.unit].filter(Boolean).join(" · ");
-  const canManage = has("manage");
+/** Total-vs-par line shown when an item lives in more than one location. */
+function totalLineHtml(item) {
+  const areas = itemAreas(item);
+  if (areas.length < 2 || Number(item.par) <= 0) return "";
+  return `<div class="total-line">${esc(T("count.totalLine").replace("{t}", fmtCount(itemTotal(item))).replace("{p}", fmtCount(item.par)))}</div>`;
+}
 
-  if (!editable) {
-    return `<div class="item-card" data-card="${esc(item.id)}">
-      <div class="card-head"><div><div class="item-name">${esc(item.name)}</div>
-      <div class="item-sub">${esc(sub)}</div></div>${pillHtml(item.id)}</div>
-      <div class="readonly-count">${e ? fmtCount(e.count) + (item.unit ? " " + esc(item.unit) : "") : "—"}</div>
-    </div>`;
-  }
-
-  return `<div class="item-card" data-card="${esc(item.id)}">
-    <div class="card-head"><div><div class="item-name">${esc(item.name)}</div>
-      <div class="item-sub">${esc(sub)}</div></div>${pillHtml(item.id)}</div>
-    <div class="count-row">
+/** The count controls (steppers, quick keys, zero/done) for one item+location. */
+function countControlsHtml(item, areaId) {
+  const e = entryOf(item.id, areaId);
+  return `<div class="count-row">
       <button class="stepper" data-cact="dec" aria-label="${esc(T("count.dec"))}">−</button>
       <input class="count-input" data-cact="manual" inputmode="decimal" placeholder="—"
              value="${e ? esc(fmtCount(e.count)) : ""}" aria-label="${esc(T("count.countFor"))} ${esc(item.name)}">
@@ -1154,11 +1204,62 @@ function itemCardHtml(item, editable) {
     </div>
     <div class="row2">
       <button class="btn" data-cact="markzero">${esc(T("count.markZero"))}</button>
-      <button class="btn ${statusOf(item.id) === "done" ? "done-on" : ""}" data-cact="done">${esc(T("count.doneBtn"))}</button>
-    </div>
+      <button class="btn ${statusOf(item.id, areaId) === "done" ? "done-on" : ""}" data-cact="done">${esc(T("count.doneBtn"))}</button>
+    </div>`;
+}
+
+/** Location mode: one card per item for the current area tab. */
+function itemCardHtml(item, areaId, editable) {
+  const e = entryOf(item.id, areaId);
+  const v = vendorOf(item.vendor_id);
+  const sub = [v.name, item.par > 0 ? `par ${fmtCount(item.par)}` : T("count.noPar"), item.unit].filter(Boolean).join(" · ");
+  const canManage = has("manage");
+
+  if (!editable) {
+    return `<div class="item-card" data-card="${esc(item.id)}" data-area="${esc(areaId ?? "")}">
+      <div class="card-head"><div><div class="item-name">${esc(item.name)}</div>
+      <div class="item-sub">${esc(sub)}</div></div>${pillHtml(item, areaId)}</div>
+      <div class="readonly-count">${e ? fmtCount(e.count) + (item.unit ? " " + esc(item.unit) : "") : "—"}</div>
+    </div>`;
+  }
+
+  return `<div class="item-card" data-card="${esc(item.id)}" data-area="${esc(areaId ?? "")}">
+    <div class="card-head"><div><div class="item-name">${esc(item.name)}</div>
+      <div class="item-sub">${esc(sub)}</div></div>${pillHtml(item, areaId)}</div>
+    ${totalLineHtml(item)}
+    ${countControlsHtml(item, areaId)}
     ${canManage ? `<div class="admin-extras">
         <span class="par-edit">${esc(T("par.par"))} <input inputmode="decimal" data-cact="par" value="${Number(item.par) > 0 ? esc(item.par) : ""}" placeholder="—" aria-label="${esc(T("count.parFor"))} ${esc(item.name)}"></span>
-        <button class="btn btn-small" data-cact="move">${esc(T("count.moveArea"))}</button>
+        <button class="btn btn-small" data-cact="areas">${esc(T("count.areasBtn"))}</button>
+      </div>` : ""}
+  </div>`;
+}
+
+/** Item mode: one card per item with a section for each of its locations. */
+function itemGroupHtml(item, editable) {
+  const v = vendorOf(item.vendor_id);
+  const sub = [v.name, item.par > 0 ? `par ${fmtCount(item.par)}` : T("count.noPar"), item.unit].filter(Boolean).join(" · ");
+  const canManage = has("manage");
+  const areas = itemAreas(item);
+
+  const rowsHtml = areas.map((a, ix) => {
+    const e = entryOf(item.id, a.id);
+    const inner = editable ? countControlsHtml(item, a.id)
+      : `<div class="readonly-count">${e ? fmtCount(e.count) + (item.unit ? " " + esc(item.unit) : "") : "—"}</div>`;
+    return `<div class="area-row" data-card="${esc(item.id)}" data-area="${esc(a.id)}">
+      <div class="area-row-head"><span>${esc(a.name)}${ix === 0 && areas.length > 1 ? " ★" : ""}</span>${pillHtml(item, a.id)}</div>
+      ${inner}
+    </div>`;
+  }).join("");
+
+  return `<div class="item-card item-group" data-card="${esc(item.id)}">
+    <div class="card-head"><div><div class="item-name">${esc(item.name)}</div>
+      <div class="item-sub">${esc(sub)}</div></div>${pillHtml(item)}</div>
+    ${totalLineHtml(item)}
+    ${rowsHtml}
+    ${canManage ? `<div class="admin-extras">
+        <span class="par-edit">${esc(T("par.par"))} <input inputmode="decimal" data-cact="par" value="${Number(item.par) > 0 ? esc(item.par) : ""}" placeholder="—" aria-label="${esc(T("count.parFor"))} ${esc(item.name)}"></span>
+        <button class="btn btn-small" data-cact="areas">${esc(T("count.areasBtn"))}</button>
       </div>` : ""}
   </div>`;
 }
@@ -1171,21 +1272,22 @@ function onCardClick(ev) {
   if (!btn) return;
   const card = ev.target.closest("[data-card]");
   const item = itemById(card.dataset.card);
+  const areaId = card.dataset.area || state.count.areaId || null;
   const act = btn.dataset.cact;
-  const cur = entryOf(item.id);
+  const cur = entryOf(item.id, areaId);
   const curCount = cur ? Number(cur.count) : null;
 
-  if (act === "inc") setCount(item, r025((curCount == null ? 0 : curCount) + 0.5), "counted");
-  else if (act === "dec") setCount(item, r025((curCount == null ? 0 : curCount) - 0.5), "counted");
-  else if (act === "set0") setCount(item, 0, "counted");
-  else if (act === "add025") setCount(item, r025((curCount == null ? 0 : curCount) + 0.25), "counted");
-  else if (act === "add05") setCount(item, r025((curCount == null ? 0 : curCount) + 0.5), "counted");
-  else if (act === "add075") setCount(item, r025((curCount == null ? 0 : curCount) + 0.75), "counted");
-  else if (act === "full") fullCount(item, card);
-  else if (act === "clear") clearEntry(item);
-  else if (act === "markzero") setCount(item, 0, "zero");
-  else if (act === "done") toggleDone(item);
-  else if (act === "move") moveItem(item);
+  if (act === "inc") setCount(item, areaId, r025((curCount == null ? 0 : curCount) + 0.5), "counted");
+  else if (act === "dec") setCount(item, areaId, r025((curCount == null ? 0 : curCount) - 0.5), "counted");
+  else if (act === "set0") setCount(item, areaId, 0, "counted");
+  else if (act === "add025") setCount(item, areaId, r025((curCount == null ? 0 : curCount) + 0.25), "counted");
+  else if (act === "add05") setCount(item, areaId, r025((curCount == null ? 0 : curCount) + 0.5), "counted");
+  else if (act === "add075") setCount(item, areaId, r025((curCount == null ? 0 : curCount) + 0.75), "counted");
+  else if (act === "full") fullCount(item, areaId, card);
+  else if (act === "clear") clearEntry(item, areaId);
+  else if (act === "markzero") setCount(item, areaId, 0, "zero");
+  else if (act === "done") toggleDone(item, areaId);
+  else if (act === "areas") editItemAreas(item);
 }
 
 function onCardChange(ev) {
@@ -1193,12 +1295,14 @@ function onCardChange(ev) {
   if (!el) return;
   const card = ev.target.closest("[data-card]");
   const item = itemById(card.dataset.card);
+  const areaId = card.dataset.area || state.count.areaId || null;
   if (el.dataset.cact === "manual") {
     const v = el.value.trim();
     if (v === "") return;
     const n = Number(v);
-    if (isNaN(n) || n < 0) { el.value = entryOf(item.id) ? fmtCount(entryOf(item.id).count) : ""; return; }
-    setCount(item, r025(n), "counted");
+    const cur = entryOf(item.id, areaId);
+    if (isNaN(n) || n < 0) { el.value = cur ? fmtCount(cur.count) : ""; return; }
+    setCount(item, areaId, r025(n), "counted");
   } else if (el.dataset.cact === "par") {
     const n = el.value.trim() === "" ? 0 : Number(el.value);
     if (isNaN(n) || n < 0) return;
@@ -1210,10 +1314,10 @@ function onCardChange(ev) {
 
 /** "Full" semantics: if par>0 set count=par; otherwise open the manual
  *  entry with a hint — NEVER silently set 0 (that was the v1 bug). */
-function fullCount(item, card) {
+function fullCount(item, areaId, card) {
   const par = Number(item.par) || 0;
   if (par > 0) {
-    setCount(item, r025(par), "counted");
+    setCount(item, areaId, r025(par), "counted");
   } else {
     const hint = card.querySelector("[data-hint]");
     if (hint) hint.textContent = T("count.noParHint");
@@ -1222,45 +1326,49 @@ function fullCount(item, card) {
   }
 }
 
-function setCount(item, n, status) {
+function setCount(item, areaId, n, status) {
   if (n < 0) n = 0;
-  state.count.entries[item.id] = { count: r025(n), status: status || "counted", note: (entryOf(item.id) || {}).note || null };
-  persistEntry(item);
+  const key = entryKey(item.id, areaId);
+  state.count.entries[key] = { count: r025(n), status: status || "counted", note: (entryOf(item.id, areaId) || {}).note || null };
+  persistEntry(item, areaId);
   drawCount();
 }
 
-function clearEntry(item) {
-  delete state.count.entries[item.id];
+function clearEntry(item, areaId) {
+  delete state.count.entries[entryKey(item.id, areaId)];
   // Remove from the server too (fire-and-forget; server also gates by role/session state).
-  api("DELETE", `/entries?session_id=eq.${encodeURIComponent(state.count.sessionId)}&item_id=eq.${encodeURIComponent(item.id)}`)
-    .catch(() => {});
+  let q = `/entries?session_id=eq.${encodeURIComponent(state.count.sessionId)}&item_id=eq.${encodeURIComponent(item.id)}`;
+  q += areaId ? `&area_id=eq.${encodeURIComponent(areaId)}` : `&area_id=is.null`;
+  api("DELETE", q).catch(() => {});
   drawCount();
 }
 
-function toggleDone(item) {
-  const cur = entryOf(item.id);
-  if (statusOf(item.id) === "done") {
-    state.count.entries[item.id] = { count: cur.count, status: "counted", note: cur.note };
+function toggleDone(item, areaId) {
+  const key = entryKey(item.id, areaId);
+  const cur = entryOf(item.id, areaId);
+  if (statusOf(item.id, areaId) === "done") {
+    state.count.entries[key] = { count: cur.count, status: "counted", note: cur.note };
   } else {
-    state.count.entries[item.id] = { count: cur ? cur.count : 0, status: "done", note: cur ? cur.note : null };
+    state.count.entries[key] = { count: cur ? cur.count : 0, status: "done", note: cur ? cur.note : null };
   }
-  persistEntry(item);
+  persistEntry(item, areaId);
   drawCount();
 }
 
 /** Upsert entry to PostgREST: POST with Prefer: resolution=merge-duplicates
- *  and on_conflict=session_id,item_id. Debounced per item. */
-function persistEntry(item) {
-  const key = item.id;
+ *  and on_conflict=session_id,item_id,area_id. Debounced per item+area. */
+function persistEntry(item, areaId) {
+  const key = entryKey(item.id, areaId);
   clearTimeout(state.saveTimers[key]);
   state.saveTimers[key] = setTimeout(async () => {
-    const e = entryOf(item.id);
+    const e = entryOf(item.id, areaId);
     if (!e) return;
     try {
-      await api("POST", "/entries?on_conflict=session_id,item_id",
+      await api("POST", "/entries?on_conflict=session_id,item_id,area_id",
         {
           session_id: state.count.sessionId,
           item_id: item.id,
+          area_id: areaId || null,
           count: e.count,
           status: e.status,
           note: e.note || null,
@@ -1273,20 +1381,33 @@ function persistEntry(item) {
   }, 400);
 }
 
-/** Manager+: move an item to another area, with explicit confirm dialog. */
-async function moveItem(item) {
-  const oldName = areaName(item.area_id);
-  const newId = await pickArea(item.area_id);
-  if (!newId || String(newId) === String(item.area_id)) return;
-  const newName = areaName(newId);
-  const ok = await confirmDialog(T("count.moveTitle"), T("count.moveMsg").replace("{name}", item.name).replace("{from}", oldName).replace("{to}", newName), T("common.move"));
-  if (!ok) return;
-  try {
-    await edge("items.move", { item_id: item.id, area_id: newId });
-    item.area_id = newId;
-    state.count.areaId = newId;
-    drawCount();
-  } catch (e) { flashError(e.detail || T("count.moveFail")); }
+/** Manager+: edit which locations an item lives in (first checked = primary). */
+async function editItemAreas(item) {
+  const sel = areaIdsOf(item);
+  showModal(`<h3>${esc(T("count.areasTitle").replace("{name}", item.name))}</h3>
+    <p class="muted">${esc(T("count.areasHint"))}</p>
+    <div class="check-list">${state.areas.map(a => `
+      <label class="check"><input type="checkbox" data-ea value="${esc(a.id)}" ${sel.includes(String(a.id)) ? "checked" : ""}> ${esc(a.name)}</label>`).join("")}
+    </div>
+    <div id="ea-err"></div>
+    <div class="modal-actions">
+      <button class="btn" id="ea-cancel">${esc(T("common.cancel"))}</button>
+      <button class="btn btn-primary" id="ea-save">${esc(T("common.save"))}</button>
+    </div>`);
+  document.getElementById("ea-cancel").onclick = () => closeModal();
+  document.getElementById("ea-save").onclick = async () => {
+    const ids = [...document.querySelectorAll("[data-ea]:checked")].map(b => b.value);
+    const err = document.getElementById("ea-err");
+    try {
+      await edge("items.update", { item_id: item.id, area_ids: ids });
+      item.areas = ids.map(id => { const a = state.areas.find(x => String(x.id) === String(id)); return { id, name: a ? a.name : "" }; }).filter(a => a.name);
+      item.area_ids = ids.map(String);
+      item.area_id = ids[0] || null;
+      item.area_name = item.areas[0] ? item.areas[0].name : "";
+      closeModal();
+      drawCount();
+    } catch (e) { err.innerHTML = `<div class="error">${esc(e.detail || T("admin.saveItemFail"))}</div>`; }
+  };
 }
 
 /* ---- AI: parse + dictate ---- */
@@ -1330,8 +1451,10 @@ async function aiParse() {
         if (!item) return;
         // Low-confidence parses go to needs_review rather than being silently trusted.
         const status = (d.confidence != null && d.confidence < 0.5) ? "needs_review" : "counted";
-        state.count.entries[item.id] = { count: r025(d.qty), status, note: "AI-parsed" };
-        persistEntry(item);
+        const areaId = (primaryAreaOf(item) || {}).id || null;
+        const key = entryKey(item.id, areaId);
+        state.count.entries[key] = { count: r025(d.qty), status, note: "AI-parsed" };
+        persistEntry(item, areaId);
         n++;
       });
       document.getElementById("ai-text").value = "";
@@ -1486,25 +1609,51 @@ async function renderReview(sessionId) {
     rows = await api("GET", `/entries?session_id=eq.${encodeURIComponent(sessionId)}&select=*`) || [];
   } catch (e) { /* keep empty */ }
 
+  // Entries are per (item, location): aggregate to one total per item.
+  // Ordering compares the TOTAL on hand against the single item par.
   const byItem = {};
-  for (const r of rows) byItem[r.item_id] = r;
+  for (const r of rows) {
+    const b = byItem[r.item_id] || (byItem[r.item_id] = { total: 0, rows: [] });
+    b.total = r025(b.total + (Number(r.count) || 0));
+    b.rows.push(r);
+  }
   const activeItems = state.items.filter(i => i.active !== false);
   const notCounted = activeItems.filter(i => !byItem[i.id]);
-  const needsReview = activeItems.filter(i => byItem[i.id] && byItem[i.id].status === "review");
+  const needsReview = activeItems.filter(i => byItem[i.id] && byItem[i.id].rows.some(r => r.status === "review"));
+  const partialItems = activeItems.filter(i => {
+    const b = byItem[i.id];
+    return b && areaIdsOf(i).some(id => !b.rows.some(r => String(r.area_id) === String(id)));
+  });
 
   state.review = { sessionId, flags: [], aiRan: false, blocking: null, _byItem: byItem };
 
   const canApprove = has("approve");
-  drawReview(notCounted, needsReview, canApprove);
+  drawReview(notCounted, needsReview, partialItems, canApprove);
   $app().querySelector('[data-act="nav-logout"]').onclick = logout;
 }
 
-function drawReview(notCounted, needsReview, canApprove) {
+function drawReview(notCounted, needsReview, partialItems, canApprove) {
   const c = state.review;
+  const byItem = c._byItem || {};
+
+  // Per-item detail: per-location counts, total vs par, and any missing locations.
+  const detailFor = (i, fallbackLabel) => {
+    const b = byItem[i.id];
+    if (!b) {
+      const where = itemAreas(i).map(a => a.name).filter(Boolean).join(", ");
+      return [where, fallbackLabel].filter(Boolean).join(" · ");
+    }
+    const parts = b.rows.map(r => `${areaName(r.area_id)}: ${fmtCount(r.count)}`);
+    const missing = areaIdsOf(i).filter(id => !b.rows.some(r => String(r.area_id) === String(id)));
+    let s = parts.join(" · ") + " → " +
+      T("count.totalLine").replace("{t}", fmtCount(b.total)).replace("{p}", fmtCount(i.par));
+    if (missing.length) s += ` (${T("review.missingIn").replace("{areas}", missing.map(areaName).join(", "))})`;
+    return s;
+  };
 
   const rowHtml = (i, label) => `
     <div class="review-row">
-      <div><strong>${esc(i.name)}</strong><div class="muted" style="font-size:13px">${esc(areaName(i.area_id))} · ${esc(label)}</div></div>
+      <div><strong>${esc(i.name)}</strong><div class="muted" style="font-size:13px">${esc(detailFor(i, label))}</div></div>
       <button class="btn btn-small" data-jump="${esc(i.id)}">${esc(T("review.open"))}</button>
     </div>`;
 
@@ -1513,14 +1662,13 @@ function drawReview(notCounted, needsReview, canApprove) {
   // IMPORTANT: only items WITH an entry generate order lines — this matches
   // the server (sessions.approve ignores uncounted items). Uncounted items
   // must never appear as phantom orders.
-  const byItem = c._byItem || {};
   const entryCount = Object.keys(byItem).length;
   const previewGroups = {};
   let orderLineCount = 0;
   for (const i of state.items.filter(x => x.active !== false && x.mode === "auto" && Number(x.par) > 0)) {
-    const e = byItem[i.id];
-    if (!e) continue; // not counted -> no order line, listed under "Not counted" instead
-    const have = Number(e.count);
+    const b = byItem[i.id];
+    if (!b) continue; // not counted -> no order line, listed under "Not counted" instead
+    const have = b.total;
     // Whole units only: vendors don't sell fractional cases/eaches.
     const order = Math.max(0, Math.ceil(Number(i.par) - have - 1e-9));
     if (order <= 0) continue;
@@ -1548,7 +1696,11 @@ function drawReview(notCounted, needsReview, canApprove) {
     <div id="approve-err"></div>
 
     <h2>${esc(T("review.notCounted"))} (${notCounted.length})</h2>
-    ${notCounted.length === 0 ? `<p class="muted">${esc(T("review.allCounted"))}</p>` : notCounted.map(i => rowHtml(i, T("review.noEntry"))).join("")}
+    ${notCounted.length === 0
+      ? (partialItems.length === 0
+        ? `<p class="muted">${esc(T("review.allCounted"))}</p>`
+        : `<p class="muted">${esc(T("review.partial"))}</p>` + partialItems.map(i => rowHtml(i, "")).join(""))
+      : notCounted.map(i => rowHtml(i, T("review.noEntry"))).join("")}
 
     <h2>${esc(T("review.needsReview"))} (${needsReview.length})</h2>
     ${needsReview.length === 0 ? `<p class="muted">${esc(T("review.noneFlagged"))}</p>` : needsReview.map(i => rowHtml(i, T("review.flagged"))).join("")}
@@ -2078,6 +2230,9 @@ async function renderAdmin(tab) {
 function adminItemsHtml() {
   const areaOpts = (sel) => state.areas.map(a =>
     `<option value="${esc(a.id)}" ${String(a.id) === String(sel) ? "selected" : ""}>${esc(a.name)}</option>`).join("");
+  // Checkbox list for an item's locations; first checked = primary.
+  const areaChecks = (selIds) => state.areas.map(a =>
+    `<label class="check"><input type="checkbox" data-area-check value="${esc(a.id)}" ${selIds.includes(String(a.id)) ? "checked" : ""}> ${esc(a.name)}</label>`).join("");
   const vendorOpts = (sel) => `<option value="">—</option>` + state.vendors.map(v =>
     `<option value="${esc(v.id)}" ${String(v.id) === String(sel) ? "selected" : ""}>${esc(v.name)}</option>`).join("");
 
@@ -2095,7 +2250,8 @@ function adminItemsHtml() {
       <h3 style="margin-top:0">${esc(T("admin.addItem"))}</h3>
       <div class="field"><label>${esc(T("common.name"))}</label><input id="ni-name" placeholder="${esc(T("admin.exItem"))}"></div>
       <div class="form-row">
-        <div class="field"><label>${esc(T("admin.area"))}</label><select id="ni-area">${areaOpts()}</select></div>
+        <div class="field"><label>${esc(T("admin.areasLabel"))}</label><div class="check-list" id="ni-areas">${areaChecks([])}</div>
+          <div class="muted" style="font-size:12px">${esc(T("admin.areasHint"))}</div></div>
         <div class="field"><label>${esc(T("admin.vendor"))}</label><select id="ni-vendor">${vendorOpts()}</select></div>
       </div>
       <div class="form-row">
@@ -2110,7 +2266,7 @@ function adminItemsHtml() {
     <div class="admin-card" data-item="${esc(i.id)}">
       <div class="card-head">
         <div><strong>${esc(i.name)}</strong>
-          <div class="muted" style="font-size:13px">${esc(areaName(i.area_id))} · ${esc(vendorOf(i.vendor_id).name || T("admin.noVendor"))}${i.active === false ? " · " + esc(T("admin.archived")) : ""}</div>
+          <div class="muted" style="font-size:13px">${esc(itemAreas(i).map(a => a.name).filter(Boolean).join(", ") || T("admin.noArea"))} · ${esc(vendorOf(i.vendor_id).name || T("admin.noVendor"))}${i.active === false ? " · " + esc(T("admin.archived")) : ""}</div>
         </div>
         <button class="btn btn-small" data-ai-toggle>${esc(i.active === false ? T("admin.unarchive") : T("admin.archive"))}</button>
       </div>
@@ -2130,13 +2286,13 @@ function adminItemsHtml() {
       </div>
       <div class="form-row">
         <div class="field"><label>${esc(T("admin.pieces"))}</label><input data-f="pieces_per_case" type="number" inputmode="numeric" min="0" value="${esc(i.pieces_per_case || "")}" placeholder="—"></div>
-        <div class="field"><label>${esc(T("admin.area"))}</label><select data-f="area_id">${areaOpts(i.area_id)}</select></div>
+        <div class="field"><label>${esc(T("admin.areasLabel"))}</label><div class="check-list">${areaChecks(areaIdsOf(i))}</div>
+          <div class="muted" style="font-size:12px">${esc(T("admin.areasHint"))}</div></div>
       </div>
       <div class="field"><label>${esc(T("admin.vendor"))}</label><select data-f="vendor_id">${vendorOpts(i.vendor_id)}</select></div>
       <div class="field"><label>${esc(T("common.notes"))}</label><input data-f="notes" value="${esc(i.notes || "")}"></div>
       <div style="display:flex;gap:8px;margin-top:8px">
         <button class="btn btn-primary btn-small" data-ai-save style="flex:1">${esc(T("common.save"))}</button>
-        <button class="btn btn-small" data-ai-move>${esc(T("common.move"))}</button>
       </div>
     </div>`).join("")}`;
 }
@@ -2292,8 +2448,11 @@ function csvEsc(v) {
 function itemsToCsv(items) {
   const lines = ["id,name,area,vendor,par,unit,price,active"];
   for (const i of items) {
+    // Multiple locations are joined with ", " (quoted automatically); the
+    // importer splits on commas/semicolons back into separate locations.
+    const areaCell = itemAreas(i).map(a => a.name).filter(Boolean).join(", ");
     lines.push([
-      i.id, i.name, i.area_name || "", i.vendor_name || "",
+      i.id, i.name, areaCell, i.vendor_name || "",
       Number(i.par) > 0 ? i.par : "", i.unit || "",
       Number(i.price) > 0 ? i.price : "", i.active === false ? "FALSE" : "TRUE",
     ].map(csvEsc).join(","));
@@ -2379,7 +2538,7 @@ function wireAdmin(tab) {
       try {
         await edge("items.create", {
           name,
-          area_id: document.getElementById("ni-area").value,
+          area_ids: [...document.querySelectorAll("#ni-areas [data-area-check]:checked")].map(b => b.value),
           vendor_id: document.getElementById("ni-vendor").value || null,
           par: Number(document.getElementById("ni-par").value) || 0,
           unit: document.getElementById("ni-unit").value.trim(),
@@ -2397,6 +2556,7 @@ function wireAdmin(tab) {
         data.price = data.price === "" ? 0 : Number(data.price);
         data.pieces_per_case = data.pieces_per_case === "" ? null : Number(data.pieces_per_case);
         if (!data.vendor_id) data.vendor_id = null;
+        data.area_ids = [...card.querySelectorAll("[data-area-check]:checked")].map(b => b.value);
         try { await edge("items.update", { item_id: id, ...data }); flashSaved(card); }
         catch (e) { flashError(e.detail || T("admin.saveItemFail")); }
       };
@@ -2404,18 +2564,6 @@ function wireAdmin(tab) {
         const item = itemById(id);
         try { await edge("items.update", { item_id: id, active: item.active === false }); rerender(); }
         catch (e) { flashError(e.detail || T("admin.archiveFail")); }
-      };
-      card.querySelector("[data-ai-move]").onclick = async () => {
-        const item = itemById(id);
-        const oldName = areaName(item.area_id);
-        const newId = await pickArea(item.area_id);
-        if (!newId || String(newId) === String(item.area_id)) return;
-        const ok = await confirmDialog(T("admin.moveItemTitle"),
-          T("admin.moveItemMsg").replace("{item}", item.name).replace("{from}", oldName).replace("{to}", areaName(newId)),
-          T("common.move"));
-        if (!ok) return;
-        try { await edge("items.move", { item_id: id, area_id: newId }); rerender(); }
-        catch (e) { flashError(e.detail || T("admin.moveFail")); }
       };
     });
   }
