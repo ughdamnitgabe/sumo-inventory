@@ -135,6 +135,35 @@ body {
   border: 1px solid var(--border); background: var(--card); color: var(--muted);
   font-size: 13px; font-weight: 700; cursor: pointer; }
 .day-chip.active { border-color: var(--accent); background: #331714; color: var(--text); }
+/* Vendor per-day coverage editor */
+.cov-row { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
+.cov-row .cov-day { flex: 0 0 60px; font-weight: 700; font-size: 14px; }
+.cov-row input { width: 72px; min-height: 44px; font-size: 16px; text-align: center;
+  border-radius: 8px; border: 1px solid var(--border); background: var(--bg2); color: var(--text); }
+/* Push-update banner */
+#update-banner { position: sticky; top: 0; z-index: 9999;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 10px 14px; padding-top: calc(10px + env(safe-area-inset-top));
+  background: #14331f; color: #e8f5e9; font-size: 14px; font-weight: 600;
+  border-bottom: 1px solid #2e7d32; }
+#update-banner button { background: #2e7d32; color: #fff; border: 0; border-radius: 8px;
+  padding: 8px 14px; font-size: 14px; font-weight: 700; }
+/* Draft order manual override editor */
+.order-edit { border: 1px solid var(--border); border-radius: 10px;
+  padding: 10px; margin: 8px 0; background: var(--bg2); }
+.oedit-row { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
+.oedit-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 14px; }
+select.oedit-name { white-space: normal; min-height: 44px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 14px; }
+.oedit-step { display: flex; align-items: center; gap: 4px; }
+.oedit-step input, input[data-daddqty] { width: 60px; min-height: 44px; text-align: center;
+  font-size: 16px; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--bg); color: var(--text); }
+/* Review warnings (e.g. max-on-hand below one case) */
+.warn-box { border: 1px solid #b7791f; border-radius: 10px; background: #2e230f;
+  color: #f5d78e; padding: 10px 12px; margin: 8px 0; font-size: 14px; }
+.warn-box div { margin: 4px 0; }
 .searchbar { width: 100%; min-height: var(--tap); font-size: 16px; padding: 10px 14px;
   border-radius: var(--radius); border: 1px solid var(--border); background: var(--card);
   color: var(--text); margin: 10px 0; }
@@ -270,8 +299,9 @@ table.bulk-par input { width: 90px; min-height: 44px; font-size: 16px; text-alig
 .order-card-item { font-size: 16px; color: #1b1b1b; }
 .order-card-qty { color: #c62828; font-weight: 800; font-size: 16px; white-space: nowrap; }
 .order-card-foot { margin-top: 12px; font-weight: 800; font-size: 16px; color: #1b1b1b; }
-.order-card-actions { display: flex; gap: 10px; padding: 0 18px 18px; }
+.order-card-actions { display: flex; gap: 10px; padding: 0 18px 18px; flex-wrap: wrap; }
 .order-card-actions .btn { flex: 1; }
+.order-card-contact { flex-basis: 100%; font-size: 13px; color: #666; text-align: center; }
 
 /* ---------- Settings checkbox row ---------- */
 .check-row { display: flex; gap: 12px; align-items: flex-start; margin: 12px 0; cursor: pointer; }

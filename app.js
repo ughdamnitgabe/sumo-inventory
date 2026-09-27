@@ -41,6 +41,15 @@ function fmtMoney(n) {
   return "$" + (Number(n) || 0).toFixed(2);
 }
 
+/** Format a digits-only phone for display: 17025551234 -> +1 (702) 555-1234. */
+function fmtPhone(digits) {
+  const d = String(digits || "").replace(/\D+/g, "");
+  if (!d) return "";
+  if (d.length === 11 && d[0] === "1") return `+1 (${d.slice(1, 4)}) ${d.slice(4, 7)}-${d.slice(7)}`;
+  if (d.length === 10) return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`;
+  return "+" + d;
+}
+
 function fmtDate(iso) {
   if (!iso) return "";
   return new Date(iso).toLocaleString([locale()], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
@@ -141,6 +150,10 @@ en: {
   "orders.share": "📤 Share image", "orders.copy": "📋 Copy text",
   "orders.copied": "✓ Copied", "orders.imgFail": "Could not create the order image.",
   "orders.statusFail": "Could not update order status.",
+  "orders.edit": "Edit", "orders.save": "Save", "orders.cancel": "Cancel",
+  "orders.addItem": "Add item", "orders.qty": "Qty",
+  "orders.linesFail": "Could not save order.",
+  "orders.needLines": "Add at least one item.",
   "admin.manage": "Manage", "admin.items": "Items", "admin.areas": "Areas",
   "admin.vendors": "Vendors", "admin.users": "Users",
   "users.delete": "Delete", "users.deleteTitle": "Delete user?",
@@ -154,6 +167,7 @@ en: {
   "admin.mode": "Mode", "admin.modeAuto": "auto (generates orders)",
   "admin.modeManual": "manual", "admin.countStyle": "Count style",
   "admin.exCase": "e.g. case", "admin.pieces": "Pieces per case",
+  "admin.caseLabel": "Case label", "admin.exCaseLabel": "e.g. large box",
   "admin.noVendor": "no vendor", "admin.saveItemFail": "Could not save item.",
   "admin.csvTitle": "Bulk edit (CSV)",
   "admin.areasLabel": "Locations", "admin.areasHint": "First checked = primary location.",
@@ -186,6 +200,19 @@ en: {
   "admin.vendorSaveFail": "Could not save vendor.",
   "vendor.orderDays": "Order days", "vendor.orderBy": "Order by",
   "vendor.deliveryDays": "Delivery days",
+  "vendor.contactName": "Contact name", "vendor.contactPhone": "Contact phone",
+  "orders.send": "📲 Send order", "orders.sendTo": "Send to",
+  "item.dailyUsage": "Daily usage", "item.learned": "auto: {x}/day",
+  "item.maxOnHand": "Max on hand",
+  "vendor.daysWorth": "days", "vendor.coverageHint": "Select order days first.",
+  "review.orderBasis": "Ordering for {day} · ×{m}",
+  "review.capWarn": "max on hand is below one full case, so nothing was ordered. Fix the max or the case size.",
+  "update.available": "New version available", "update.now": "Update now",
+  "update.pushTitle": "App updates",
+  "update.pushHelp": "Push the newest version to every device. Staff will see an update prompt — no need to delete and re-add the home screen app.",
+  "update.pushBtn": "Push update to all devices",
+  "update.pushed": "Update pushed — devices will prompt on next check.",
+  "update.pushFail": "Could not push update.",
   "day.mon": "Mon", "day.tue": "Tue", "day.wed": "Wed", "day.thu": "Thu",
   "day.fri": "Fri", "day.sat": "Sat", "day.sun": "Sun",
   "admin.addUser": "Add user", "admin.role": "Role",
@@ -311,6 +338,10 @@ es: {
   "orders.share": "📤 Compartir imagen", "orders.copy": "📋 Copiar texto",
   "orders.copied": "✓ Copiado", "orders.imgFail": "No se pudo crear la imagen del pedido.",
   "orders.statusFail": "No se pudo actualizar el estado del pedido.",
+  "orders.edit": "Editar", "orders.save": "Guardar", "orders.cancel": "Cancelar",
+  "orders.addItem": "Añadir artículo", "orders.qty": "Cant.",
+  "orders.linesFail": "No se pudo guardar el pedido.",
+  "orders.needLines": "Añade al menos un artículo.",
   "admin.manage": "Administrar", "admin.items": "Artículos", "admin.areas": "Áreas",
   "admin.vendors": "Proveedores", "admin.users": "Usuarios",
   "users.delete": "Eliminar", "users.deleteTitle": "¿Eliminar usuario?",
@@ -324,6 +355,7 @@ es: {
   "admin.mode": "Modo", "admin.modeAuto": "auto (genera pedidos)",
   "admin.modeManual": "manual", "admin.countStyle": "Estilo de conteo",
   "admin.exCase": "p. ej. caso", "admin.pieces": "Piezas por caso",
+  "admin.caseLabel": "Etiqueta de caja", "admin.exCaseLabel": "p. ej. caja grande",
   "admin.noVendor": "sin proveedor", "admin.saveItemFail": "No se pudo guardar el artículo.",
   "admin.csvTitle": "Edición masiva (CSV)",
   "admin.areasLabel": "Ubicaciones", "admin.areasHint": "La primera marcada = ubicación principal.",
@@ -356,6 +388,19 @@ es: {
   "admin.vendorSaveFail": "No se pudo guardar el proveedor.",
   "vendor.orderDays": "Días de pedido", "vendor.orderBy": "Pedir antes de",
   "vendor.deliveryDays": "Días de entrega",
+  "vendor.contactName": "Nombre de contacto", "vendor.contactPhone": "Teléfono de contacto",
+  "orders.send": "📲 Enviar pedido", "orders.sendTo": "Enviar a",
+  "item.dailyUsage": "Uso diario", "item.learned": "auto: {x}/día",
+  "item.maxOnHand": "Máx. en almacén",
+  "vendor.daysWorth": "días", "vendor.coverageHint": "Selecciona los días de pedido primero.",
+  "review.orderBasis": "Pedido para el {day} · ×{m}",
+  "review.capWarn": "el máximo es menor que una caja completa, no se pidió nada. Corrige el máximo o el tamaño de la caja.",
+  "update.available": "Nueva versión disponible", "update.now": "Actualizar",
+  "update.pushTitle": "Actualizaciones de la app",
+  "update.pushHelp": "Envía la versión más reciente a todos los dispositivos. El personal verá un aviso de actualización — no hace falta borrar y volver a añadir la app.",
+  "update.pushBtn": "Enviar actualización a todos",
+  "update.pushed": "Actualización enviada — los dispositivos avisarán en la próxima revisión.",
+  "update.pushFail": "No se pudo enviar la actualización.",
   "day.mon": "lun", "day.tue": "mar", "day.wed": "mié", "day.thu": "jue",
   "day.fri": "vie", "day.sat": "sáb", "day.sun": "dom",
   "admin.addUser": "Agregar usuario", "admin.role": "Rol",
@@ -437,7 +482,7 @@ const state = {
   session: null,       // { token, profile: { id, name, role, must_change_pin? } }
   areas: [],           // [{id, name}]
   vendors: [],         // [{id, name, email, notes}]
-  items: [],           // [{id, name, area_id, vendor_id, par, unit, mode, count_style, pieces_per_case, price, notes, active}]
+  items: [],           // [{id, name, area_id, vendor_id, par, unit, mode, count_style, pieces_per_case, price, notes, active, daily_usage, daily_usage_manual, max_on_hand}]
   sessions: [],        // draft sessions
   orders: [],          // orders list
   count: null,         // { sessionId, session, areaId, entries: {itemId:{count,status,note}}, search, highlight }
@@ -451,12 +496,36 @@ const state = {
 
 /** Load store settings (store name, price toggle). Cached; cheap to refresh. */
 async function loadSettings() {
-  const fallback = { store_name: "Sumo Sushi", show_prices: false };
+  const fallback = { store_name: "Sumo Sushi", show_prices: false, app_version: "0" };
   try {
     const r = await edge("settings.get");
     state.settings = Object.assign({}, fallback, r.settings || {});
+    checkVersionSeen(String(state.settings.app_version ?? "0"));
   } catch (e) { state.settings = state.settings || fallback; }
   return state.settings;
+}
+/* ---------------- Push updates ---------------- */
+// Superadmin bumps settings.app_version ("Push update"); every client compares
+// it against the version it launched with and shows an update banner on change.
+const APP_VER_KEY = "sumo_app_version_seen";
+function checkVersionSeen(server) {
+  if (!state.session) return; // login screen: nothing to update yet
+  let seen = null;
+  try { seen = localStorage.getItem(APP_VER_KEY); } catch (e) { /* noop */ }
+  if (!seen) { try { localStorage.setItem(APP_VER_KEY, server); } catch (e) { /* noop */ } return; }
+  if (server !== seen && !document.getElementById("update-banner")) showUpdateBanner(server);
+}
+function showUpdateBanner(server) {
+  const bar = document.createElement("div");
+  bar.id = "update-banner";
+  bar.innerHTML = `<span>${esc(T("update.available"))}</span><button id="update-now">${esc(T("update.now"))}</button>`;
+  document.body.prepend(bar);
+  document.getElementById("update-now").onclick = () => {
+    try { localStorage.setItem(APP_VER_KEY, server); } catch (e) { /* noop */ }
+    // Cache-bust the reload itself: a query string forces iOS to refetch
+    // index.html instead of serving its home-screen cache.
+    location.href = location.pathname + "?v=" + Date.now() + location.hash;
+  };
 }
 const storeName = () => (state.settings && state.settings.store_name) || "Sumo Sushi";
 const showPrices = () => !!(state.settings && state.settings.show_prices);
@@ -545,6 +614,15 @@ async function boot() {
   }
   router();
   window.addEventListener("hashchange", router);
+  // Push-update checks: on launch, every 5 minutes while open, and whenever
+  // the app comes back to the foreground (iOS home-screen resume).
+  if (state.session) {
+    loadSettings();
+    setInterval(() => { if (state.session && !document.hidden) loadSettings(); }, 5 * 60 * 1000);
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden && state.session) loadSettings();
+    });
+  }
   // Top-bar Home button, delegated so every view gets it without per-view wiring.
   document.addEventListener("click", (e) => {
     const t = e.target.closest('[data-act="nav-home"]');
@@ -555,8 +633,10 @@ async function boot() {
     const t = e.target.closest('[data-act="nav-lang"]');
     if (t) { setLang(lang() === "es" ? "en" : "es"); router(); }
   });
-  // Order-card actions (share image / copy text), delegated for the same reason.
+  // Order-card actions (share image / copy text / send order), delegated for the same reason.
   document.addEventListener("click", (e) => {
+    const snd = e.target.closest("[data-send-card]");
+    if (snd) { sendOrderCard(snd.dataset.sendCard, snd); return; }
     const sh = e.target.closest("[data-share-card]");
     if (sh) { shareOrderCard(sh.dataset.shareCard, sh); return; }
     const cp = e.target.closest("[data-copy-card]");
@@ -997,7 +1077,7 @@ async function renderCount(sessionId) {
   let entries = {};
   try {
     const rows = await api("GET", `/entries?session_id=eq.${encodeURIComponent(sessionId)}&select=*`);
-    for (const r of rows || []) entries[entryKey(r.item_id, r.area_id)] = { count: r.count, status: r.status, note: r.note };
+    for (const r of rows || []) entries[entryKey(r.item_id, r.area_id)] = { count: r.count, status: fromDbStatus(r.status), note: r.note };
   } catch (e) { /* session may be new / RLS edge — start empty */ }
 
   const activeItems = state.items.filter(i => i.active !== false);
@@ -1338,6 +1418,11 @@ function setCount(item, areaId, n, status) {
   drawCount();
 }
 
+/* Entry statuses: the UI uses short names (zero/review/done/counted) while the
+ * database uses zero_confirmed/needs_review. Map at the save/load boundary. */
+const toDbStatus = (s) => s === "review" ? "needs_review" : s === "zero" ? "zero_confirmed" : s === "done" ? "counted" : (s || "counted");
+const fromDbStatus = (s) => s === "needs_review" ? "review" : s === "zero_confirmed" ? "zero" : (s || "counted");
+
 function clearEntry(item, areaId) {
   delete state.count.entries[entryKey(item.id, areaId)];
   // Remove from the server too (fire-and-forget; server also gates by role/session state).
@@ -1374,7 +1459,7 @@ function persistEntry(item, areaId) {
           item_id: item.id,
           area_id: areaId || null,
           count: e.count,
-          status: e.status,
+          status: toDbStatus(e.status),
           note: e.note || null,
           updated_by: state.session.profile.id,
         },
@@ -1453,8 +1538,8 @@ async function aiParse() {
         const d = out._drafts[Number(b.dataset.draft)];
         const item = itemById(d.item_id);
         if (!item) return;
-        // Low-confidence parses go to needs_review rather than being silently trusted.
-        const status = (d.confidence != null && d.confidence < 0.5) ? "needs_review" : "counted";
+        // Low-confidence parses go to review rather than being silently trusted.
+        const status = (d.confidence != null && d.confidence < 0.5) ? "review" : "counted";
         const areaId = (primaryAreaOf(item) || {}).id || null;
         const key = entryKey(item.id, areaId);
         state.count.entries[key] = { count: r025(d.qty), status, note: "AI-parsed" };
@@ -1611,6 +1696,7 @@ async function renderReview(sessionId) {
   let rows = [];
   try {
     rows = await api("GET", `/entries?session_id=eq.${encodeURIComponent(sessionId)}&select=*`) || [];
+    rows = rows.map(r => ({ ...r, status: fromDbStatus(r.status) }));
   } catch (e) { /* keep empty */ }
 
   // Entries are per (item, location): aggregate to one total per item.
@@ -1668,14 +1754,20 @@ function drawReview(notCounted, needsReview, partialItems, canApprove) {
   // must never appear as phantom orders.
   const entryCount = Object.keys(byItem).length;
   const previewGroups = {};
+  const capWarnings = [];
   let orderLineCount = 0;
+  const orderWeekday = new Date().getDay(); // JS 0=Sun..6=Sat, matches vendor coverage keys
   for (const i of state.items.filter(x => x.active !== false && x.mode === "auto" && Number(x.par) > 0)) {
     const b = byItem[i.id];
     if (!b) continue; // not counted -> no order line, listed under "Not counted" instead
     const have = b.total;
-    // Whole units only: vendors don't sell fractional cases/eaches.
-    const order = Math.max(0, Math.ceil(Number(i.par) - have - 1e-9));
-    if (order <= 0) continue;
+    // Smart order: usage x days-worth, par as floor, max on hand as cap, whole cases only.
+    const dw = coverageDays(i.vendor_id, orderWeekday);
+    const order = suggestOrderQty(i, have, dw);
+    if (order <= 0) {
+      if (capConflict(i, have, dw)) capWarnings.push(i);
+      continue;
+    }
     orderLineCount++;
     const vid = i.vendor_id || "__none__";
     (previewGroups[vid] = previewGroups[vid] || []).push({ item: i, order, line: order * (Number(i.price) || 0) });
@@ -1688,10 +1780,15 @@ function drawReview(notCounted, needsReview, partialItems, canApprove) {
     ? `<p class="muted">${esc(emptyPreviewMsg)}</p>`
     : Object.entries(previewGroups).map(([vid, lines]) => {
         const v = vendorOf(vid);
+        const dw = coverageDays(vid === "__none__" ? null : vid, orderWeekday);
+        const basis = `<p class="muted" style="font-size:13px;margin:10px 0 6px">${esc(
+          T("review.orderBasis").replace("{day}", T("day." + weekdayToDay[orderWeekday])).replace("{m}", fmtCount(dw))
+        )}</p>`;
         const d = orderCardData(v, lines.map(l => ({
           name: l.item.name, qty: l.order, unit: l.item.unit, line: l.line,
+          pieces_per_case: l.item.pieces_per_case, case_label: l.item.case_label,
         })), fmtLongDateEn());
-        return orderCardHtml(d, { actions: false });
+        return basis + orderCardHtml(d, { actions: false });
       }).join("");
 
   $app().innerHTML = navHtml() + `
@@ -1714,6 +1811,8 @@ function drawReview(notCounted, needsReview, partialItems, canApprove) {
     <div id="ai-flags" style="margin-top:10px">${c.aiRan && c.flags.length === 0 ? `<p class="muted">${esc(T("review.noIssues"))}</p>` : ""}</div>
 
     <h2>${esc(T("review.preview"))}</h2>
+    ${capWarnings.length ? `<div class="warn-box">${capWarnings.map(i =>
+      `<div>⚠️ <strong>${esc(i.name)}</strong> — ${esc(T("review.capWarn"))}</div>`).join("")}</div>` : ""}
     ${previewHtml}
 
     <div style="display:flex;gap:10px;margin:18px 0" class="no-print">
@@ -1748,7 +1847,7 @@ function renderBlocking() {
   const c = state.review;
   const box = document.getElementById("approve-err");
   box.innerHTML = `<div class="error"><strong>${esc(T("review.blockTitle"))}</strong>
-    <ul>${c.blocking.map(b => `<li>${esc(b.item_name || b.name || b)}</li>`).join("")}</ul>
+    <ul>${c.blocking.map(b => `<li>${esc(b.item_name || b.name || b)}${b.area_name ? ` — ${esc(b.area_name)}` : ""}</li>`).join("")}</ul>
     ${esc(T("review.blockMsg"))}</div>`;
   box.scrollIntoView();
 }
@@ -1845,10 +1944,15 @@ function orderCardData(vendor, lines, dateLabel) {
   if (v.order_days) meta.push("Order days: " + v.order_days);
   if (v.order_cutoff) meta.push("Order by: " + v.order_cutoff);
   if (v.delivery_days) meta.push("Delivery days: " + v.delivery_days);
-  const cleanLines = lines.map(l => ({
-    name: l.name,
-    qty: fmtCount(l.qty) + (l.unit ? " " + l.unit : ""),
-  }));
+  const cleanLines = lines.map(l => {
+    // Purchase-unit display: an item with a case label (e.g. "large box") is
+    // shown to the vendor in whole purchase units, not internal count units.
+    const ppc = Number(l.pieces_per_case);
+    const qty = (ppc > 1 && l.case_label)
+      ? fmtCount(Number(l.qty) / ppc) + " " + l.case_label
+      : fmtCount(l.qty) + (l.unit ? " " + l.unit : "");
+    return { name: l.name, qty };
+  });
   const text =
     `Hi ${v.name || "there"},\n\n` +
     `Please send the following for ${dateLabel}:\n\n` +
@@ -1859,6 +1963,8 @@ function orderCardData(vendor, lines, dateLabel) {
     id: "card-" + (++cardSeq) + "-" + Date.now().toString(36),
     store: storeName(),
     vendorName: v.name || "Vendor",
+    contactName: v.contact_name || v.contactName || null,
+    contactPhone: v.contact_phone || v.contactPhone || null,
     dateLabel,
     meta,
     lines: cleanLines,
@@ -1886,6 +1992,8 @@ function orderCardHtml(d, opts = {}) {
       <div class="order-card-foot">${d.count} item${d.count === 1 ? "" : "s"}${d.total ? ` · Estimated total: ${esc(d.total)}` : ""}</div>
     </div>
     ${opts.actions === false ? "" : `<div class="order-card-actions no-print">
+      ${(d.contactName || d.contactPhone) ? `<div class="order-card-contact">${esc(T("orders.sendTo"))}: ${esc(d.contactName || "")}${d.contactName && d.contactPhone ? " · " : ""}${esc(fmtPhone(d.contactPhone))}</div>` : ""}
+      <button class="btn btn-small btn-primary" data-send-card="${esc(d.id)}">${esc(T("orders.send"))}</button>
       <button class="btn btn-small" data-share-card="${esc(d.id)}">${esc(T("orders.share"))}</button>
       <button class="btn btn-small" data-copy-card="${esc(d.id)}">${esc(T("orders.copy"))}</button>
     </div>`}
@@ -2086,6 +2194,38 @@ async function shareOrderCard(cardId, btn) {
   }
 }
 
+/** Send the order: share sheet with the card image + order text together.
+ *  Gabe picks the vendor's WhatsApp/text thread and taps send himself —
+ *  the app never sends anything on its own. */
+async function sendOrderCard(cardId, btn) {
+  const d = state.cardData[cardId];
+  if (!d) return;
+  const label = btn ? btn.textContent : "";
+  if (btn) btn.textContent = "…";
+  try {
+    const blob = await renderOrderCardImage(d);
+    if (!blob) throw new Error("render failed");
+    const safe = d.vendorName.replace(/[^\w]+/g, "-").slice(0, 40) || "order";
+    const file = new File([blob], `order-${safe}.png`, { type: "image/png" });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], text: d.text, title: `Order — ${d.vendorName}` });
+    } else {
+      // Fallback (no share sheet): download the image and copy the text.
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = file.name;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+      try { await navigator.clipboard.writeText(d.text); } catch (e2) { /* noop */ }
+    }
+  } catch (e) {
+    if (!e || e.name !== "AbortError") flashError(T("orders.imgFail"));
+  } finally {
+    if (btn) btn.textContent = label;
+  }
+}
+
 /** Copy the card's plain-text version. */
 async function copyCardText(cardId, btn) {
   const d = state.cardData[cardId];
@@ -2110,13 +2250,15 @@ async function copyCardText(cardId, btn) {
 async function renderOrders() {
   $app().innerHTML = navHtml() + `<div class="view"><div class="loading">${esc(T("orders.loading"))}</div></div>`;
   try {
-    const [o, v, sg] = await Promise.all([
+    const [o, v, sg, it] = await Promise.all([
       edge("orders.list").catch(() => ({ orders: [] })),
       edge("vendors.list").catch(() => ({ vendors: state.vendors })),
       edge("settings.get").catch(() => ({ settings: state.settings })),
+      edge("items.list").catch(() => ({ items: state.items || [] })),
     ]);
     state.orders = o.orders || o || [];
     state.vendors = v.vendors || v || [];
+    state.items = it.items || it || [];
     if (sg.settings) state.settings = Object.assign({ store_name: "Sumo Sushi", show_prices: false }, sg.settings);
   } catch (e) { if (e.status === 401 || e.code === "unauthorized") { dropSession(); go("#/login"); return; } }
 
@@ -2139,21 +2281,27 @@ async function renderOrders() {
         order_days: v.order_days || ord.vendor_order_days,
         order_cutoff: v.order_cutoff || ord.vendor_order_cutoff,
         delivery_days: v.delivery_days || ord.vendor_delivery_days,
+        contact_name: v.contact_name || null,
+        contact_phone: v.contact_phone || null,
       };
       const lines = (ord.lines || []).map(l => ({
         name: l.item_name, qty: l.order_qty, unit: l.unit, line: Number(l.line_cost) || 0,
+        pieces_per_case: l.pieces_per_case, case_label: l.case_label,
       }));
       const d = orderCardData(vendor, lines, fmtLongDateEn(ord.created_at));
       return `<div class="order-wrap">
         <div class="order-status-row no-print">
           ${pill(ord.status)}
           <span style="display:flex;gap:8px">
+            ${canManage && ord.status === "draft"
+              ? `<button class="btn btn-small" data-edit="${esc(ord.id)}">${esc(T("orders.edit"))}</button>` : ""}
             ${canManage && ord.status !== "sent" && ord.status !== "received"
               ? `<button class="btn btn-small" data-sent="${esc(ord.id)}">${esc(T("orders.markSent"))}</button>` : ""}
             ${canManage && ord.status === "sent"
               ? `<button class="btn btn-small" data-received="${esc(ord.id)}">${esc(T("orders.markReceived"))}</button>` : ""}
           </span>
         </div>
+        <div class="order-edit no-print" data-editwrap="${esc(ord.id)}" hidden></div>
         ${orderCardHtml(d)}
       </div>`;
     }).join("")}
@@ -2163,6 +2311,7 @@ async function renderOrders() {
   // Card actions (share image / copy text) are wired via delegation in boot().
   $app().querySelectorAll("[data-sent]").forEach(b => b.onclick = () => setOrderStatus(b.dataset.sent, "sent"));
   $app().querySelectorAll("[data-received]").forEach(b => b.onclick = () => setOrderStatus(b.dataset.received, "received"));
+  $app().querySelectorAll("[data-edit]").forEach(b => b.onclick = () => openOrderEditor(b.dataset.edit));
   $app().querySelector('[data-act="back-home"]').onclick = () => go("#/home");
   $app().querySelector('[data-act="nav-logout"]').onclick = logout;
 }
@@ -2172,6 +2321,119 @@ async function setOrderStatus(orderId, status) {
     await edge("orders.update-status", { order_id: orderId, status });
     renderOrders();
   } catch (e) { flashError(e.detail || T("orders.statusFail")); }
+}
+
+/* Manual override: edit a draft order's lines (per vendor) before the card
+ * is generated — e.g. bump quantities for a big party. Quantities, add/remove
+ * lines; the card and vendor text rebuild from the saved lines. */
+function openOrderEditor(orderId) {
+  const ord = (state.orders || []).find(o => String(o.id) === String(orderId));
+  if (!ord || ord.status !== "draft") return;
+  const wrap = $app().querySelector(`[data-editwrap="${CSS.escape(String(orderId))}"]`);
+  if (!wrap) return;
+  let draft = (ord.lines || []).map(l => ({
+    item_id: l.item_id || null,
+    item_name: l.item_name, unit: l.unit || "",
+    order_qty: Number(l.order_qty) || 0,
+    pieces_per_case: l.pieces_per_case ?? null,
+    case_label: l.case_label ?? null,
+  }));
+  const vendorItems = () => (state.items || []).filter(i =>
+    String(i.vendor_id || "") === String(ord.vendor_id || "") &&
+    !draft.some(d => d.item_id && String(d.item_id) === String(i.id)));
+  const purchaseText = (l) => {
+    const ppc = Number(l.pieces_per_case);
+    if (ppc > 1 && l.case_label && l.order_qty > 0) {
+      return `= ${fmtCount(l.order_qty / ppc)} ${l.case_label}`;
+    }
+    return "";
+  };
+  const rowsHtml = () => draft.map((l, i) => `
+      <div class="oedit-row">
+        <span class="oedit-name">${esc(l.item_name)}${l.unit ? ` <span class="muted">${esc(l.unit)}</span>` : ""}
+          <div class="muted" style="font-size:12px" data-dhint="${i}">${esc(purchaseText(l))}</div></span>
+        <span class="oedit-step">
+          <button class="btn btn-small" data-dstep="${i}|-1">-</button>
+          <input data-dqty="${i}" inputmode="decimal" value="${l.order_qty}">
+          <button class="btn btn-small" data-dstep="${i}|1">+</button>
+        </span>
+        <button class="btn btn-small" data-drm="${i}" aria-label="remove">&times;</button>
+      </div>`).join("");
+  const addHtml = () => {
+    const opts = vendorItems();
+    if (!opts.length) return "";
+    return `<div class="oedit-row">
+        <select data-dadd class="oedit-name">${opts.map(i =>
+          `<option value="${esc(i.id)}">${esc(i.name)}${i.unit ? " (" + esc(i.unit) + ")" : ""}</option>`).join("")}</select>
+        <input data-daddqty inputmode="numeric" value="1">
+        <button class="btn btn-small btn-primary" data-daddbtn>${esc(T("orders.addItem"))}</button>
+      </div>`;
+  };
+  function render() {
+    wrap.innerHTML = `
+      <div data-drows>${rowsHtml()}</div>
+      ${addHtml()}
+      <div data-derr></div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="btn btn-primary" data-dsave style="flex:1">${esc(T("orders.save"))}</button>
+        <button class="btn" data-dcancel style="flex:1">${esc(T("orders.cancel"))}</button>
+      </div>`;
+    wire();
+  }
+  function wire() {
+    wrap.querySelectorAll("[data-dstep]").forEach(b => b.onclick = () => {
+      const [i, d] = b.dataset.dstep.split("|").map(Number);
+      draft[i].order_qty = Math.max(0, Math.round((draft[i].order_qty + d) * 100) / 100);
+      const inp = wrap.querySelector(`[data-dqty="${i}"]`);
+      if (inp) inp.value = draft[i].order_qty;
+      const hint = wrap.querySelector(`[data-dhint="${i}"]`);
+      if (hint) hint.textContent = purchaseText(draft[i]);
+    });
+    wrap.querySelectorAll("[data-dqty]").forEach(inp => inp.onchange = () => {
+      const i = Number(inp.dataset.dqty);
+      const v = Math.round(Number(inp.value) * 100) / 100;
+      draft[i].order_qty = v > 0 ? v : 0;
+      inp.value = draft[i].order_qty;
+      const hint = wrap.querySelector(`[data-dhint="${i}"]`);
+      if (hint) hint.textContent = purchaseText(draft[i]);
+    });
+    wrap.querySelectorAll("[data-drm]").forEach(b => b.onclick = () => {
+      draft.splice(Number(b.dataset.drm), 1);
+      render();
+    });
+    const addBtn = wrap.querySelector("[data-daddbtn]");
+    if (addBtn) addBtn.onclick = () => {
+      const sel = wrap.querySelector("[data-dadd]");
+      const q = wrap.querySelector("[data-daddqty]");
+      const it = (state.items || []).find(x => String(x.id) === String(sel.value));
+      const qty = Math.round(Number(q.value) * 100) / 100;
+      if (it && qty > 0) {
+        draft.push({ item_id: it.id, item_name: it.name, unit: it.unit || "", order_qty: qty,
+          pieces_per_case: it.pieces_per_case ?? null, case_label: it.case_label ?? null });
+        render();
+      }
+    };
+    wrap.querySelector("[data-dsave]").onclick = async () => {
+      const err = wrap.querySelector("[data-derr]");
+      err.innerHTML = "";
+      const payload = draft.filter(l => l.order_qty > 0)
+        .map(l => ({ item_id: l.item_id, item_name: l.item_name, unit: l.unit, order_qty: l.order_qty }));
+      if (!payload.length) {
+        err.innerHTML = `<div class="error">${esc(T("orders.needLines"))}</div>`;
+        return;
+      }
+      try {
+        const r = await edge("orders.update-lines", { order_id: ord.id, lines: payload });
+        const idx = (state.orders || []).findIndex(o => String(o.id) === String(ord.id));
+        if (idx >= 0 && r && r.order) state.orders[idx] = r.order;
+        renderOrders();
+      } catch (e) { err.innerHTML = `<div class="error">${esc(e.detail || T("orders.linesFail"))}</div>`; }
+    };
+    wrap.querySelector("[data-dcancel]").onclick = () => { wrap.hidden = true; wrap.innerHTML = ""; };
+  }
+  wrap.hidden = false;
+  render();
+  try { wrap.scrollIntoView({ block: "nearest" }); } catch (e) { /* noop */ }
 }
 
 /* ====================== VIEW: ADMIN ============================ */
@@ -2290,9 +2552,14 @@ function adminItemsHtml() {
       </div>
       <div class="form-row">
         <div class="field"><label>${esc(T("admin.pieces"))}</label><input data-f="pieces_per_case" type="number" inputmode="numeric" min="0" value="${esc(i.pieces_per_case || "")}" placeholder="—"></div>
-        <div class="field"><label>${esc(T("admin.areasLabel"))}</label><div class="check-list">${areaChecks(areaIdsOf(i))}</div>
-          <div class="muted" style="font-size:12px">${esc(T("admin.areasHint"))}</div></div>
+        <div class="field"><label>${esc(T("admin.caseLabel"))}</label><input data-f="case_label" value="${esc(i.case_label || "")}" placeholder="${esc(T("admin.exCaseLabel"))}"></div>
       </div>
+      <div class="form-row">
+        <div class="field"><label>${esc(T("item.dailyUsage"))}</label><input data-f="daily_usage_manual" type="number" inputmode="decimal" min="0" step="0.1" value="${esc(i.daily_usage_manual ?? "")}" placeholder="${i.daily_usage != null && i.daily_usage !== "" ? esc(T("item.learned").replace("{x}", fmtCount(i.daily_usage))) : "—"}"></div>
+        <div class="field"><label>${esc(T("item.maxOnHand"))}</label><input data-f="max_on_hand" type="number" inputmode="decimal" min="0" step="0.25" value="${esc(i.max_on_hand ?? "")}" placeholder="—"></div>
+      </div>
+      <div class="field"><label>${esc(T("admin.areasLabel"))}</label><div class="check-list">${areaChecks(areaIdsOf(i))}</div>
+        <div class="muted" style="font-size:12px">${esc(T("admin.areasHint"))}</div></div>
       <div class="field"><label>${esc(T("admin.vendor"))}</label><select data-f="vendor_id">${vendorOpts(i.vendor_id)}</select></div>
       <div class="field"><label>${esc(T("common.notes"))}</label><input data-f="notes" value="${esc(i.notes || "")}"></div>
       <div style="display:flex;gap:8px;margin-top:8px">
@@ -2353,6 +2620,69 @@ function fmtTime(h, m) {
   const hh = h % 12 === 0 ? 12 : h % 12;
   return hh + ":" + (m === 0 ? "00" : "30") + " " + ap;
 }
+/* ---------------- Smart ordering ---------------- */
+/** Day key -> JS weekday (0=Sunday..6=Saturday). */
+const dayToWeekday = d => ({ sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 }[d]);
+const weekdayToDay = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+/** Effective daily usage: manual override wins, else learned, else null. */
+function effUsage(item) {
+  const m = Number(item.daily_usage_manual);
+  if (item.daily_usage_manual != null && item.daily_usage_manual !== "" && m > 0) return m;
+  const l = Number(item.daily_usage);
+  if (item.daily_usage != null && item.daily_usage !== "" && l > 0) return l;
+  return null;
+}
+/** "Days worth" of stock this vendor's order must cover for the given weekday. */
+function coverageDays(vendorId, weekday) {
+  const v = vendorOf(vendorId);
+  const c = v && v.coverage ? Number(v.coverage[weekday]) : NaN;
+  return c > 0 ? c : 1;
+}
+/**
+ * Suggested order qty in count units. Mirrors the server.
+ * target = max(par, usage * daysWorth) capped by max_on_hand;
+ * rounded UP to whole cases via pieces_per_case.
+ */
+function suggestOrderQty(item, onHand, daysWorth) {
+  if (capConflict(item, onHand, daysWorth)) return 0;
+  const units = Math.max(0, orderTarget(item, daysWorth) - onHand);
+  const ppc = Number(item.pieces_per_case);
+  if (ppc > 0) return Math.max(0, Math.ceil(units / ppc - 1e-9)) * ppc;
+  return Math.max(0, Math.ceil(units - 1e-9));
+}
+function maxOnNum(item) {
+  const m = Number(item.max_on_hand);
+  return (item.max_on_hand != null && item.max_on_hand !== "" && m > 0) ? m : null;
+}
+function orderTarget(item, daysWorth) {
+  const par = Number(item.par ?? 0);
+  const usage = effUsage(item);
+  let target = usage != null ? Math.max(par, usage * daysWorth) : par;
+  const maxOn = maxOnNum(item);
+  if (maxOn != null) target = Math.min(target, maxOn);
+  return target;
+}
+/** True when the item needs stock but a single case won't fit in max_on_hand
+ *  (contradictory data — nothing is ordered; fix the max or the case size). */
+function capConflict(item, onHand, daysWorth) {
+  const ppc = Number(item.pieces_per_case);
+  const maxOn = maxOnNum(item);
+  return ppc > 0 && maxOn != null && ppc > maxOn && orderTarget(item, daysWorth) > onHand;
+}
+/** Per-order-day "days worth" inputs for a vendor card. */
+function coverageEditor(v) {
+  const sel = parseDays(v.order_days);
+  if (!sel.length) return `<div class="muted" style="font-size:13px">${esc(T("vendor.coverageHint"))}</div>`;
+  const cov = v.coverage || {};
+  return sel.map(d => {
+    const wd = dayToWeekday(d);
+    return `<div class="cov-row"><span class="cov-day">${esc(T("day." + d))}</span>
+      <input type="number" inputmode="decimal" min="0" step="0.5" data-cov="${wd}"
+        value="${esc(cov[wd] ?? cov[String(wd)] ?? "")}" placeholder="1">
+      <span class="muted">${esc(T("vendor.daysWorth"))}</span>
+    </div>`;
+  }).join("");
+}
 /** Order-cutoff dropdown: 6:00 AM – 10:00 PM in 30-min steps. Unmatched saved values are preserved. */
 function timeOpts(current) {
   const cur = String(current || "");
@@ -2383,12 +2713,17 @@ function adminVendorsHtml() {
         <div class="field"><label>${esc(T("common.name"))}</label><input data-f="name" value="${esc(v.name)}"></div>
         <div class="field"><label>${esc(T("admin.email"))}</label><input data-f="email" type="email" value="${esc(v.email || "")}"></div>
       </div>
+      <div class="form-row">
+        <div class="field"><label>${esc(T("vendor.contactName"))}</label><input data-f="contact_name" value="${esc(v.contact_name || "")}" placeholder="e.g. Mike"></div>
+        <div class="field"><label>${esc(T("vendor.contactPhone"))}</label><input data-f="contact_phone" inputmode="tel" value="${esc(v.contact_phone || "")}" placeholder="e.g. (702) 555-1234"></div>
+      </div>
       <div class="field"><label>${esc(T("common.notes"))}</label><input data-f="notes" value="${esc(v.notes || "")}"></div>
       <div class="form-row">
         <div class="field"><label>${esc(T("vendor.orderDays"))}</label>${dayChips("order_days", v.order_days)}</div>
         <div class="field"><label>${esc(T("vendor.orderBy"))}</label><select data-f="order_cutoff">${timeOpts(v.order_cutoff)}</select></div>
       </div>
       <div class="field"><label>${esc(T("vendor.deliveryDays"))}</label>${dayChips("delivery_days", v.delivery_days)}</div>
+      <div class="field"><label>${esc(T("vendor.orderDays"))} · ${esc(T("vendor.daysWorth"))}</label><div data-coverage-wrap>${coverageEditor(v)}</div></div>
       <button class="btn btn-primary btn-small" data-vsave style="width:100%">${esc(T("common.save"))}</button>
     </div>`).join("")}`;
 }
@@ -2459,6 +2794,12 @@ function adminIOHtml() {
       <div id="kill-err"></div>
       <button class="btn ${killed ? "" : "btn-danger"}" id="kill-toggle" style="width:100%">
         ${esc(killed ? T("admin.killOn") : T("admin.killOff"))}</button>
+    </div>
+    <div class="admin-card">
+      <h3 style="margin-top:0">${esc(T("update.pushTitle"))}</h3>
+      <p class="muted">${esc(T("update.pushHelp"))}</p>
+      <div id="push-msg"></div>
+      <button class="btn btn-primary" id="push-update" style="width:100%">${esc(T("update.pushBtn"))}</button>
     </div>
     <div class="admin-card">
       <h3 style="margin-top:0">Store settings</h3>
@@ -2577,6 +2918,9 @@ function wireAdmin(tab) {
         }
         res.innerHTML = html;
         rerender();
+        // rerender() rebuilds the tab — restore the result message.
+        const res2 = document.getElementById("csv-result");
+        if (res2) res2.innerHTML = html;
       } catch (e) {
         err.innerHTML = `<div class="error">${esc(e.detail || T("admin.csvBadFile"))}</div>`;
       }
@@ -2606,6 +2950,7 @@ function wireAdmin(tab) {
         data.par = data.par === "" ? 0 : Number(data.par);
         data.price = data.price === "" ? 0 : Number(data.price);
         data.pieces_per_case = data.pieces_per_case === "" ? null : Number(data.pieces_per_case);
+        for (const f of ["daily_usage_manual", "max_on_hand"]) data[f] = data[f] === "" ? null : Number(data[f]);
         if (!data.vendor_id) data.vendor_id = null;
         data.area_ids = [...card.querySelectorAll("[data-area-check]:checked")].map(b => b.value);
         try { await edge("items.update", { item_id: id, ...data }); flashSaved(card); }
@@ -2658,20 +3003,43 @@ function wireAdmin(tab) {
     body.querySelectorAll("[data-vendor]").forEach(card => {
       const id = card.dataset.vendor;
       // Day chips: toggle + keep the hidden data-f input canonical ("Tue, Thu").
+      // Toggling order days re-renders the per-day coverage editor (unsaved edits kept).
       card.querySelectorAll("[data-daychips]").forEach(wrap => {
-        const hidden = card.querySelector(`input[data-f="${wrap.dataset.daychips}"]`);
+        const field = wrap.dataset.daychips;
+        const hidden = card.querySelector(`input[data-f="${field}"]`);
+        const rerenderCoverage = () => {
+          if (field !== "order_days") return;
+          const cwrap = card.querySelector("[data-coverage-wrap]");
+          if (!cwrap) return;
+          const stash = {};
+          cwrap.querySelectorAll("[data-cov]").forEach(inp => { if (inp.value !== "") stash[inp.dataset.cov] = inp.value; });
+          const v = vendorOf(id);
+          cwrap.innerHTML = coverageEditor({ order_days: hidden.value, coverage: { ...(v.coverage || {}), ...stash } });
+        };
         wrap.querySelectorAll("[data-day]").forEach(chip => {
           chip.onclick = () => {
             chip.classList.toggle("active");
             hidden.value = [...wrap.querySelectorAll("[data-day].active")]
               .map(c => DAY_EN[c.dataset.day]).join(", ");
+            rerenderCoverage();
           };
         });
       });
       card.querySelector("[data-vsave]").onclick = async () => {
         const data = {};
         card.querySelectorAll("[data-f]").forEach(inp => data[inp.dataset.f] = inp.value);
-        try { await edge("vendors.update", { vendor_id: id, ...data }); flashSaved(card); }
+        try {
+          await edge("vendors.update", { vendor_id: id, ...data });
+          const coverage = {};
+          card.querySelectorAll("[data-cov]").forEach(inp => {
+            const dw = Number(inp.value);
+            if (inp.value !== "" && dw > 0) coverage[inp.dataset.cov] = dw;
+          });
+          await edge("vendors.setCoverage", { vendor_id: id, coverage });
+          const v = vendorOf(id);
+          if (v) v.coverage = coverage;
+          flashSaved(card);
+        }
         catch (e) { flashError(e.detail || T("admin.vendorSaveFail")); }
       };
     });
@@ -2748,6 +3116,19 @@ function wireAdmin(tab) {
         state.settings = Object.assign({}, state.settings, { app_disabled: !!r.app_disabled });
         rerender();
       } catch (e) { err.innerHTML = `<div class="error">${esc(e.detail || T("admin.killFail"))}</div>`; }
+    };
+    const pushBtn = document.getElementById("push-update");
+    if (pushBtn) pushBtn.onclick = async () => {
+      const msg = document.getElementById("push-msg");
+      msg.innerHTML = "";
+      try {
+        const v = String(Date.now());
+        await edge("settings.set", { key: "app_version", value: v });
+        // Don't banner our own device for the update we just pushed.
+        try { localStorage.setItem(APP_VER_KEY, v); } catch (e) { /* noop */ }
+        state.settings = Object.assign({}, state.settings, { app_version: v });
+        msg.innerHTML = `<div class="ok">${esc(T("update.pushed"))}</div>`;
+      } catch (e) { msg.innerHTML = `<div class="error">${esc(e.detail || T("update.pushFail"))}</div>`; }
     };
     document.getElementById("set-save").onclick = async () => {
       const msg = document.getElementById("set-msg");
