@@ -2843,6 +2843,8 @@ function adminUsersHtml() {
   const roleOpts = (sel) => ["superadmin", "manager", "staff", "view"]
     .filter(r => viewerIsSuper || r !== "superadmin")
     .map(r => `<option value="${r}" ${r === sel ? "selected" : ""}>${roleLabel(r)}</option>`).join("");
+  // Managers see only managers and staff — superadmin rows are hidden from them.
+  const visibleUsers = state.users.filter(u => viewerIsSuper || u.role !== "superadmin");
   return `<div class="admin-card">
       <h3 style="margin-top:0">${esc(T("admin.addUser"))}</h3>
       <div class="form-row">
@@ -2853,7 +2855,7 @@ function adminUsersHtml() {
       <div id="nu-err"></div>
       <button class="btn btn-primary" id="nu-add" style="width:100%">${esc(T("admin.addUser"))}</button>
     </div>
-    ${state.users.map(u => {
+    ${visibleUsers.map(u => {
     const isSA = u.role === "superadmin";
     const isMe = String(u.id) === String(me);
     return `
