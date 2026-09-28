@@ -64,7 +64,7 @@ const LANG_KEY = "sumoV2lang";
 const STR = {
 en: {
   "common.cancel": "Cancel", "common.confirm": "Confirm", "common.back": "← Back",
-  "common.save": "Save", "common.delete": "Delete", "common.name": "Name",
+  "common.save": "Save", "common.saved": "Saved", "common.delete": "Delete", "common.name": "Name",
   "common.notes": "Notes", "common.move": "Move", "common.notAuth": "Not authorized.",
   "common.saving": "Saving…", "common.checking": "Checking…",
   "common.item": "Item", "common.continue": "Continue",
@@ -273,7 +273,7 @@ en: {
 },
 es: {
   "common.cancel": "Cancelar", "common.confirm": "Confirmar", "common.back": "← Atrás",
-  "common.save": "Guardar", "common.delete": "Eliminar", "common.name": "Nombre",
+  "common.save": "Guardar", "common.saved": "Guardado", "common.delete": "Eliminar", "common.name": "Nombre",
   "common.notes": "Notas", "common.move": "Mover", "common.notAuth": "No autorizado.",
   "common.saving": "Guardando…", "common.checking": "Revisando…",
   "common.item": "Artículo", "common.continue": "Continuar",
@@ -3371,7 +3371,7 @@ function wireBulkItems() {
         orig.set(res.row.dataset.bulkItem, JSON.stringify(readBulkItemRow(res.row)));
       } else { failed++; failNames.push(readBulkItemRow(res.row).name || "—"); }
     });
-    if (!failed) { msg.textContent = T("admin.bulkSaved").replace("{n}", ok); msg.className = "ok"; }
+    if (!failed) { msg.textContent = T("admin.bulkSaved").replace("{n}", ok); msg.className = "ok"; showSavedToast(); }
     else { msg.textContent = T("admin.bulkFail").replace("{n}", failed) + " " + failNames.join(", "); msg.className = "error"; }
     refresh();
   };
@@ -3426,7 +3426,7 @@ function wireBulkAreas() {
         orig.set(res.row.dataset.bulkArea, val(res.row));
       } else { failed++; failNames.push(val(res.row) || "—"); }
     });
-    if (!failed) { msg.textContent = T("admin.bulkSaved").replace("{n}", ok); msg.className = "ok"; }
+    if (!failed) { msg.textContent = T("admin.bulkSaved").replace("{n}", ok); msg.className = "ok"; showSavedToast(); }
     else { msg.textContent = T("admin.bulkFail").replace("{n}", failed) + " " + failNames.join(", "); msg.className = "error"; }
     refresh();
   };
@@ -3539,7 +3539,7 @@ function wireAdmin(tab, arg2) {
       const name = document.getElementById("na-name").value.trim();
       const err = document.getElementById("na-err");
       if (!name) { err.innerHTML = `<div class="error">${esc(T("admin.areaNeedName"))}</div>`; return; }
-      try { await edge("areas.create", { name }); rerender(); }
+      try { await edge("areas.create", { name }); rerender(); showSavedToast(); }
       catch (e) { err.innerHTML = `<div class="error">${esc(e.detail || T("admin.addAreaFail"))}</div>`; }
     };
     body.querySelectorAll("[data-area-row]").forEach(card => {
@@ -3547,7 +3547,7 @@ function wireAdmin(tab, arg2) {
       card.querySelector("[data-arename]").onclick = async () => {
         const name = card.querySelector("[data-aname]").value.trim();
         if (!name) { flashError(T("admin.areaNeedName")); return; }
-        try { await edge("areas.rename", { area_id: id, name }); rerender(); }
+        try { await edge("areas.rename", { area_id: id, name }); rerender(); showSavedToast(); }
         catch (e) { flashError(e.detail || T("admin.renameFail")); }
       };
       card.querySelector("[data-adelete]").onclick = async () => {
@@ -3567,7 +3567,7 @@ function wireAdmin(tab, arg2) {
       if (!name) { err.innerHTML = `<div class="error">${esc(T("admin.vendorNeedName"))}</div>`; return; }
       try {
         await edge("vendors.create", { name, email: document.getElementById("nv-email").value.trim() });
-        rerender();
+        rerender(); showSavedToast();
       } catch (e) { err.innerHTML = `<div class="error">${esc(e.detail || T("admin.addVendorFail"))}</div>`; }
     };
     body.querySelectorAll("[data-vendor]").forEach(card => {
@@ -3620,6 +3620,7 @@ function wireAdmin(tab, arg2) {
       const areaId = card.dataset.capArea;
       const addBtn = card.querySelector("[data-np-add]");
       addBtn.onclick = async () => {
+        if (addBtn.disabled) return; // double-tap guard: one create at a time
         const name = card.querySelector("[data-np-name]").value.trim();
         const max = Number(card.querySelector("[data-np-max]").value);
         const unit = card.querySelector("[data-np-unit]").value.trim();
@@ -3627,24 +3628,30 @@ function wireAdmin(tab, arg2) {
         err.innerHTML = "";
         if (!name) { err.innerHTML = `<div class="error">${esc(T("admin.capNeedName"))}</div>`; return; }
         if (!(max > 0)) { err.innerHTML = `<div class="error">${esc(T("admin.capNeedMax"))}</div>`; return; }
+        addBtn.disabled = true;
         try {
           const r = await edge("pools.create", { area_id: areaId, name, max_qty: max, unit: unit || null });
           const pool = { ...(r.pool || {}), item_ids: [] };
           state.pools = [...(state.pools || []), pool];
           rerender();
+          showSavedToast();
         } catch (e) { err.innerHTML = `<div class="error">${esc(e.detail || T("admin.capAddFail"))}</div>`; }
+        finally { addBtn.disabled = false; }
       };
     });
     body.querySelectorAll("[data-pool]").forEach(card => {
       const id = card.dataset.pool;
       const msg = m => { card.querySelector("[data-p-msg]").textContent = m || ""; };
-      card.querySelector("[data-p-save]").onclick = async () => {
+      card.querySelector("[data-p-save]").onclick = async (ev) => {
+        const btn = ev.currentTarget;
+        if (btn.disabled) return; // double-tap guard: one save at a time
         const v = f => card.querySelector(`[data-pf="${f}"]`).value.trim();
         const name = v("name"), max = Number(v("max_qty")), unit = v("unit");
         msg("");
         if (!name) { msg(T("admin.capNeedName")); return; }
         if (!(max > 0)) { msg(T("admin.capNeedMax")); return; }
         const itemIds = [...card.querySelectorAll("[data-pitem]:checked")].map(x => x.value);
+        btn.disabled = true;
         try {
           const r = await edge("pools.update", { id, name, max_qty: max, unit: unit || null });
           const rs = await edge("pools.set_items", { id, item_ids: itemIds });
@@ -3652,6 +3659,7 @@ function wireAdmin(tab, arg2) {
             ? { ...(r.pool || p), item_ids: rs.item_ids || itemIds } : p);
           flashSaved(card);
         } catch (e) { msg(e.detail || T("admin.capSaveFail")); }
+        finally { btn.disabled = false; }
       };
       card.querySelector("[data-p-del]").onclick = async () => {
         const p = (state.pools || []).find(x => String(x.id) === String(id));
@@ -3674,7 +3682,7 @@ function wireAdmin(tab, arg2) {
       if (pin.length < 4) { err.innerHTML = `<div class="error">${esc(T("admin.pinNeed4"))}</div>`; return; }
       try {
         await edge("users.create", { name, role: document.getElementById("nu-role").value, pin });
-        rerender();
+        rerender(); showSavedToast();
       } catch (e) { err.innerHTML = `<div class="error">${esc(e.detail || T("admin.addUserFail"))}</div>`; }
     };
     body.querySelectorAll("[data-user]").forEach(card => {
@@ -3760,7 +3768,7 @@ function wireAdmin(tab, arg2) {
         await edge("settings.set", { key: "store_name", value: name });
         await edge("settings.set", { key: "show_prices", value: show });
         state.settings = { store_name: name, show_prices: show };
-        msg.innerHTML = `<span style="color:var(--ok)">Saved.</span>`;
+        msg.innerHTML = `<span style="color:var(--ok)">Saved.</span>`; showSavedToast();
       } catch (e) { msg.innerHTML = `<div class="error">${esc(e.detail || "Could not save settings.")}</div>`; }
     };
     document.getElementById("io-export").onclick = async () => {
@@ -3800,8 +3808,20 @@ function wireAdmin(tab, arg2) {
 
 /** Brief "saved" feedback on a card. */
 function flashSaved(card) {
-  const b = card.querySelector("[data-ai-save],[data-vsave],[data-u-role]");
-  if (b) { const t = b.textContent; b.textContent = "✓ Saved"; setTimeout(() => b.textContent = t, 1500); }
+  const b = card.querySelector("[data-ai-save],[data-vsave],[data-u-role],[data-p-save]");
+  if (b) { const t = b.textContent; b.textContent = "✓ " + T("common.saved"); setTimeout(() => b.textContent = t, 1500); }
+  showSavedToast();
+}
+/** Global green "Saved" toast at the top of the screen; auto-dismisses. */
+let savedToastTimer = null;
+function showSavedToast(msg) {
+  let el = document.getElementById("saved-toast");
+  if (!el) { el = document.createElement("div"); el.id = "saved-toast"; document.body.appendChild(el); }
+  el.textContent = msg || T("common.saved");
+  // Restart the slide-down animation + dismissal timer on repeat saves.
+  el.classList.remove("show"); void el.offsetWidth; el.classList.add("show");
+  clearTimeout(savedToastTimer);
+  savedToastTimer = setTimeout(() => el.classList.remove("show"), 2500);
 }
 
 /* ============================ INIT ============================= */

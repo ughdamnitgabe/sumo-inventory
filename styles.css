@@ -361,3 +361,11 @@ table.bulk-par input { width: 90px; min-height: 44px; font-size: 16px; text-alig
 .sort-toggle .mode-btn:last-child { border-radius: 0 10px 10px 0; border-left: none; }
 .sort-toggle .mode-btn:not(:first-child):not(:last-child) { border-left: none; }
 .sort-toggle .mode-btn.active { background: #331714; border-color: var(--accent); color: var(--text); }
+
+/* Global "Saved" toast: green pill at top-center, slides down on save, auto-dismisses. */
+#saved-toast { position: fixed; top: 10px; left: 50%; z-index: 10000;
+  transform: translate(-50%, -90px); transition: transform .28s ease;
+  background: #1f9d55; color: #fff; font-weight: 700; font-size: 14px;
+  padding: 10px 22px; border-radius: 999px; box-shadow: 0 4px 14px rgba(0,0,0,.35);
+  pointer-events: none; white-space: nowrap; }
+#saved-toast.show { transform: translate(-50%, 0); }
