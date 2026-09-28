@@ -170,6 +170,12 @@ en: {
   "admin.caseLabel": "Case label", "admin.exCaseLabel": "e.g. large box",
   "admin.noVendor": "no vendor", "admin.saveItemFail": "Could not save item.",
   "admin.csvTitle": "Bulk edit (CSV)",
+  "admin.bulkTitle": "Bulk edit",
+  "admin.bulkItems": "Items", "admin.bulkAreas": "Locations",
+  "admin.bulkSearch": "🔍 Search items…", "admin.bulkNoMatch": "No items match.",
+  "admin.bulkSave": "Save {n} changes", "admin.bulkNoChanges": "No changes",
+  "admin.bulkSaving": "Saving…", "admin.bulkSaved": "Saved {n}.", "admin.bulkFail": "{n} failed.",
+  "admin.bulkActive": "Active", "admin.bulkExpand": "Tap to edit",
   "admin.areasLabel": "Locations", "admin.areasHint": "First checked = primary location.",
   "admin.noArea": "No location",
   "admin.csvHelp": "Download the catalog as a spreadsheet, edit pars, areas, vendors and prices, then upload it back. Blank id = new item. List several areas separated by commas. Unknown area/vendor names are skipped.",
@@ -358,6 +364,12 @@ es: {
   "admin.caseLabel": "Etiqueta de caja", "admin.exCaseLabel": "p. ej. caja grande",
   "admin.noVendor": "sin proveedor", "admin.saveItemFail": "No se pudo guardar el artículo.",
   "admin.csvTitle": "Edición masiva (CSV)",
+  "admin.bulkTitle": "Edición masiva",
+  "admin.bulkItems": "Artículos", "admin.bulkAreas": "Ubicaciones",
+  "admin.bulkSearch": "🔍 Buscar artículos…", "admin.bulkNoMatch": "Sin coincidencias.",
+  "admin.bulkSave": "Guardar {n} cambios", "admin.bulkNoChanges": "Sin cambios",
+  "admin.bulkSaving": "Guardando…", "admin.bulkSaved": "Guardado {n}.", "admin.bulkFail": "{n} fallidos.",
+  "admin.bulkActive": "Activo", "admin.bulkExpand": "Toca para editar",
   "admin.areasLabel": "Ubicaciones", "admin.areasHint": "La primera marcada = ubicación principal.",
   "admin.noArea": "Sin ubicación",
   "admin.csvHelp": "Descargue el catálogo como hoja de cálculo, edite pares, áreas, proveedores y precios, y súbalo de nuevo. id vacío = artículo nuevo. Los nombres de área/proveedor desconocidos se omiten.",
@@ -695,7 +707,7 @@ function router() {
   else if (view === "review") renderReview(arg);
   else if (view === "orders") renderOrders();
   else if (view === "admin" && arg === "par") renderBulkPar();
-  else if (view === "admin") renderAdmin(arg || "items");
+  else if (view === "admin") renderAdmin(arg || "items", arg2);
   else renderLogin();
 }
 
@@ -2440,7 +2452,7 @@ function openOrderEditor(orderId) {
 /* Manager+: Items, Areas, Vendors, Users tabs (full catalog + user mgmt,
  * except the superadmin account itself, which is untouchable by managers).
  * Superadmin only: Import/Export tab. Everyone else: "not authorized." */
-async function renderAdmin(tab) {
+async function renderAdmin(tab, arg2) {
   const canManage = has("manage");
   const isSuper = has("superadmin");
   if (!canManage && !isSuper) {
@@ -2465,12 +2477,13 @@ async function renderAdmin(tab) {
     if (sg.settings) state.settings = Object.assign({ store_name: "Sumo Sushi", show_prices: false }, sg.settings);
   } catch (e) { if (e.status === 401 || e.code === "unauthorized") { dropSession(); go("#/login"); return; } }
 
-  const allTabs = [["items", T("admin.items")], ["areas", T("admin.areas")], ["vendors", T("admin.vendors")], ["users", T("admin.users")], ["io", "Import/Export"]];
+  const allTabs = [["items", T("admin.items")], ["bulk", T("admin.bulkTitle")], ["areas", T("admin.areas")], ["vendors", T("admin.vendors")], ["users", T("admin.users")], ["io", "Import/Export"]];
   // Managers get Items/Areas/Vendors/Users; Import/Export is superadmin-only.
   const tabs = allTabs.filter(([id]) => id === "io" ? isSuper : canManage);
   if (!tabs.some(([id]) => id === tab)) tab = tabs[0][0];
   let body = "";
   if (tab === "items") body = adminItemsHtml();
+  else if (tab === "bulk") body = adminBulkHtml(arg2 === "areas" ? "areas" : "items");
   else if (tab === "areas") body = adminAreasHtml();
   else if (tab === "vendors") body = adminVendorsHtml();
   else if (tab === "users") body = adminUsersHtml();
@@ -2489,7 +2502,7 @@ async function renderAdmin(tab) {
   $app().querySelectorAll("[data-atab]").forEach(b => b.onclick = () => go("#/admin/" + b.dataset.atab));
   $app().querySelector('[data-act="back-home"]').onclick = () => go("#/home");
   $app().querySelector('[data-act="nav-logout"]').onclick = logout;
-  wireAdmin(tab);
+  wireAdmin(tab, arg2);
 }
 
 /* ---------------- Items tab ---------------- */
@@ -2871,9 +2884,289 @@ function parseCsv(text) {
   return rows.filter(r => r.length > 1 || String(r[0] ?? "").trim() !== "");
 }
 
-function wireAdmin(tab) {
+/* ---------------- Bulk edit tab ----------------
+   Edit many items (or rename many locations) on one screen, then press
+   Save once. Only changed rows are sent. A side slider scrolls the list. */
+function adminBulkHtml(sub) {
+  const subtab = (id, label) => `<button class="admin-tab ${sub === id ? "active" : ""}" data-bsub="${id}">${esc(label)}</button>`;
+  const head = `<div class="admin-tabs" style="margin-bottom:12px">${subtab("items", T("admin.bulkItems"))}${subtab("areas", T("admin.bulkAreas"))}</div>`;
+  return head + (sub === "areas" ? bulkAreasHtml() : bulkItemsHtml());
+}
+
+function bulkSliderHtml() {
+  return `<div class="bulk-slider">
+    <button class="bulk-jump" data-jump="top" tabindex="-1" title="Top">▲</button>
+    <div class="bulk-track"><div class="bulk-thumb"></div></div>
+    <button class="bulk-jump" data-jump="bottom" tabindex="-1" title="Bottom">▼</button>
+  </div>`;
+}
+
+function bulkSavebarHtml() {
+  return `<div class="bulk-savebar"><button class="btn btn-primary" id="bulk-save" disabled>${esc(T("admin.bulkNoChanges"))}</button><span id="bulk-msg" class="muted"></span></div>`;
+}
+
+function bulkItemsHtml() {
+  const vendorOpts = (sel) => `<option value="">—</option>` + state.vendors.map(v =>
+    `<option value="${esc(v.id)}" ${String(v.id) === String(sel) ? "selected" : ""}>${esc(v.name)}</option>`).join("");
+  const areaChecks = (selIds) => state.areas.map(a =>
+    `<label class="check"><input type="checkbox" data-area-check value="${esc(a.id)}" ${selIds.includes(String(a.id)) ? "checked" : ""}> ${esc(a.name)}</label>`).join("");
+  const rows = state.items.map(i => {
+    const selIds = itemAreas(i).map(a => String(a.id));
+    return `<div class="bulk-row" data-bulk-item="${esc(i.id)}">
+      <button class="bulk-head" data-btoggle>
+        <span class="bulk-chev">▸</span>
+        <span class="bulk-name"><span data-bname>${esc(i.name)}</span>${i.active === false ? ` <em class="muted">(${esc(T("admin.archived"))})</em>` : ""}</span>
+        <span class="bulk-dirty" hidden>●</span>
+        <span class="bulk-sum muted"></span>
+      </button>
+      <div class="bulk-fields" hidden>
+        <div class="form-row">
+          <div class="field"><label>${esc(T("common.name"))}</label><input data-f="name" value="${esc(i.name)}"></div>
+          <div class="field"><label>${esc(T("admin.vendor"))}</label><select data-f="vendor_id">${vendorOpts(i.vendor_id)}</select></div>
+        </div>
+        <div class="form-row">
+          <div class="field"><label>Par</label><input data-f="par" type="number" inputmode="decimal" min="0" step="0.25" value="${Number(i.par) > 0 ? esc(i.par) : ""}" placeholder="—"></div>
+          <div class="field"><label>${esc(T("admin.price"))}</label><input data-f="price" type="number" inputmode="decimal" min="0" step="0.01" value="${Number(i.price) > 0 ? esc(i.price) : ""}" placeholder="—"></div>
+        </div>
+        <div class="form-row">
+          <div class="field"><label>${esc(T("admin.unit"))}</label><input data-f="unit" value="${esc(i.unit || "")}"></div>
+          <div class="field"><label>${esc(T("admin.pieces"))}</label><input data-f="pieces_per_case" type="number" inputmode="numeric" min="0" value="${esc(i.pieces_per_case ?? "")}" placeholder="—"></div>
+        </div>
+        <div class="form-row">
+          <div class="field"><label>${esc(T("admin.caseLabel"))}</label><input data-f="case_label" value="${esc(i.case_label || "")}" placeholder="—"></div>
+          <div class="field"><label>${esc(T("item.dailyUsage"))}</label><input data-f="daily_usage_manual" type="number" inputmode="decimal" min="0" step="0.1" value="${esc(i.daily_usage_manual ?? "")}" placeholder="—"></div>
+        </div>
+        <div class="form-row">
+          <div class="field"><label>${esc(T("item.maxOnHand"))}</label><input data-f="max_on_hand" type="number" inputmode="decimal" min="0" step="0.25" value="${esc(i.max_on_hand ?? "")}" placeholder="—"></div>
+          <div class="field"><label>${esc(T("admin.bulkActive"))}</label><input data-f="active" type="checkbox" ${i.active !== false ? "checked" : ""} style="width:22px;height:22px"></div>
+        </div>
+        <div class="field"><label>${esc(T("admin.areasLabel"))}</label><div class="check-list">${areaChecks(selIds)}</div></div>
+      </div>
+    </div>`;
+  }).join("");
+  return `<div class="admin-card" id="bulk-items">
+      <div class="field" style="margin-top:0"><input id="bulk-search" placeholder="${esc(T("admin.bulkSearch"))}"></div>
+      <div class="bulk-wrap">
+        <div class="bulk-scroll">${rows || `<div class="muted">${esc(T("count.noItems"))}</div>`}</div>
+        ${bulkSliderHtml()}
+      </div>
+      <div class="bulk-nomatch muted" hidden>${esc(T("admin.bulkNoMatch"))}</div>
+      ${bulkSavebarHtml()}
+    </div>`;
+}
+
+function bulkAreasHtml() {
+  const rows = state.areas.map(a => `
+    <div class="bulk-row bulk-area-row" data-bulk-area="${esc(a.id)}">
+      <input data-f="name" value="${esc(a.name)}" aria-label="${esc(T("admin.areaName"))}">
+      <span class="bulk-dirty" hidden>●</span>
+    </div>`).join("");
+  return `<div class="admin-card" id="bulk-areas">
+      <div class="bulk-wrap">
+        <div class="bulk-scroll">${rows || `<div class="muted">${esc(T("count.noItems"))}</div>`}</div>
+        ${bulkSliderHtml()}
+      </div>
+      ${bulkSavebarHtml()}
+    </div>`;
+}
+
+// Read a bulk item row's current field values, normalized the same way the
+// API expects them — used both for the original snapshot and the diff.
+function readBulkItemRow(row) {
+  const q = (f) => row.querySelector(`[data-f="${f}"]`);
+  const v = (f) => q(f) ? q(f).value : "";
+  const numOrNull = (s) => s === "" ? null : Number(s);
+  return {
+    name: v("name").trim(),
+    vendor_id: v("vendor_id") || null,
+    par: v("par") === "" ? 0 : Number(v("par")),
+    price: v("price") === "" ? 0 : Number(v("price")),
+    unit: v("unit").trim(),
+    pieces_per_case: numOrNull(v("pieces_per_case")),
+    case_label: v("case_label").trim(),
+    daily_usage_manual: numOrNull(v("daily_usage_manual")),
+    max_on_hand: numOrNull(v("max_on_hand")),
+    active: q("active") ? q("active").checked : true,
+    area_ids: [...row.querySelectorAll("[data-area-check]:checked")].map(b => b.value),
+  };
+}
+
+function bulkSummary(p) {
+  return `Par ${fmtCount(p.par)} · ${p.price > 0 ? "$" + Number(p.price).toFixed(2) : "—"}`;
+}
+
+function wireBulkSlider(wrap) {
+  const scroller = wrap.querySelector(".bulk-scroll");
+  const slider = wrap.querySelector(".bulk-slider");
+  if (!scroller || !slider) return;
+  const track = slider.querySelector(".bulk-track");
+  const thumb = slider.querySelector(".bulk-thumb");
+  const update = () => {
+    const max = scroller.scrollHeight - scroller.clientHeight;
+    const ratio = max > 0 ? scroller.scrollTop / max : 0;
+    const range = Math.max(track.clientHeight - thumb.offsetHeight, 0);
+    thumb.style.top = (ratio * range) + "px";
+    slider.style.display = max > 0 ? "" : "none";
+  };
+  scroller.addEventListener("scroll", update, { passive: true });
+  slider.querySelector('[data-jump="top"]').onclick = () => scroller.scrollTo({ top: 0, behavior: "smooth" });
+  slider.querySelector('[data-jump="bottom"]').onclick = () => scroller.scrollTo({ top: scroller.scrollHeight, behavior: "smooth" });
+  let dragging = false, startY = 0, startScroll = 0;
+  thumb.addEventListener("pointerdown", (e) => {
+    dragging = true; startY = e.clientY; startScroll = scroller.scrollTop;
+    try { thumb.setPointerCapture(e.pointerId); } catch {}
+    e.preventDefault();
+  });
+  thumb.addEventListener("pointermove", (e) => {
+    if (!dragging) return;
+    const max = scroller.scrollHeight - scroller.clientHeight;
+    const range = Math.max(track.clientHeight - thumb.offsetHeight, 1);
+    scroller.scrollTop = Math.min(Math.max(startScroll + ((e.clientY - startY) / range) * max, 0), max);
+  });
+  const stop = () => { dragging = false; };
+  thumb.addEventListener("pointerup", stop);
+  thumb.addEventListener("pointercancel", stop);
+  wrap._sliderUpdate = update;
+  requestAnimationFrame(update);
+  update();
+}
+
+function wireBulkItems() {
+  const wrap = document.getElementById("bulk-items");
+  if (!wrap) return;
+  const saveBtn = wrap.querySelector("#bulk-save");
+  const msg = wrap.querySelector("#bulk-msg");
+  const search = wrap.querySelector("#bulk-search");
+  const nomatch = wrap.querySelector(".bulk-nomatch");
+  const rows = [...wrap.querySelectorAll("[data-bulk-item]")];
+  const orig = new Map(rows.map(r => [r.dataset.bulkItem, JSON.stringify(readBulkItemRow(r))]));
+  const isDirty = (r) => JSON.stringify(readBulkItemRow(r)) !== orig.get(r.dataset.bulkItem);
+
+  const refresh = () => {
+    const d = rows.filter(isDirty);
+    rows.forEach(r => {
+      const p = readBulkItemRow(r);
+      const dirty = JSON.stringify(p) !== orig.get(r.dataset.bulkItem);
+      r.classList.toggle("dirty", dirty);
+      r.querySelector(".bulk-dirty").hidden = !dirty;
+      r.querySelector("[data-bname]").textContent = p.name || "—";
+      r.querySelector(".bulk-sum").textContent = bulkSummary(p);
+    });
+    saveBtn.disabled = !d.length;
+    saveBtn.textContent = d.length ? T("admin.bulkSave").replace("{n}", d.length) : T("admin.bulkNoChanges");
+    if (d.length) { msg.textContent = ""; msg.className = "muted"; }
+  };
+
+  wrap.addEventListener("input", refresh);
+  wrap.addEventListener("change", refresh);
+  wrap.querySelectorAll("[data-btoggle]").forEach(b => b.onclick = () => {
+    const row = b.closest("[data-bulk-item]");
+    const fields = row.querySelector(".bulk-fields");
+    fields.hidden = !fields.hidden;
+    b.querySelector(".bulk-chev").textContent = fields.hidden ? "▸" : "▾";
+  });
+  search.addEventListener("input", () => {
+    const q = search.value.trim().toLowerCase();
+    let shown = 0;
+    rows.forEach(r => {
+      const show = !q || r.querySelector("[data-bname]").textContent.toLowerCase().includes(q);
+      r.style.display = show ? "" : "none";
+      if (show) shown++;
+    });
+    nomatch.hidden = shown > 0;
+    if (wrap._sliderUpdate) wrap._sliderUpdate();
+  });
+
+  saveBtn.onclick = async () => {
+    const d = rows.filter(isDirty);
+    if (d.some(r => !readBulkItemRow(r).name)) {
+      msg.textContent = T("admin.itemNeedName"); msg.className = "error"; return;
+    }
+    saveBtn.disabled = true;
+    saveBtn.textContent = T("admin.bulkSaving");
+    msg.textContent = ""; msg.className = "muted";
+    let ok = 0, failed = 0;
+    const results = await Promise.all(d.map(r =>
+      edge("items.update", { item_id: r.dataset.bulkItem, ...readBulkItemRow(r) })
+        .then(res => ({ ok: true, row: r, item: res.item }))
+        .catch(() => ({ ok: false, row: r }))
+    ));
+    const failNames = [];
+    results.forEach(res => {
+      if (res.ok && res.item) {
+        ok++;
+        const idx = state.items.findIndex(x => String(x.id) === String(res.row.dataset.bulkItem));
+        if (idx >= 0) state.items[idx] = res.item;
+        orig.set(res.row.dataset.bulkItem, JSON.stringify(readBulkItemRow(res.row)));
+      } else { failed++; failNames.push(readBulkItemRow(res.row).name || "—"); }
+    });
+    if (!failed) { msg.textContent = T("admin.bulkSaved").replace("{n}", ok); msg.className = "ok"; }
+    else { msg.textContent = T("admin.bulkFail").replace("{n}", failed) + " " + failNames.join(", "); msg.className = "error"; }
+    refresh();
+  };
+
+  wireBulkSlider(wrap);
+  refresh();
+}
+
+function wireBulkAreas() {
+  const wrap = document.getElementById("bulk-areas");
+  if (!wrap) return;
+  const saveBtn = wrap.querySelector("#bulk-save");
+  const msg = wrap.querySelector("#bulk-msg");
+  const rows = [...wrap.querySelectorAll("[data-bulk-area]")];
+  const val = (r) => r.querySelector('[data-f="name"]').value.trim();
+  const orig = new Map(rows.map(r => [r.dataset.bulkArea, val(r)]));
+  const isDirty = (r) => val(r) !== orig.get(r.dataset.bulkArea);
+
+  const refresh = () => {
+    const d = rows.filter(isDirty);
+    rows.forEach(r => {
+      const dirty = isDirty(r);
+      r.classList.toggle("dirty", dirty);
+      r.querySelector(".bulk-dirty").hidden = !dirty;
+    });
+    saveBtn.disabled = !d.length;
+    saveBtn.textContent = d.length ? T("admin.bulkSave").replace("{n}", d.length) : T("admin.bulkNoChanges");
+    if (d.length) { msg.textContent = ""; msg.className = "muted"; }
+  };
+  wrap.addEventListener("input", refresh);
+
+  saveBtn.onclick = async () => {
+    const d = rows.filter(isDirty);
+    if (d.some(r => !val(r))) {
+      msg.textContent = T("admin.areaNeedName"); msg.className = "error"; return;
+    }
+    saveBtn.disabled = true;
+    saveBtn.textContent = T("admin.bulkSaving");
+    msg.textContent = ""; msg.className = "muted";
+    let ok = 0, failed = 0;
+    const results = await Promise.all(d.map(r =>
+      edge("areas.rename", { area_id: r.dataset.bulkArea, name: val(r) })
+        .then(res => ({ ok: true, row: r, area: res.area }))
+        .catch(() => ({ ok: false, row: r }))
+    ));
+    const failNames = [];
+    results.forEach(res => {
+      if (res.ok && res.area) {
+        ok++;
+        const a = state.areas.find(x => String(x.id) === String(res.row.dataset.bulkArea));
+        if (a) a.name = res.area.name;
+        orig.set(res.row.dataset.bulkArea, val(res.row));
+      } else { failed++; failNames.push(val(res.row) || "—"); }
+    });
+    if (!failed) { msg.textContent = T("admin.bulkSaved").replace("{n}", ok); msg.className = "ok"; }
+    else { msg.textContent = T("admin.bulkFail").replace("{n}", failed) + " " + failNames.join(", "); msg.className = "error"; }
+    refresh();
+  };
+
+  wireBulkSlider(wrap);
+  refresh();
+}
+
+function wireAdmin(tab, arg2) {
   const body = document.getElementById("admin-body");
-  const rerender = () => renderAdmin(tab);
+  const rerender = () => renderAdmin(tab, arg2);
 
   if (tab === "items") {
     document.getElementById("csv-download").onclick = () => {
@@ -2962,6 +3255,12 @@ function wireAdmin(tab) {
         catch (e) { flashError(e.detail || T("admin.archiveFail")); }
       };
     });
+  }
+
+  if (tab === "bulk") {
+    document.querySelectorAll("[data-bsub]").forEach(b => b.onclick = () => go("#/admin/bulk/" + b.dataset.bsub));
+    if (arg2 === "areas") wireBulkAreas();
+    else wireBulkItems();
   }
 
   if (tab === "areas") {
