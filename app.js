@@ -100,7 +100,8 @@ en: {
   "count.countFor": "Count for", "count.parFor": "Par for",
   "count.full": "Full", "count.clear": "Clear", "count.markZero": "Mark Zero",
   "count.doneBtn": "✓ Done", "count.moveArea": "Move area",
-  "count.byLocation": "By location", "count.byItem": "By item",
+  "count.byLocation": "By location", "count.byItem": "By item", "count.byVendor": "By vendor",
+  "count.noVendor": "No vendor",
   "count.totalLine": "Total {t} / par {p}",
   "count.areasBtn": "Locations", "count.areasTitle": "Locations for {name}",
   "count.areasHint": "Check every location where this item is kept. The first checked is the primary location.",
@@ -295,7 +296,8 @@ es: {
   "count.countFor": "Conteo de", "count.parFor": "Par de",
   "count.full": "Lleno", "count.clear": "Borrar", "count.markZero": "Marcar cero",
   "count.doneBtn": "✓ Listo", "count.moveArea": "Mover de área",
-  "count.byLocation": "Por ubicación", "count.byItem": "Por artículo",
+  "count.byLocation": "Por ubicación", "count.byItem": "Por artículo", "count.byVendor": "Por proveedor",
+  "count.noVendor": "Sin proveedor",
   "count.totalLine": "Total {t} / par {p}",
   "count.areasBtn": "Ubicaciones", "count.areasTitle": "Ubicaciones de {name}",
   "count.areasHint": "Marca cada ubicación donde se guarda este artículo. La primera marcada es la ubicación principal.",
@@ -1074,6 +1076,14 @@ function cmpVendor(a, b) {
   if (!b) return -1;
   return String(a).localeCompare(String(b));
 }
+// Vendors that have active items, A→Z; a "__none__" entry (last) covers items with no vendor.
+function vendorsUsed() {
+  const ids = [...new Set(state.items.filter(i => i.active !== false).map(i => i.vendor_id || "__none__"))];
+  return ids
+    .map(id => id === "__none__" ? { id: "__none__", name: null } : vendorOf(id))
+    .filter(v => v.id === "__none__" || v.name)
+    .sort((a, b) => cmpVendor(a.name || null, b.name || null));
+}
 
 /* ====================== VIEW: COUNT ============================ */
 /* #/count/:sessionId — the counting screen.
@@ -1104,19 +1114,27 @@ async function renderCount(sessionId) {
   const activeItems = state.items.filter(i => i.active !== false);
   const areasUsed = state.areas.filter(a => activeItems.some(i => areaIdsOf(i).includes(String(a.id))));
   const firstArea = areasUsed[0] && areasUsed[0].id;
+  const vendorsUsedList = vendorsUsed();
+  const firstVendor = vendorsUsedList[0] && vendorsUsedList[0].id;
 
   const prevAreaId = state.count && state.count.areaId;
+  const prevVendorId = state.count && state.count.vendorId;
   state.count = {
     sessionId, entries, search: "",
     mode: highlight ? "item" : (state.count && state.count.mode) || "location",
     sortBy: (state.count && state.count.sortBy) || "vendor",
     areaId: firstArea,
+    vendorId: firstVendor,
     highlight: highlight || null,
   };
   // Keep the previously selected tab if it still has items.
   if (state.count.mode === "location" && prevAreaId &&
       areasUsed.some(a => String(a.id) === String(prevAreaId))) {
     state.count.areaId = prevAreaId;
+  }
+  if (state.count.mode === "vendor" && prevVendorId &&
+      vendorsUsedList.some(v => String(v.id) === String(prevVendorId))) {
+    state.count.vendorId = prevVendorId;
   }
 
   drawCount();
@@ -1140,9 +1158,18 @@ function visibleItems() {
   const q = c.search.trim().toLowerCase();
   let items = state.items.filter(i => i.active !== false);
   if (c.mode === "location") items = items.filter(i => areaIdsOf(i).includes(String(c.areaId)));
-  items = sortCountItems(items, c.sortBy || "vendor");
+  else if (c.mode === "vendor") items = items.filter(i => String(i.vendor_id || "__none__") === String(c.vendorId));
+  items = sortCountItems(items, effectiveSort());
   if (q) items = items.filter(i => i.name.toLowerCase().includes(q));
   return items;
+}
+
+/** Resolve the sort toggle value to a real sort for the current mode. */
+function effectiveSort() {
+  const c = state.count;
+  if (c.mode === "vendor") return c.sortBy === "location" ? "location" : "name";
+  if (c.mode === "location" && c.sortBy === "location") return "vendor";
+  return c.sortBy || "vendor";
 }
 
 function drawCount() {
@@ -1158,15 +1185,30 @@ function drawCount() {
       const done = list.filter(i => isDone(i.id, a.id)).length;
       return `<button class="area-tab ${String(a.id) === String(c.areaId) ? "active" : ""}" data-area="${esc(a.id)}">
         ${esc(a.name)}<span class="pill-mini">${done}/${list.length}</span></button>`;
+    }).join("")
+    : c.mode === "vendor" ? vendorsUsed().map(v => {
+      const list = state.items.filter(i => i.active !== false && String(i.vendor_id || "__none__") === String(v.id));
+      const done = list.filter(i => itemAreas(i).every(a => isDone(i.id, a.id))).length;
+      return `<button class="area-tab ${String(v.id) === String(c.vendorId) ? "active" : ""}" data-vendor="${esc(v.id)}">
+        ${esc(v.name || T("count.noVendor"))}<span class="pill-mini">${done}/${list.length}</span></button>`;
     }).join("") : "";
+
+  // Sort options depend on the mode (sorting by vendor inside vendor mode is meaningless).
+  const sortDefs = c.mode === "vendor"
+    ? [["location", T("count.sortLocation")], ["name", T("count.sortName")]]
+    : c.mode === "item"
+      ? [["vendor", T("count.sortVendor")], ["location", T("count.sortLocation")], ["name", T("count.sortName")]]
+      : [["vendor", T("count.sortVendor")], ["name", T("count.sortName")]];
+  const effSort = effectiveSort();
 
   $app().innerHTML = navHtml() + `
   <div class="view" style="padding-top:0">
     <div class="mode-toggle no-print" role="tablist">
       <button class="mode-btn ${c.mode === "location" ? "active" : ""}" data-mode="location">${esc(T("count.byLocation"))}</button>
+      <button class="mode-btn ${c.mode === "vendor" ? "active" : ""}" data-mode="vendor">${esc(T("count.byVendor"))}</button>
       <button class="mode-btn ${c.mode === "item" ? "active" : ""}" data-mode="item">${esc(T("count.byItem"))}</button>
     </div>
-    ${c.mode === "location" ? `<div class="area-tabs no-print">${tabs}</div>` : ""}
+    ${c.mode === "location" || c.mode === "vendor" ? `<div class="area-tabs no-print">${tabs}</div>` : ""}
 
     <div class="ai-bar no-print">
       <div class="ai-row">
@@ -1182,9 +1224,7 @@ function drawCount() {
     <input class="searchbar no-print" id="item-search" placeholder="${esc(T("count.search"))}" value="${esc(c.search)}" aria-label="${esc(T("count.search"))}">
 
     <div class="sort-toggle no-print" role="tablist">
-      <button class="mode-btn ${c.sortBy === "vendor" ? "active" : ""}" data-sort="vendor">${esc(T("count.sortVendor"))}</button>
-      ${c.mode === "item" ? `<button class="mode-btn ${c.sortBy === "location" ? "active" : ""}" data-sort="location">${esc(T("count.sortLocation"))}</button>` : ""}
-      <button class="mode-btn ${c.sortBy === "name" ? "active" : ""}" data-sort="name">${esc(T("count.sortName"))}</button>
+      ${sortDefs.map(([k, label]) => `<button class="mode-btn ${effSort === k ? "active" : ""}" data-sort="${k}">${esc(label)}</button>`).join("")}
     </div>
 
     <div id="cards">
@@ -1202,6 +1242,10 @@ function drawCount() {
     if (c.mode !== b.dataset.mode) {
       c.mode = b.dataset.mode; c.highlight = null;
       if (c.mode === "location" && c.sortBy === "location") c.sortBy = "vendor";
+      if (c.mode === "vendor") {
+        const vu = vendorsUsed();
+        if (!vu.some(v => String(v.id) === String(c.vendorId))) c.vendorId = vu[0] && vu[0].id;
+      }
       drawCount();
     }
   });
@@ -1214,6 +1258,11 @@ function drawCount() {
   // --- area tabs ---
   $app().querySelectorAll("[data-area]").forEach(t => t.onclick = () => {
     c.areaId = t.dataset.area; c.highlight = null; drawCount();
+  });
+
+  // --- vendor tabs ---
+  $app().querySelectorAll("[data-vendor]").forEach(t => t.onclick = () => {
+    c.vendorId = t.dataset.vendor; c.highlight = null; drawCount();
   });
 
   // --- search ---
