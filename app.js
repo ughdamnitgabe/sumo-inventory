@@ -1065,6 +1065,13 @@ function renderBulkPar() {
 /* ---- small lookups ---- */
 function areaName(id) { const a = state.areas.find(x => String(x.id) === String(id)); return a ? a.name : ""; }
 function vendorOf(id) { return state.vendors.find(x => String(x.id) === String(id)) || {}; }
+// Vendor-name sort: A→Z, unknown/no-vendor last.
+function cmpVendor(a, b) {
+  if (!a && !b) return 0;
+  if (!a) return 1;
+  if (!b) return -1;
+  return String(a).localeCompare(String(b));
+}
 
 /* ====================== VIEW: COUNT ============================ */
 /* #/count/:sessionId — the counting screen.
@@ -1790,7 +1797,11 @@ function drawReview(notCounted, needsReview, partialItems, canApprove) {
   const emptyPreviewMsg = entryCount === 0 ? T("review.nothingCounted") : T("review.nothingToOrder");
   const previewHtml = Object.keys(previewGroups).length === 0
     ? `<p class="muted">${esc(emptyPreviewMsg)}</p>`
-    : Object.entries(previewGroups).map(([vid, lines]) => {
+    : Object.entries(previewGroups)
+        .sort(([va], [vb]) => cmpVendor(
+          va === "__none__" ? null : vendorOf(va).name,
+          vb === "__none__" ? null : vendorOf(vb).name))
+        .map(([vid, lines]) => {
         const v = vendorOf(vid);
         const dw = coverageDays(vid === "__none__" ? null : vid, orderWeekday);
         const basis = `<p class="muted" style="font-size:13px;margin:10px 0 6px">${esc(
@@ -2281,12 +2292,17 @@ async function renderOrders() {
     return `<span class="pill ${cls}">${esc(statusLabel(s))}</span>`;
   };
 
+  // Orders sorted by vendor name (A→Z); orders without a vendor go last.
+  const sortedOrders = [...state.orders].sort((a, b) => cmpVendor(
+    vendorOf(a.vendor_id).name || a.vendor_name,
+    vendorOf(b.vendor_id).name || b.vendor_name));
+
   $app().innerHTML = navHtml() + `
   <div class="view">
     <h1>${esc(T("orders.title"))}</h1>
     <div class="no-print" style="margin-bottom:10px"><button class="btn btn-small" onclick="window.print()">${esc(T("orders.print"))}</button></div>
     ${state.orders.length === 0 ? `<p class="muted">${esc(T("orders.none"))}</p>` : ""}
-    ${state.orders.map(ord => {
+    ${sortedOrders.map(ord => {
       const v = vendorOf(ord.vendor_id) || {};
       const vendor = {
         name: v.name || ord.vendor_name || "Vendor",
