@@ -351,3 +351,12 @@ table.bulk-par input { width: 90px; min-height: 44px; font-size: 16px; text-alig
   display: flex; align-items: center; gap: 10px; border-top: 1px solid #eee; margin-top: 10px; }
 .bulk-savebar .btn { flex: 1; }
 .bulk-nomatch { text-align: center; padding: 18px 0 6px; }
+
+/* Count screen sort toggle (mirrors .mode-toggle look) */
+.sort-toggle { display: flex; gap: 0; padding: 10px 0 0; }
+.sort-toggle .mode-btn { flex: 1; min-height: 38px; font-size: 13px; font-weight: 700;
+  border: 1px solid var(--border); background: var(--card); color: var(--muted); cursor: pointer; }
+.sort-toggle .mode-btn:first-child { border-radius: 10px 0 0 10px; }
+.sort-toggle .mode-btn:last-child { border-radius: 0 10px 10px 0; border-left: none; }
+.sort-toggle .mode-btn:not(:first-child):not(:last-child) { border-left: none; }
+.sort-toggle .mode-btn.active { background: #331714; border-color: var(--accent); color: var(--text); }
