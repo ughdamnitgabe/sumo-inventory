@@ -106,6 +106,7 @@ en: {
   "count.areasHint": "Check every location where this item is kept. The first checked is the primary location.",
   "count.noParHint": "No par set — enter count",
   "count.search": "🔍 Search items…", "count.noItems": "No items here",
+  "count.sortVendor": "Vendor", "count.sortName": "A–Z", "count.sortLocation": "Location",
   "count.noItemsSearch": " matching your search", "count.toReview": "Review & approve →",
   "count.aiPh": "Type or dictate counts — e.g. '12 tuna, half case salmon'",
   "count.aiParse": "Parse with AI", "count.aiNeedText": "Type or dictate some counts first.",
@@ -300,6 +301,7 @@ es: {
   "count.areasHint": "Marca cada ubicación donde se guarda este artículo. La primera marcada es la ubicación principal.",
   "count.noParHint": "Sin par — ingresa el conteo",
   "count.search": "🔍 Buscar artículos…", "count.noItems": "No hay artículos aquí",
+  "count.sortVendor": "Proveedor", "count.sortName": "A–Z", "count.sortLocation": "Ubicación",
   "count.noItemsSearch": " que coincidan con tu búsqueda", "count.toReview": "Revisar y aprobar →",
   "count.aiPh": "Escribe o dicta conteos — p. ej. '12 atún, medio caso de salmón'",
   "count.aiParse": "Analizar con IA", "count.aiNeedText": "Escribe o dicta algunos conteos primero.",
@@ -1107,6 +1109,7 @@ async function renderCount(sessionId) {
   state.count = {
     sessionId, entries, search: "",
     mode: highlight ? "item" : (state.count && state.count.mode) || "location",
+    sortBy: (state.count && state.count.sortBy) || "vendor",
     areaId: firstArea,
     highlight: highlight || null,
   };
@@ -1120,14 +1123,24 @@ async function renderCount(sessionId) {
   $app().querySelector('[data-act="nav-logout"]').onclick = logout;
 }
 
-/** Items visible on the count screen for the current mode + search. */
+/** Items visible on the count screen for the current mode + search, sorted per the sort toggle. */
+function sortCountItems(list, sortBy) {
+  const arr = list.slice();
+  const byVendor = (a, b) => cmpVendor(vendorOf(a.vendor_id).name || null, vendorOf(b.vendor_id).name || null)
+    || a.name.localeCompare(b.name);
+  if (sortBy === "name") arr.sort((a, b) => a.name.localeCompare(b.name));
+  else if (sortBy === "location") arr.sort((a, b) =>
+    (primaryAreaOf(a)?.name || "").localeCompare(primaryAreaOf(b)?.name || "") || a.name.localeCompare(b.name));
+  else arr.sort(byVendor); // "vendor" (default)
+  return arr;
+}
+
 function visibleItems() {
   const c = state.count;
   const q = c.search.trim().toLowerCase();
   let items = state.items.filter(i => i.active !== false);
   if (c.mode === "location") items = items.filter(i => areaIdsOf(i).includes(String(c.areaId)));
-  else items = items.slice().sort((a, b) =>
-    (primaryAreaOf(a)?.name || "").localeCompare(primaryAreaOf(b)?.name || "") || a.name.localeCompare(b.name));
+  items = sortCountItems(items, c.sortBy || "vendor");
   if (q) items = items.filter(i => i.name.toLowerCase().includes(q));
   return items;
 }
@@ -1168,6 +1181,12 @@ function drawCount() {
 
     <input class="searchbar no-print" id="item-search" placeholder="${esc(T("count.search"))}" value="${esc(c.search)}" aria-label="${esc(T("count.search"))}">
 
+    <div class="sort-toggle no-print" role="tablist">
+      <button class="mode-btn ${c.sortBy === "vendor" ? "active" : ""}" data-sort="vendor">${esc(T("count.sortVendor"))}</button>
+      ${c.mode === "item" ? `<button class="mode-btn ${c.sortBy === "location" ? "active" : ""}" data-sort="location">${esc(T("count.sortLocation"))}</button>` : ""}
+      <button class="mode-btn ${c.sortBy === "name" ? "active" : ""}" data-sort="name">${esc(T("count.sortName"))}</button>
+    </div>
+
     <div id="cards">
       ${items.length === 0 ? `<p class="muted">${esc(T("count.noItems"))}${q ? esc(T("count.noItemsSearch")) : ""}.</p>` : items.map(i => c.mode === "location" ? itemCardHtml(i, c.areaId, editable) : itemGroupHtml(i, editable)).join("")}
     </div>
@@ -1180,7 +1199,16 @@ function drawCount() {
 
   // --- mode toggle ---
   $app().querySelectorAll("[data-mode]").forEach(b => b.onclick = () => {
-    if (c.mode !== b.dataset.mode) { c.mode = b.dataset.mode; c.highlight = null; drawCount(); }
+    if (c.mode !== b.dataset.mode) {
+      c.mode = b.dataset.mode; c.highlight = null;
+      if (c.mode === "location" && c.sortBy === "location") c.sortBy = "vendor";
+      drawCount();
+    }
+  });
+
+  // --- sort toggle ---
+  $app().querySelectorAll("[data-sort]").forEach(b => b.onclick = () => {
+    if (c.sortBy !== b.dataset.sort) { c.sortBy = b.dataset.sort; drawCount(); }
   });
 
   // --- area tabs ---
