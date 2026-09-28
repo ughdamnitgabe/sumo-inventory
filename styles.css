@@ -114,6 +114,7 @@ body {
   border: 1px solid var(--border); background: var(--card); color: var(--muted); cursor: pointer; }
 .mode-toggle .mode-btn:first-child { border-radius: 12px 0 0 12px; }
 .mode-toggle .mode-btn:last-child { border-radius: 0 12px 12px 0; border-left: none; }
+.mode-toggle .mode-btn:not(:first-child) { border-left: none; }
 .mode-toggle .mode-btn.active { background: #331714; border-color: var(--accent); color: var(--text); }
 /* Multi-location: per-area rows inside an item group card */
 .area-row { border-top: 1px solid var(--border); margin-top: 12px; padding-top: 12px; }
