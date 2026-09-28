@@ -37,6 +37,16 @@ function fmtCount(n) {
   return String(Number(v.toFixed(2)));
 }
 
+/** Naive English pluralization for purchase-unit labels ("case" -> "cases",
+ *  "large box" -> "large boxes"). Qty of 1 keeps the singular. */
+function pluralUnit(label, qty) {
+  if (!label) return "";
+  if (Number(qty) === 1) return label;
+  if (/(s|x|ch|sh)$/i.test(label)) return label + "es";
+  if (/[^aeiou]y$/i.test(label)) return label.replace(/y$/i, "ies");
+  return label + "s";
+}
+
 function fmtMoney(n) {
   return "$" + (Number(n) || 0).toFixed(2);
 }
@@ -137,6 +147,8 @@ en: {
   "review.approveNoLinesTitle": "Nothing to order",
   "review.approveNoLinesMsg": "All counted items are at or above par. Approving will generate no orders.",
   "review.approve": "Approve count",
+  "review.alreadyApproved": "This count was already approved.",
+  "review.viewOrders": "View orders",
   "review.onlyManagers": "Only managers or the super admin can approve.",
   "review.approveTitle": "Approve count?",
   "review.approveMsg": "This finalizes the count and generates orders. Continue?",
@@ -346,6 +358,8 @@ es: {
   "review.approveNoLinesTitle": "Nada que pedir",
   "review.approveNoLinesMsg": "Todos los artículos contados están en o sobre el par. Aprobar no generará pedidos.",
   "review.approve": "Aprobar conteo",
+  "review.alreadyApproved": "Este conteo ya fue aprobado.",
+  "review.viewOrders": "Ver pedidos",
   "review.onlyManagers": "Solo gerentes o el super admin pueden aprobar.",
   "review.approveTitle": "¿Aprobar conteo?",
   "review.approveMsg": "Esto finaliza el conteo y genera los pedidos. ¿Continuar?",
@@ -1824,6 +1838,14 @@ async function renderReview(sessionId) {
     rows = rows.map(r => ({ ...r, status: fromDbStatus(r.status) }));
   } catch (e) { /* keep empty */ }
 
+  // Session status decides whether "Approve count" may be offered at all.
+  // (Tapping approve on an already-approved session just 409s.)
+  let sessionStatus = "draft";
+  try {
+    const srows = await api("GET", `/sessions?id=eq.${encodeURIComponent(sessionId)}&select=status`) || [];
+    if (srows[0] && srows[0].status) sessionStatus = srows[0].status;
+  } catch (e) { /* keep draft */ }
+
   // Entries are per (item, location): aggregate to one total per item.
   // Ordering compares the TOTAL on hand against the single item par.
   const byItem = {};
@@ -1840,7 +1862,7 @@ async function renderReview(sessionId) {
     return b && areaIdsOf(i).some(id => !b.rows.some(r => String(r.area_id) === String(id)));
   });
 
-  state.review = { sessionId, flags: [], aiRan: false, blocking: null, _byItem: byItem };
+  state.review = { sessionId, flags: [], aiRan: false, blocking: null, blockDetail: null, sessionStatus, _byItem: byItem };
 
   const canApprove = has("approve");
   drawReview(notCounted, needsReview, partialItems, canApprove);
@@ -1965,7 +1987,9 @@ function drawReview(notCounted, needsReview, partialItems, canApprove) {
 
     <div style="display:flex;gap:10px;margin:18px 0" class="no-print">
       <button class="btn" data-act="back-home">${esc(T("common.back"))}</button>
-      ${canApprove ? `<button class="btn btn-primary" id="approve-btn" style="flex:1">${esc(T("review.approve"))}</button>` : `<p class="muted">${esc(T("review.onlyManagers"))}</p>`}
+      ${c.sessionStatus !== "draft"
+        ? `<div><p class="muted" style="margin:0 0 8px">${esc(T("review.alreadyApproved"))}</p><button class="btn btn-primary" data-act="go-orders">${esc(T("review.viewOrders"))}</button></div>`
+        : canApprove ? `<button class="btn btn-primary" id="approve-btn" style="flex:1">${esc(T("review.approve"))}</button>` : `<p class="muted">${esc(T("review.onlyManagers"))}</p>`}
     </div>
   </div>`;
 
@@ -1978,6 +2002,8 @@ function drawReview(notCounted, needsReview, partialItems, canApprove) {
   if (ap) ap.onclick = () => approveSession();
   $app().querySelector('[data-act="back-home"]').onclick = () => go("#/home");
   $app().querySelector('[data-act="nav-logout"]').onclick = logout;
+  const goOrders = $app().querySelector('[data-act="go-orders"]');
+  if (goOrders) goOrders.onclick = () => go("#/orders");
 
   if (c.flags.length) renderFlags();
   if (c.blocking) renderBlocking();
@@ -1995,6 +2021,7 @@ function renderBlocking() {
   const c = state.review;
   const box = document.getElementById("approve-err");
   box.innerHTML = `<div class="error"><strong>${esc(T("review.blockTitle"))}</strong>
+    ${c.blockDetail ? `<p style="margin:8px 0">${esc(c.blockDetail)}</p>` : ""}
     <ul>${c.blocking.map(b => `<li>${esc(b.item_name || b.name || b)}${b.area_name ? ` — ${esc(b.area_name)}` : ""}</li>`).join("")}</ul>
     ${esc(T("review.blockMsg"))}</div>`;
   box.scrollIntoView();
@@ -2029,6 +2056,8 @@ async function aiReview() {
 async function approveSession() {
   const c = state.review;
   const box = document.getElementById("approve-err");
+  const btn = document.getElementById("approve-btn");
+  if (btn && btn.disabled) return; // double-tap guard: one approve at a time
   box.innerHTML = "";
   const entryCount = c._entryCount || 0;
   const lineCount = c._orderLineCount || 0;
@@ -2043,13 +2072,21 @@ async function approveSession() {
     ok = await confirmDialog(T("review.approveTitle"), T("review.approveMsg"), T("review.approveYes"));
   }
   if (!ok) return;
+  if (btn) btn.disabled = true;
   try {
     await edge("sessions.approve", { session_id: c.sessionId });
     go("#/orders");
   } catch (e) {
-    if (e.status === 409 || e.code === "needs_review") {
+    if (btn) btn.disabled = false;
+    if (e.code === "not_draft") {
+      // Already approved (e.g. double-tap) — say so plainly, don't cry "needs review".
+      c.sessionStatus = "approved";
+      box.innerHTML = `<div class="notice">${esc(T("review.alreadyApproved"))} <a href="#/orders">${esc(T("review.viewOrders"))}</a></div>`;
+      box.scrollIntoView();
+    } else if (e.status === 409 || e.code === "needs_review") {
       c.blocking = (e.data && (e.data.blocking || e.data.items)) || e.detail || [];
       if (!Array.isArray(c.blocking)) c.blocking = [c.blocking];
+      c.blockDetail = (e.data && e.data.detail) || e.detail || null;
       renderBlocking();
     } else {
       box.innerHTML = `<div class="error">${esc(e.detail || T("review.approveFail"))}</div>`;
@@ -2096,8 +2133,9 @@ function orderCardData(vendor, lines, dateLabel) {
     // Purchase-unit display: an item with a case label (e.g. "large box") is
     // shown to the vendor in whole purchase units, not internal count units.
     const ppc = Number(l.pieces_per_case);
+    const ppcQty = Number(l.qty) / ppc;
     const qty = (ppc > 1 && l.case_label)
-      ? fmtCount(Number(l.qty) / ppc) + " " + l.case_label
+      ? fmtCount(ppcQty) + " " + pluralUnit(l.case_label, ppcQty)
       : fmtCount(l.qty) + (l.unit ? " " + l.unit : "");
     return { name: l.name, qty };
   });
@@ -2497,7 +2535,8 @@ function openOrderEditor(orderId) {
   const purchaseText = (l) => {
     const ppc = Number(l.pieces_per_case);
     if (ppc > 1 && l.case_label && l.order_qty > 0) {
-      return `= ${fmtCount(l.order_qty / ppc)} ${l.case_label}`;
+      const pq = l.order_qty / ppc;
+      return `= ${fmtCount(pq)} ${pluralUnit(l.case_label, pq)}`;
     }
     return "";
   };
