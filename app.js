@@ -202,6 +202,19 @@ en: {
   "admin.addAreaFail": "Could not add area.", "admin.renameFail": "Could not rename area.",
   "admin.delAreaTitle": "Delete area?", "admin.delAreaMsg": "Delete \"{name}\"? Items must be moved out first.",
   "admin.delAreaFail": "Could not delete area — it may still have items.",
+  "admin.capacity": "Capacity",
+  "admin.capHint": "A storage cap limits the combined on-hand + ordered quantity of a group of items sharing space in one area — e.g. ice cream cases: max 40 boxes mixed across flavors in the walk-in cooler.",
+  "admin.capName": "Cap name", "admin.capMax": "Max quantity", "admin.capUnit": "Unit",
+  "admin.capItems": "Items sharing this cap",
+  "admin.capAdd": "Add storage cap", "admin.capNeedName": "Give the cap a name.",
+  "admin.capNeedMax": "Max quantity must be greater than 0.",
+  "admin.capAddFail": "Could not add storage cap.", "admin.capSaveFail": "Could not save storage cap.",
+  "admin.capDelTitle": "Delete storage cap?", "admin.capDelMsg": "Delete \"{name}\"? Items keep their normal ordering.",
+  "admin.capDelFail": "Could not delete storage cap.",
+  "admin.capNoAreas": "Add a storage area first.",
+  "review.capNote": "Storage cap: {pools}",
+  "review.capAppliedTitle": "Limited by storage space",
+  "review.capZeroWarn": "{name}: no room left under its storage cap, so nothing was ordered.",
   "admin.addVendor": "Add vendor",
   "admin.vendorNeedName": "Vendor name can't be empty.",
   "admin.addVendorFail": "Could not add vendor.",
@@ -398,6 +411,19 @@ es: {
   "admin.addAreaFail": "No se pudo agregar el área.", "admin.renameFail": "No se pudo renombrar el área.",
   "admin.delAreaTitle": "¿Eliminar área?", "admin.delAreaMsg": "¿Eliminar \"{name}\"? Primero mueve los artículos fuera.",
   "admin.delAreaFail": "No se pudo eliminar el área — puede tener artículos.",
+  "admin.capacity": "Capacidad",
+  "admin.capHint": "Un límite de almacenamiento limita la cantidad combinada en existencia + pedida de un grupo de productos que comparten espacio en un área — p. ej. helados: máx. 40 cajas mezcladas entre sabores en el walk-in.",
+  "admin.capName": "Nombre del límite", "admin.capMax": "Cantidad máxima", "admin.capUnit": "Unidad",
+  "admin.capItems": "Productos que comparten este límite",
+  "admin.capAdd": "Agregar límite", "admin.capNeedName": "Ponle un nombre al límite.",
+  "admin.capNeedMax": "La cantidad máxima debe ser mayor que 0.",
+  "admin.capAddFail": "No se pudo agregar el límite.", "admin.capSaveFail": "No se pudo guardar el límite.",
+  "admin.capDelTitle": "¿Eliminar límite?", "admin.capDelMsg": "¿Eliminar \"{name}\"? Los productos mantienen su pedido normal.",
+  "admin.capDelFail": "No se pudo eliminar el límite.",
+  "admin.capNoAreas": "Agrega un área de almacenamiento primero.",
+  "review.capNote": "Límite de almacenamiento: {pools}",
+  "review.capAppliedTitle": "Limitado por espacio de almacenamiento",
+  "review.capZeroWarn": "{name}: sin espacio bajo su límite de almacenamiento, no se pidió nada.",
   "admin.addVendor": "Agregar proveedor",
   "admin.vendorNeedName": "El nombre del proveedor no puede estar vacío.",
   "admin.addVendorFail": "No se pudo agregar el proveedor.",
@@ -498,6 +524,7 @@ const state = {
   session: null,       // { token, profile: { id, name, role, must_change_pin? } }
   areas: [],           // [{id, name}]
   vendors: [],         // [{id, name, email, notes}]
+  pools: [],           // capacity pools [{id, area_id, name, max_qty, unit, item_ids}]
   items: [],           // [{id, name, area_id, vendor_id, par, unit, mode, count_style, pieces_per_case, price, notes, active, daily_usage, daily_usage_manual, max_on_hand}]
   sessions: [],        // draft sessions
   orders: [],          // orders list
@@ -1777,15 +1804,17 @@ function maybeCountTour(items) {
 async function renderReview(sessionId) {
   $app().innerHTML = navHtml() + `<div class="view"><div class="loading">${esc(T("review.loading"))}</div></div>`;
   try {
-    const [it, v, a, sg] = await Promise.all([
+    const [it, v, a, p, sg] = await Promise.all([
       edge("items.list").catch(() => ({ items: state.items })),
       edge("vendors.list").catch(() => ({ vendors: state.vendors })),
       edge("areas.list").catch(() => ({ areas: state.areas })),
+      edge("pools.list").catch(() => ({ pools: state.pools })),
       edge("settings.get").catch(() => ({ settings: state.settings })),
     ]);
     state.items = it.items || it || [];
     state.vendors = v.vendors || v || [];
     state.areas = a.areas || a || [];
+    state.pools = p.pools || p || [];
     if (sg.settings) state.settings = Object.assign({ store_name: "Sumo Sushi", show_prices: false }, sg.settings);
   } catch (e) { if (e.status === 401 || e.code === "unauthorized") { dropSession(); go("#/login"); return; } }
 
@@ -1851,22 +1880,37 @@ function drawReview(notCounted, needsReview, partialItems, canApprove) {
   const entryCount = Object.keys(byItem).length;
   const previewGroups = {};
   const capWarnings = [];
+  const capNotes = [];   // lines reduced by a storage-capacity pool: {item, order, note}
+  const capZero = [];    // lines zeroed out by a storage-capacity pool
   let orderLineCount = 0;
   const orderWeekday = new Date().getDay(); // JS 0=Sun..6=Sat, matches vendor coverage keys
+  const cands = [];
   for (const i of state.items.filter(x => x.active !== false && x.mode === "auto" && Number(x.par) > 0)) {
     const b = byItem[i.id];
     if (!b) continue; // not counted -> no order line, listed under "Not counted" instead
     const have = b.total;
     // Smart order: usage x days-worth, par as floor, max on hand as cap, whole cases only.
     const dw = coverageDays(i.vendor_id, orderWeekday);
-    const order = suggestOrderQty(i, have, dw);
-    if (order <= 0) {
+    const raw = rawOrderUnits(i, have, dw);
+    if (raw <= 0) {
       if (capConflict(i, have, dw)) capWarnings.push(i);
       continue;
     }
+    cands.push({ item: i, raw, dw });
+  }
+  // Storage-capacity pools cap the combined on-hand + ordered quantity of item
+  // groups sharing space in one area (mirrors sessions.approve).
+  const cappedQty = applyPoolCaps(cands, byItem);
+  for (const c of cands) {
+    const a = cappedQty.get(String(c.item.id));
+    if (a.qty <= 0) {
+      if (a.capped) capZero.push(c.item);
+      continue;
+    }
     orderLineCount++;
-    const vid = i.vendor_id || "__none__";
-    (previewGroups[vid] = previewGroups[vid] || []).push({ item: i, order, line: order * (Number(i.price) || 0) });
+    if (a.capped) capNotes.push({ item: c.item, order: a.qty, note: poolNote(a.pools) });
+    const vid = c.item.vendor_id || "__none__";
+    (previewGroups[vid] = previewGroups[vid] || []).push({ item: c.item, order: a.qty, line: a.qty * (Number(c.item.price) || 0) });
   }
   c._orderLineCount = orderLineCount;
   c._entryCount = entryCount;
@@ -1913,6 +1957,10 @@ function drawReview(notCounted, needsReview, partialItems, canApprove) {
     <h2>${esc(T("review.preview"))}</h2>
     ${capWarnings.length ? `<div class="warn-box">${capWarnings.map(i =>
       `<div>⚠️ <strong>${esc(i.name)}</strong> — ${esc(T("review.capWarn"))}</div>`).join("")}</div>` : ""}
+    ${capNotes.length ? `<div class="warn-box"><div><strong>${esc(T("review.capAppliedTitle"))}</strong></div>${capNotes.map(n =>
+      `<div>⚠️ <strong>${esc(n.item.name)}</strong> — ${fmtCount(n.order)} ${esc(n.item.unit)} — ${esc(T("review.capNote").replace("{pools}", n.note))}</div>`).join("")}</div>` : ""}
+    ${capZero.length ? `<div class="warn-box">${capZero.map(i =>
+      `<div>⚠️ ${esc(T("review.capZeroWarn").replace("{name}", i.name))}</div>`).join("")}</div>` : ""}
     ${previewHtml}
 
     <div style="display:flex;gap:10px;margin:18px 0" class="no-print">
@@ -2556,21 +2604,23 @@ async function renderAdmin(tab, arg2) {
   }
   $app().innerHTML = navHtml() + `<div class="view"><div class="loading">Loading admin…</div></div>`;
   try {
-    const [it, a, v, u, sg] = await Promise.all([
+    const [it, a, v, u, pl, sg] = await Promise.all([
       edge("items.list").catch(() => ({ items: state.items })),
       edge("areas.list").catch(() => ({ areas: state.areas })),
       edge("vendors.list").catch(() => ({ vendors: state.vendors })),
       edge("users.list").catch(() => ({ users: [] })),
+      edge("pools.list").catch(() => ({ pools: state.pools })),
       edge("settings.get").catch(() => ({ settings: state.settings })),
     ]);
     state.items = it.items || it || [];
     state.areas = a.areas || a || [];
     state.vendors = v.vendors || v || [];
     state.users = u.users || u || [];
+    state.pools = pl.pools || pl || [];
     if (sg.settings) state.settings = Object.assign({ store_name: "Sumo Sushi", show_prices: false }, sg.settings);
   } catch (e) { if (e.status === 401 || e.code === "unauthorized") { dropSession(); go("#/login"); return; } }
 
-  const allTabs = [["items", T("admin.items")], ["bulk", T("admin.bulkTitle")], ["areas", T("admin.areas")], ["vendors", T("admin.vendors")], ["users", T("admin.users")], ["io", "Import/Export"]];
+  const allTabs = [["items", T("admin.items")], ["bulk", T("admin.bulkTitle")], ["areas", T("admin.areas")], ["vendors", T("admin.vendors")], ["capacity", T("admin.capacity")], ["users", T("admin.users")], ["io", "Import/Export"]];
   // Managers get Items/Areas/Vendors/Users; Import/Export is superadmin-only.
   const tabs = allTabs.filter(([id]) => id === "io" ? isSuper : canManage);
   if (!tabs.some(([id]) => id === tab)) tab = tabs[0][0];
@@ -2579,6 +2629,7 @@ async function renderAdmin(tab, arg2) {
   else if (tab === "bulk") body = adminBulkHtml(arg2 === "areas" ? "areas" : "items");
   else if (tab === "areas") body = adminAreasHtml();
   else if (tab === "vendors") body = adminVendorsHtml();
+  else if (tab === "capacity") body = adminCapacityHtml();
   else if (tab === "users") body = adminUsersHtml();
   else body = adminIOHtml();
 
@@ -2692,6 +2743,51 @@ function adminAreasHtml() {
     </div>`).join("")}`;
 }
 
+/* ---------------- Capacity tab: storage caps per area ----------------
+ * A storage cap limits the combined on-hand + ordered quantity of a group of
+ * items sharing space in one area (e.g. ice cream: max 40 boxes mixed across
+ * flavors in the walk-in cooler). Order suggestions are capped so a pool
+ * never exceeds its max. */
+function adminCapacityHtml() {
+  const poolsByArea = {};
+  for (const p of state.pools || []) (poolsByArea[String(p.area_id)] = poolsByArea[String(p.area_id)] || []).push(p);
+  if (!state.areas.length) return `<p class="muted">${esc(T("admin.capNoAreas"))}</p>`;
+  return `<p class="muted" style="font-size:13px">${esc(T("admin.capHint"))}</p>` + state.areas.map(a => {
+    const pools = poolsByArea[String(a.id)] || [];
+    return `<div class="admin-card" data-cap-area="${esc(a.id)}">
+      <h3 style="margin-top:0">${esc(a.name)}</h3>
+      ${pools.map(poolCardHtml).join("")}
+      <div class="field"><label>${esc(T("admin.capName"))}</label><input data-np-name placeholder="e.g. Ice cream"></div>
+      <div class="form-row">
+        <div class="field"><label>${esc(T("admin.capMax"))}</label><input data-np-max type="number" inputmode="decimal" min="0" step="1" placeholder="40"></div>
+        <div class="field"><label>${esc(T("admin.capUnit"))}</label><input data-np-unit placeholder="boxes"></div>
+      </div>
+      <div data-np-err></div>
+      <button class="btn btn-small" data-np-add>${esc(T("admin.capAdd"))}</button>
+    </div>`;
+  }).join("");
+}
+function poolCardHtml(p) {
+  const sel = new Set((p.item_ids || []).map(String));
+  const areaItems = state.items.filter(i => i.active !== false && areaIdsOf(i).includes(String(p.area_id)));
+  return `<div class="cap-pool" data-pool="${esc(p.id)}" style="border:1px solid var(--border);border-radius:10px;padding:10px;margin:10px 0">
+    <div class="form-row">
+      <div class="field"><label>${esc(T("admin.capName"))}</label><input data-pf="name" value="${esc(p.name)}"></div>
+      <div class="field"><label>${esc(T("admin.capMax"))}</label><input data-pf="max_qty" type="number" inputmode="decimal" min="0" step="1" value="${esc(p.max_qty)}"></div>
+    </div>
+    <div class="field"><label>${esc(T("admin.capUnit"))}</label><input data-pf="unit" value="${esc(p.unit || "")}" placeholder="boxes"></div>
+    <div class="field"><label>${esc(T("admin.capItems"))}</label>
+      <div class="check-list">${areaItems.map(i =>
+        `<label class="check"><input type="checkbox" data-pitem value="${esc(i.id)}" ${sel.has(String(i.id)) ? "checked" : ""}> ${esc(i.name)}</label>`).join("") || `<span class="muted">—</span>`}</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-small btn-primary" data-p-save style="flex:1">${esc(T("common.save"))}</button>
+      <button class="btn btn-small btn-danger" data-p-del>${esc(T("common.delete"))}</button>
+    </div>
+    <div class="muted" data-p-msg style="font-size:13px;margin-top:6px"></div>
+  </div>`;
+}
+
 /* ---------------- Vendors tab ---------------- */
 /* ---------------- Vendors tab: day chips + time dropdown ---------------- */
 /** Canonical short day keys, Monday-first. Stored as "Tue, Thu". */
@@ -2750,11 +2846,91 @@ function coverageDays(vendorId, weekday) {
  * rounded UP to whole cases via pieces_per_case.
  */
 function suggestOrderQty(item, onHand, daysWorth) {
+  return roundCases(rawOrderUnits(item, onHand, daysWorth), Number(item.pieces_per_case), true);
+}
+/** Raw (pre-case-rounding) order units. Shared by the plain and pool-capped paths. */
+function rawOrderUnits(item, onHand, daysWorth) {
   if (capConflict(item, onHand, daysWorth)) return 0;
-  const units = Math.max(0, orderTarget(item, daysWorth) - onHand);
-  const ppc = Number(item.pieces_per_case);
-  if (ppc > 0) return Math.max(0, Math.ceil(units / ppc - 1e-9)) * ppc;
-  return Math.max(0, Math.ceil(units - 1e-9));
+  return Math.max(0, orderTarget(item, daysWorth) - onHand);
+}
+/** Round units to whole cases. Rounds UP for normal orders ("can't order half
+ *  a case"), DOWN when a storage-capacity pool bound the quantity (rounding up
+ *  would overflow the space). */
+function roundCases(units, ppc, roundUp) {
+  if (ppc > 0) {
+    const cases = roundUp ? Math.ceil(units / ppc - 1e-9) : Math.floor(units / ppc + 1e-9);
+    return Math.max(0, cases) * ppc;
+  }
+  return Math.max(0, roundUp ? Math.ceil(units - 1e-9) : Math.floor(units + 1e-9));
+}
+/* ---- Storage capacity pools (mirrors the server) ----
+ * A pool caps the combined on-hand + ordered quantity of items sharing space
+ * in one area. buildPoolState() computes each pool's remaining room from the
+ * session's per-area counts; allocatePoolSpace() consumes an item's raw units
+ * from its pools, roomiest first. Allocation runs in name-sorted order so the
+ * review preview matches what sessions.approve will create. */
+function buildPoolState(byItem) {
+  const pools = state.pools || [];
+  if (!pools.length) return null;
+  const itemsOfPool = new Map();
+  for (const p of pools) itemsOfPool.set(String(p.id), new Set((p.item_ids || []).map(String)));
+  const poolsOfItem = new Map();
+  const remaining = new Map();
+  for (const p of pools) {
+    const pid = String(p.id);
+    let load = 0;
+    for (const iid of itemsOfPool.get(pid)) {
+      const b = byItem[iid];
+      if (b) for (const r of b.rows) {
+        if (String(r.area_id) === String(p.area_id)) load += Number(r.count) || 0;
+      }
+    }
+    remaining.set(pid, Math.max(0, Number(p.max_qty) - load));
+    const named = { ...p, area_name: areaName(String(p.area_id)) };
+    for (const iid of itemsOfPool.get(pid)) {
+      if (!poolsOfItem.has(iid)) poolsOfItem.set(iid, []);
+      poolsOfItem.get(iid).push(named);
+    }
+  }
+  return { poolsOfItem, remaining };
+}
+function allocatePoolSpace(st, itemId, rawUnits, ppc) {
+  const pools = [...(st.poolsOfItem.get(String(itemId)) || [])]
+    .sort((a, b) => (st.remaining.get(String(b.id)) || 0) - (st.remaining.get(String(a.id)) || 0));
+  const upQty = roundCases(rawUnits, ppc, true);
+  if (!pools.length) return { qty: upQty, capped: false, pools: [] };
+  let space = 0;
+  for (const p of pools) space += st.remaining.get(String(p.id)) || 0;
+  // Whole cases only: take the normal rounded-up qty when it fits, otherwise
+  // the largest whole-case qty that fits (rounding up would overflow the space).
+  let qty, capped;
+  if (upQty <= space) { qty = upQty; capped = false; }
+  else { qty = roundCases(space, ppc, false); capped = true; }
+  let need = qty;
+  for (const p of pools) {
+    if (need <= 0) break;
+    const pid = String(p.id);
+    const take = Math.min(need, st.remaining.get(pid) || 0);
+    if (take > 0) { st.remaining.set(pid, (st.remaining.get(pid) || 0) - take); need -= take; }
+  }
+  return { qty, capped, pools };
+}
+function poolNote(pools) {
+  return pools.map(p => `${p.area_name ? p.area_name + " · " : ""}${p.name} (max ${Number(p.max_qty)}${p.unit ? " " + p.unit : ""})`).join(", ");
+}
+/** Apply pool caps to candidate lines (each {item, raw, dw}); returns a map
+ *  itemId -> {qty, capped, pools}. Canonical name-sorted allocation order. */
+function applyPoolCaps(cands, byItem) {
+  const st = buildPoolState(byItem);
+  const allocOrder = [...cands].sort((a, b) => String(a.item.name).localeCompare(String(b.item.name)));
+  const out = new Map();
+  for (const c of allocOrder) {
+    const ppc = Number(c.item.pieces_per_case);
+    const r = st ? allocatePoolSpace(st, c.item.id, c.raw, ppc)
+                 : { qty: roundCases(c.raw, ppc, true), capped: false, pools: [] };
+    out.set(String(c.item.id), r);
+  }
+  return out;
 }
 function maxOnNum(item) {
   const m = Number(item.max_on_hand);
@@ -3435,6 +3611,56 @@ function wireAdmin(tab, arg2) {
           flashSaved(card);
         }
         catch (e) { flashError(e.detail || T("admin.vendorSaveFail")); }
+      };
+    });
+  }
+
+  if (tab === "capacity") {
+    body.querySelectorAll("[data-cap-area]").forEach(card => {
+      const areaId = card.dataset.capArea;
+      const addBtn = card.querySelector("[data-np-add]");
+      addBtn.onclick = async () => {
+        const name = card.querySelector("[data-np-name]").value.trim();
+        const max = Number(card.querySelector("[data-np-max]").value);
+        const unit = card.querySelector("[data-np-unit]").value.trim();
+        const err = card.querySelector("[data-np-err]");
+        err.innerHTML = "";
+        if (!name) { err.innerHTML = `<div class="error">${esc(T("admin.capNeedName"))}</div>`; return; }
+        if (!(max > 0)) { err.innerHTML = `<div class="error">${esc(T("admin.capNeedMax"))}</div>`; return; }
+        try {
+          const r = await edge("pools.create", { area_id: areaId, name, max_qty: max, unit: unit || null });
+          const pool = { ...(r.pool || {}), item_ids: [] };
+          state.pools = [...(state.pools || []), pool];
+          rerender();
+        } catch (e) { err.innerHTML = `<div class="error">${esc(e.detail || T("admin.capAddFail"))}</div>`; }
+      };
+    });
+    body.querySelectorAll("[data-pool]").forEach(card => {
+      const id = card.dataset.pool;
+      const msg = m => { card.querySelector("[data-p-msg]").textContent = m || ""; };
+      card.querySelector("[data-p-save]").onclick = async () => {
+        const v = f => card.querySelector(`[data-pf="${f}"]`).value.trim();
+        const name = v("name"), max = Number(v("max_qty")), unit = v("unit");
+        msg("");
+        if (!name) { msg(T("admin.capNeedName")); return; }
+        if (!(max > 0)) { msg(T("admin.capNeedMax")); return; }
+        const itemIds = [...card.querySelectorAll("[data-pitem]:checked")].map(x => x.value);
+        try {
+          const r = await edge("pools.update", { id, name, max_qty: max, unit: unit || null });
+          const rs = await edge("pools.set_items", { id, item_ids: itemIds });
+          state.pools = (state.pools || []).map(p => String(p.id) === String(id)
+            ? { ...(r.pool || p), item_ids: rs.item_ids || itemIds } : p);
+          flashSaved(card);
+        } catch (e) { msg(e.detail || T("admin.capSaveFail")); }
+      };
+      card.querySelector("[data-p-del]").onclick = async () => {
+        const p = (state.pools || []).find(x => String(x.id) === String(id));
+        if (!await confirmDialog(T("admin.capDelTitle"), T("admin.capDelMsg").replace("{name}", p ? p.name : id), T("common.delete"))) return;
+        try {
+          await edge("pools.delete", { id });
+          state.pools = (state.pools || []).filter(x => String(x.id) !== String(id));
+          rerender();
+        } catch (e) { flashError(e.detail || T("admin.capDelFail")); }
       };
     });
   }
