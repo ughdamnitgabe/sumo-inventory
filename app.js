@@ -166,7 +166,7 @@ en: {
   "orders.draft": "draft", "orders.sent": "sent", "orders.received": "received",
   "orders.markSent": "Mark sent", "orders.markReceived": "Mark received",
   "orders.share": "📤 Share image", "orders.copy": "📋 Copy text",
-  "orders.copied": "✓ Copied", "orders.imgFail": "Could not create the order image.",
+  "orders.copied": "✓ Copied", "orders.imgFail": "Could not create the order image.", "orders.sendFail": "Could not share the order text.",
   "orders.statusFail": "Could not update order status.",
   "orders.edit": "Edit", "orders.save": "Save", "orders.cancel": "Cancel",
   "orders.addItem": "Add item", "orders.qty": "Qty",
@@ -386,7 +386,7 @@ es: {
   "orders.draft": "borrador", "orders.sent": "enviado", "orders.received": "recibido",
   "orders.markSent": "Marcar enviado", "orders.markReceived": "Marcar recibido",
   "orders.share": "📤 Compartir imagen", "orders.copy": "📋 Copiar texto",
-  "orders.copied": "✓ Copiado", "orders.imgFail": "No se pudo crear la imagen del pedido.",
+  "orders.copied": "✓ Copiado", "orders.imgFail": "No se pudo crear la imagen del pedido.", "orders.sendFail": "No se pudo compartir el texto del pedido.",
   "orders.statusFail": "No se pudo actualizar el estado del pedido.",
   "orders.edit": "Editar", "orders.save": "Guardar", "orders.cancel": "Cancelar",
   "orders.addItem": "Añadir artículo", "orders.qty": "Cant.",
@@ -2484,33 +2484,25 @@ async function shareOrderCard(cardId, btn) {
   }
 }
 
-/** Send the order: share sheet with the card image + order text together.
+/** Send the order: share sheet with the order text only (no image).
  *  Gabe picks the vendor's WhatsApp/text thread and taps send himself —
- *  the app never sends anything on its own. */
+ *  the app never sends anything on its own. The separate "Share image"
+ *  button sends the card picture when he wants it. */
 async function sendOrderCard(cardId, btn) {
   const d = state.cardData[cardId];
   if (!d) return;
   const label = btn ? btn.textContent : "";
   if (btn) btn.textContent = "…";
   try {
-    const blob = await renderOrderCardImage(d);
-    if (!blob) throw new Error("render failed");
-    const safe = d.vendorName.replace(/[^\w]+/g, "-").slice(0, 40) || "order";
-    const file = new File([blob], `order-${safe}.png`, { type: "image/png" });
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({ files: [file], text: d.text, title: `Order — ${d.vendorName}` });
+    if (navigator.share) {
+      await navigator.share({ text: d.text, title: `Order — ${d.vendorName}` });
     } else {
-      // Fallback (no share sheet): download the image and copy the text.
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = file.name;
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
-      try { await navigator.clipboard.writeText(d.text); } catch (e2) { /* noop */ }
+      // Fallback (no share sheet): copy the text so it can be pasted.
+      await copyCardText(cardId, null);
+      showSavedToast(T("orders.copied"));
     }
   } catch (e) {
-    if (!e || e.name !== "AbortError") flashError(T("orders.imgFail"));
+    if (!e || e.name !== "AbortError") flashError(T("orders.sendFail"));
   } finally {
     if (btn) btn.textContent = label;
   }
