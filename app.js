@@ -328,6 +328,7 @@ en: {
   "sched.warnPending": "Pending time-off request overlaps this shift",
   "sched.warnUnavailable": "Unavailable on this day",
   "sched.warnLimited": "Shift is outside limited-availability hours",
+  "sched.warnBlocked": "Shift overlaps unavailable hours",
   "sched.warningsTitle": "Warnings",
   "sched.shiftDeleted": "Shift deleted.", "sched.shiftsSaved": "Shifts saved.",
   "sched.saveShiftFail": "Could not save shift.",
@@ -606,6 +607,7 @@ es: {
   "sched.warnPending": "Tiene una solicitud de días libres pendiente que coincide con este turno",
   "sched.warnUnavailable": "No disponible ese día",
   "sched.warnLimited": "El turno queda fuera de su horario limitado",
+  "sched.warnBlocked": "El turno coincide con horas no disponibles",
   "sched.warningsTitle": "Advertencias",
   "sched.shiftDeleted": "Turno eliminado.", "sched.shiftsSaved": "Turnos guardados.",
   "sched.saveShiftFail": "No se pudo guardar el turno.",
@@ -4618,6 +4620,7 @@ const SCHED_WARN_KEYS = {
   timeoff_pending: "sched.warnPending",
   unavailable: "sched.warnUnavailable",
   limited_hours: "sched.warnLimited",
+  blocked_hours: "sched.warnBlocked",
 };
 const schedWarnMsg = (code) => SCHED_WARN_KEYS[code] ? T(SCHED_WARN_KEYS[code]) : code;
 
