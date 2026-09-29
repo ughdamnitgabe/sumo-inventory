@@ -321,6 +321,7 @@ en: {
   "sched.approve": "Approve", "sched.deny": "Deny",
   "sched.pending": "Pending", "sched.approved": "Approved", "sched.denied": "Denied",
   "sched.available": "Available", "sched.unavailable": "Unavailable", "sched.limited": "Limited hours",
+  "sched.blocked": "Unavailable hours",
   "sched.noPublished": "No schedule published for this week.",
   "sched.noShifts": "No shifts this week.", "sched.noShiftsDay": "No shifts",
   "sched.warnApproved": "Approved time off overlaps this shift",
@@ -598,6 +599,7 @@ es: {
   "sched.approve": "Aprobar", "sched.deny": "Denegar",
   "sched.pending": "Pendiente", "sched.approved": "Aprobada", "sched.denied": "Denegada",
   "sched.available": "Disponible", "sched.unavailable": "No disponible", "sched.limited": "Horario limitado",
+  "sched.blocked": "Horas no disponibles",
   "sched.noPublished": "No hay horario publicado para esta semana.",
   "sched.noShifts": "No tienes turnos esta semana.", "sched.noShiftsDay": "Sin turnos",
   "sched.warnApproved": "Tiene días libres aprobados que coinciden con este turno",
@@ -4938,7 +4940,7 @@ async function schedTimeoffHtml() {
 
 /* ---------- Availability ---------- */
 function schedAvailStatusLabel(st) {
-  return st === "unavailable" ? T("sched.unavailable") : st === "limited" ? T("sched.limited") : T("sched.available");
+  return st === "unavailable" ? T("sched.unavailable") : st === "limited" ? T("sched.limited") : st === "blocked" ? T("sched.blocked") : T("sched.available");
 }
 async function schedAvailHtml() {
   const me = String(state.session.profile.id);
@@ -4946,13 +4948,14 @@ async function schedAvailHtml() {
   const rows = r.rows || [];
   const byDay = {};
   rows.filter(x => String(x.profile_id) === me).forEach(x => byDay[Number(x.weekday)] = x);
-  const stOpts = (sel) => [["available", T("sched.available")], ["unavailable", T("sched.unavailable")], ["limited", T("sched.limited")]]
+  const stOpts = (sel) => [["available", T("sched.available")], ["unavailable", T("sched.unavailable")], ["limited", T("sched.limited")], ["blocked", T("sched.blocked")]]
     .map(([v, l]) => `<option value="${v}" ${sel === v ? "selected" : ""}>${esc(l)}</option>`).join("");
+  const hasTimes = (st) => st === "limited" || st === "blocked";
   let html = `<div class="admin-card"><h3 style="margin-top:0">${esc(T("sched.avail"))}</h3>
     ${[0, 1, 2, 3, 4, 5, 6].map(i => {
       const wd = (i + 1) % 7; // display Mon..Sun -> stored weekday 0=Sunday
       const cur = byDay[wd] || { status: "available" };
-      const lim = cur.status === "limited";
+      const lim = hasTimes(cur.status);
       return `<div class="form-row" data-avail-day="${wd}" style="align-items:end">
         <div class="field" style="flex:1.5"><label>${esc(schedWeekdayName(i))}</label>
           <select data-av-status>${stOpts(cur.status)}</select></div>
@@ -4967,9 +4970,16 @@ async function schedAvailHtml() {
     <button class="btn btn-primary" id="av-save" style="width:100%">${esc(T("common.save"))}</button>
   </div>`;
   if (canSchedManage() && Array.isArray(r.profiles) && r.profiles.length) {
-    const dot = (st) => st === "available" ? "🟢" : st === "unavailable" ? "🔴" : "🟡";
-    const stOf = {};
-    rows.forEach(x => { stOf[String(x.profile_id) + "|" + Number(x.weekday)] = x.status; });
+    const dot = (st) => st === "available" ? "🟢" : st === "unavailable" ? "🔴" : st === "blocked" ? "🟠" : "🟡";
+    const rowOf = {};
+    rows.forEach(x => { rowOf[String(x.profile_id) + "|" + Number(x.weekday)] = x; });
+    const cellTitle = (r) => {
+      if (!r) return esc(T("sched.available"));
+      let t = schedAvailStatusLabel(r.status);
+      if ((r.status === "limited" || r.status === "blocked") && r.start_time && r.end_time)
+        t += ` ${String(r.start_time).slice(0, 5)}–${String(r.end_time).slice(0, 5)}`;
+      return esc(t);
+    };
     html += `<div class="admin-card"><h3 style="margin-top:0">${esc(T("sched.teamAvail"))}</h3>
       <div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%;font-size:14px">
       <tr><th></th>${[0, 1, 2, 3, 4, 5, 6].map(i => `<th style="padding:6px;border-bottom:1px solid var(--border)">${esc(schedWeekdayName(i).slice(0, 3))}</th>`).join("")}</tr>
@@ -4977,8 +4987,9 @@ async function schedAvailHtml() {
         <td style="padding:6px;border-bottom:1px solid var(--border)"><strong>${esc(p.name)}</strong>
           ${p.department ? `<div class="muted" style="font-size:12px">${esc(p.department)}${p.position ? " · " + esc(p.position) : ""}</div>` : ""}</td>
         ${[0, 1, 2, 3, 4, 5, 6].map(i => {
-          const st = stOf[String(p.id) + "|" + ((i + 1) % 7)] || "available"; // display Mon..Sun -> stored 0=Sunday
-          return `<td style="text-align:center;padding:6px;border-bottom:1px solid var(--border)" title="${esc(schedAvailStatusLabel(st))}">${dot(st)}</td>`;
+          const r = rowOf[String(p.id) + "|" + ((i + 1) % 7)]; // display Mon..Sun -> stored 0=Sunday
+          const st = r ? r.status : "available";
+          return `<td style="text-align:center;padding:6px;border-bottom:1px solid var(--border)" title="${cellTitle(r)}">${dot(st)}</td>`;
         }).join("")}</tr>`).join("")}
       </table></div></div>`;
   }
@@ -5067,13 +5078,13 @@ function wireSchedBody(sub, weekStart, body) {
     body.querySelectorAll("[data-avail-day]").forEach(row => {
       const sel = row.querySelector("[data-av-status]");
       const times = row.querySelectorAll("[data-av-times]");
-      sel.onchange = () => times.forEach(t => t.style.display = sel.value === "limited" ? "" : "none");
+      sel.onchange = () => times.forEach(t => t.style.display = hasTimes(sel.value) ? "" : "none");
     });
     const avSave = document.getElementById("av-save");
     if (avSave) avSave.onclick = async () => {
       const rows = [...body.querySelectorAll("[data-avail-day]")].map(row => {
         const rec = { weekday: Number(row.dataset.availDay), status: row.querySelector("[data-av-status]").value };
-        if (rec.status === "limited") {
+        if (rec.status === "limited" || rec.status === "blocked") {
           rec.start_time = row.querySelector("[data-av-start]").value || null;
           rec.end_time = row.querySelector("[data-av-end]").value || null;
         }
