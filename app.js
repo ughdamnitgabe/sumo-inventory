@@ -310,6 +310,10 @@ en: {
   "sched.tab": "Schedule", "sched.my": "My Week", "sched.team": "Team",
   "sched.builder": "Schedule Builder", "sched.timeoff": "Time Off", "sched.avail": "Availability",
   "sched.prevWeek": "Previous week", "sched.nextWeek": "Next week", "sched.thisWeek": "This week",
+  "sched.addToCalendar": "Add to calendar", "sched.calRange": "Which weeks?",
+  "sched.calThisWeek": "This week", "sched.cal2Weeks": "Next 2 weeks", "sched.cal4Weeks": "Next 4 weeks",
+  "sched.calDone": "Calendar file downloaded — open it to add your shifts.",
+  "sched.calEmpty": "No shifts in that range.",
   "sched.draft": "DRAFT — not visible to staff", "sched.published": "Published",
   "sched.noPeople": "No one has schedule access yet. Turn it on per person in the Users screen, then build the schedule here.",
   "sched.publish": "Publish", "sched.unpublish": "Unpublish",
@@ -349,9 +353,41 @@ en: {
   "sched.noRequests": "No time-off requests.",
   "sched.requestSent": "Request sent.", "sched.requestFail": "Could not send request.",
   "sched.needDates": "Choose a start and end date.", "sched.decideFail": "Could not update request.",
+  "sched.cancelRequest": "Cancel request", "sched.cancelRequestConfirm": "Delete this time-off request?",
+  "sched.cancelRequestFail": "Could not delete the request.",
   "sched.date": "Date", "sched.person": "Person", "sched.needTimes": "Enter a start and end time.",
   "sched.availFail": "Could not save availability.",
   "sched.builderHint": "Tap + to add a shift. Tap a shift to edit it.",
+  "sched.swapBoard": "Swap Board",
+  "sched.release": "Release shift",
+  "sched.releaseTitle": "Release this shift?",
+  "sched.releaseMsg": "It goes on the swap board. A teammate can pick it up, but a manager has to approve it first. You're still responsible for it until it's approved.",
+  "sched.released": "Shift is on the swap board.",
+  "sched.releaseFail": "Could not release shift.",
+  "sched.openShifts": "Open shifts",
+  "sched.noOpenSwaps": "No shifts on the swap board right now.",
+  "sched.pickup": "Pick up",
+  "sched.pickupTitle": "Pick up this shift?",
+  "sched.pickupMsg": "A manager has to approve the pickup before it's yours.",
+  "sched.claimSent": "Pickup requested — waiting on manager approval.",
+  "sched.claimFail": "Could not request pickup.",
+  "sched.mySwaps": "My swaps",
+  "sched.noMySwaps": "You have no swaps.",
+  "sched.cancelSwap": "Take off board",
+  "sched.cancelTitle": "Take this shift off the board?",
+  "sched.cancelMsg": "Teammates will no longer be able to pick it up.",
+  "sched.cancelled": "Shift taken off the board.",
+  "sched.relist": "Put back on board",
+  "sched.yourListing": "Your listing — waiting for a teammate to pick it up.",
+  "sched.statusOpen": "On the board", "sched.statusClaimed": "Waiting on manager",
+  "sched.statusApproved": "Approved", "sched.statusDenied": "Denied", "sched.statusCancelled": "Off the board",
+  "sched.swapInbox": "Pickups waiting on your decision",
+  "sched.noSwapInbox": "No pickup requests waiting.",
+  "sched.swapDecideFail": "Could not update the request.",
+  "sched.claimer": "Picked up by", "sched.releasedBy": "Released by",
+  "sched.swapWarnNote": "Conflicts with their availability or time off:",
+  "sched.notif": "Notifications", "sched.notifEmpty": "No notifications yet.",
+  "sched.markAllRead": "Mark all read",
 },
 es: {
   "common.cancel": "Cancelar", "common.confirm": "Confirmar", "common.back": "← Atrás",
@@ -591,6 +627,10 @@ es: {
   "sched.tab": "Horario", "sched.my": "Mi semana", "sched.team": "Equipo",
   "sched.builder": "Crear horario", "sched.timeoff": "Días libres", "sched.avail": "Disponibilidad",
   "sched.prevWeek": "Semana anterior", "sched.nextWeek": "Semana siguiente", "sched.thisWeek": "Esta semana",
+  "sched.addToCalendar": "Añadir al calendario", "sched.calRange": "¿Qué semanas?",
+  "sched.calThisWeek": "Esta semana", "sched.cal2Weeks": "Próximas 2 semanas", "sched.cal4Weeks": "Próximas 4 semanas",
+  "sched.calDone": "Archivo descargado — ábrelo para añadir tus turnos.",
+  "sched.calEmpty": "No hay turnos en ese rango.",
   "sched.draft": "BORRADOR — no visible para el personal", "sched.published": "Publicado",
   "sched.noPeople": "Nadie tiene acceso al horario aún. Actívalo por persona en la pantalla de Usuarios y luego arma el horario aquí.",
   "sched.publish": "Publicar", "sched.unpublish": "Despublicar",
@@ -630,9 +670,41 @@ es: {
   "sched.noRequests": "Sin solicitudes de días libres.",
   "sched.requestSent": "Solicitud enviada.", "sched.requestFail": "No se pudo enviar la solicitud.",
   "sched.needDates": "Elige fecha de inicio y fin.", "sched.decideFail": "No se pudo actualizar la solicitud.",
+  "sched.cancelRequest": "Cancelar solicitud", "sched.cancelRequestConfirm": "¿Eliminar esta solicitud de días libres?",
+  "sched.cancelRequestFail": "No se pudo eliminar la solicitud.",
   "sched.date": "Fecha", "sched.person": "Persona", "sched.needTimes": "Ingresa hora de inicio y fin.",
   "sched.availFail": "No se pudo guardar la disponibilidad.",
   "sched.builderHint": "Toca + para agregar un turno. Toca un turno para editarlo.",
+  "sched.swapBoard": "Tablón de cambios",
+  "sched.release": "Liberar turno",
+  "sched.releaseTitle": "¿Liberar este turno?",
+  "sched.releaseMsg": "Aparecerá en el tablón de cambios. Un compañero puede tomarlo, pero un gerente debe aprobarlo. Sigues siendo responsable hasta que se apruebe.",
+  "sched.released": "El turno está en el tablón.",
+  "sched.releaseFail": "No se pudo liberar el turno.",
+  "sched.openShifts": "Turnos disponibles",
+  "sched.noOpenSwaps": "No hay turnos en el tablón ahora.",
+  "sched.pickup": "Tomar turno",
+  "sched.pickupTitle": "¿Tomar este turno?",
+  "sched.pickupMsg": "Un gerente debe aprobar el cambio antes de que sea tuyo.",
+  "sched.claimSent": "Solicitud enviada — esperando aprobación del gerente.",
+  "sched.claimFail": "No se pudo solicitar el turno.",
+  "sched.mySwaps": "Mis cambios",
+  "sched.noMySwaps": "No tienes cambios.",
+  "sched.cancelSwap": "Quitar del tablón",
+  "sched.cancelTitle": "¿Quitar este turno del tablón?",
+  "sched.cancelMsg": "Los compañeros ya no podrán tomarlo.",
+  "sched.cancelled": "Turno quitado del tablón.",
+  "sched.relist": "Volver a publicar",
+  "sched.yourListing": "Tu anuncio — esperando que un compañero lo tome.",
+  "sched.statusOpen": "En el tablón", "sched.statusClaimed": "Esperando al gerente",
+  "sched.statusApproved": "Aprobado", "sched.statusDenied": "Denegado", "sched.statusCancelled": "Quitado",
+  "sched.swapInbox": "Cambios esperando tu decisión",
+  "sched.noSwapInbox": "No hay solicitudes esperando.",
+  "sched.swapDecideFail": "No se pudo actualizar la solicitud.",
+  "sched.claimer": "Lo toma", "sched.releasedBy": "Liberado por",
+  "sched.swapWarnNote": "Conflictos con su disponibilidad o días libres:",
+  "sched.notif": "Notificaciones", "sched.notifEmpty": "Aún no hay notificaciones.",
+  "sched.markAllRead": "Marcar todo como leído",
 }};
 
 /** Current UI language: "en" | "es". Persisted per device.
@@ -919,6 +991,11 @@ async function boot() {
     const t = e.target.closest('[data-act="nav-lang"]');
     if (t) { setLang(lang() === "es" ? "en" : "es"); router(); }
   });
+  // Notification bell in the top bar — opens the notifications inbox.
+  document.addEventListener("click", (e) => {
+    const t = e.target.closest('[data-act="nav-notif"]');
+    if (t) go("#/notif");
+  });
   // Order-card actions (share image / copy text / send order), delegated for the same reason.
   document.addEventListener("click", (e) => {
     const snd = e.target.closest("[data-send-card]");
@@ -982,9 +1059,12 @@ function router() {
   else if (view === "review") renderReview(arg);
   else if (view === "orders") renderOrders();
   else if (view === "sched") renderSchedule(arg || "my", arg2);
+  else if (view === "notif") renderNotif();
   else if (view === "admin" && arg === "par") renderBulkPar();
   else if (view === "admin") renderAdmin(arg || "items", arg2);
   else renderLogin();
+
+  if (state.session) refreshNotifBadge();
 }
 
 function go(h) { if (location.hash === h) router(); else location.hash = h; }
@@ -998,10 +1078,71 @@ function navHtml(title) {
     <div class="user">${esc(p.name || "")} · ${esc(roleLabel(p.role))}</div>
     <div style="display:flex;gap:4px;align-items:center">
       ${isSuper ? "" : `<button class="btn btn-small btn-ghost" data-act="nav-lang" aria-label="Language" title="English / Español">🌐 ${lang() === "es" ? "EN" : "ES"}</button>`}
+      ${state.session && canSchedView() ? `<button class="btn btn-small btn-ghost" data-act="nav-notif" aria-label="${esc(T("sched.notif"))}" style="position:relative">🔔<span id="notif-badge" style="display:none;position:absolute;top:-6px;right:-6px;background:#c0392b;color:#fff;font-size:10px;font-weight:700;min-width:16px;height:16px;line-height:16px;border-radius:9px;text-align:center;padding:0 4px"></span></button>` : ""}
       <button class="btn btn-small btn-ghost" data-act="nav-home" aria-label="${esc(T("nav.homeAria"))}">⌂</button>
       <button class="btn btn-small btn-ghost" data-act="nav-logout" aria-label="${esc(T("nav.logoutAria"))}">⎋</button>
     </div>
   </div>`;
+}
+
+/** Fire-and-forget unread badge on the 🔔 bell. Safe to call on every route. */
+function refreshNotifBadge() {
+  if (!state.session || !canSchedView()) return;
+  edge("notif.list").then(r => {
+    const el = document.getElementById("notif-badge");
+    if (!el) return;
+    const n = r.unread || 0;
+    el.style.display = n ? "" : "none";
+    el.textContent = n > 9 ? "9+" : String(n);
+  }).catch(() => { /* backend predates notifications: no badge */ });
+}
+
+/** Notifications inbox: swap approved/denied messages and other alerts. */
+async function renderNotif() {
+  const notAuth = () => {
+    $app().innerHTML = navHtml() + `<div class="view"><div class="error">${esc(T("common.notAuth"))}</div>
+      <button class="btn" onclick="location.hash='#/home'">${esc(T("common.back"))}</button></div>`;
+  };
+  if (!canSchedView()) { notAuth(); return; }
+  $app().innerHTML = navHtml() + `
+  <div class="view">
+    <h1>${esc(T("sched.notif"))}</h1>
+    <div style="margin-bottom:12px" class="no-print"><button class="btn btn-small" id="notif-read-all">${esc(T("sched.markAllRead"))}</button></div>
+    <div id="notif-body"><div class="loading">${esc(T("count.loading"))}</div></div>
+    <div style="margin-top:16px" class="no-print"><button class="btn" data-act="back-home">${esc(T("common.back"))}</button></div>
+  </div>`;
+  $app().querySelector('[data-act="back-home"]').onclick = () => go("#/home");
+  const navLang = $app().querySelector('[data-act="nav-lang"]');
+  if (navLang) navLang.onclick = () => { setLang(lang() === "es" ? "en" : "es"); router(); };
+  const body = $app().querySelector("#notif-body");
+  const fmtWhen = (iso) => {
+    const d = new Date(String(iso || ""));
+    return isNaN(d) ? "" : d.toLocaleString(locale(), { month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit" });
+  };
+  try {
+    const r = await edge("notif.list");
+    const ns = r.notifications || [];
+    body.innerHTML = ns.length ? ns.map(n => `
+      <div class="admin-card" data-notif="${esc(n.id)}" style="margin-bottom:10px;cursor:pointer;${n.read_at ? "" : "border-left:3px solid var(--accent);"}">
+        <div class="card-head"><div><strong>${esc(n.title)}</strong>
+          ${n.body ? `<div class="muted" style="font-size:13px;margin-top:2px">${esc(n.body)}</div>` : ""}
+          <div class="muted" style="font-size:12px;margin-top:4px">${esc(fmtWhen(n.created_at))}</div></div>
+          ${n.read_at ? "" : `<span class="pill pill-zero">●</span>`}
+        </div>
+      </div>`).join("") : `<p class="muted">${esc(T("sched.notifEmpty"))}</p>`;
+    refreshNotifBadge();
+    document.getElementById("notif-read-all").onclick = async () => {
+      try { await edge("notif.read", {}); } catch (e) { /* best effort */ }
+      router();
+    };
+    body.querySelectorAll("[data-notif]").forEach(c => c.onclick = async () => {
+      try { await edge("notif.read", { id: c.dataset.notif }); } catch (e) { /* best effort */ }
+      go("#/sched/swaps");
+    });
+  } catch (e) {
+    if (e.status === 401 || e.code === "unauthorized") { dropSession(); go("#/login"); return; }
+    body.innerHTML = `<div class="error">${esc(e.detail || e.code || "Error")}</div>`;
+  }
 }
 
 /* ======================= MODAL HELPERS ========================= */
@@ -4591,8 +4732,10 @@ function showSavedToast(msg) {
 /* ======================= SCHEDULE (Phase 1) ======================== */
 /* HotSchedules-style scheduling for a single store. Phase 1: My Week and
  * Team views, a manager schedule builder (draft -> publish), time-off
- * requests with an approval inbox, and weekly availability. Weeks are
- * Mon–Sun, handled as local-date YYYY-MM-DD strings. */
+ * requests with an approval inbox, weekly availability, and a shift swap
+ * board (release -> teammate pickup -> manager approve/deny, with in-app
+ * notifications carrying the decision). Weeks are Mon–Sun, handled as
+ * local-date YYYY-MM-DD strings. */
 
 /* ---------- date helpers ---------- */
 /** Format a Date as local YYYY-MM-DD. */
@@ -4673,7 +4816,7 @@ async function renderSchedule(sub, arg2) {
   };
   if (!canSchedView()) { notAuth(); return; }
 
-  const tabs = [["my", T("sched.my")], ["team", T("sched.team")]];
+  const tabs = [["my", T("sched.my")], ["team", T("sched.team")], ["swaps", T("sched.swapBoard")]];
   if (canSchedManage()) tabs.push(["builder", T("sched.builder")]);
   tabs.push(["timeoff", T("sched.timeoff")], ["avail", T("sched.avail")]);
   if (!tabs.some(([id]) => id === sub)) sub = "my";
@@ -4686,7 +4829,10 @@ async function renderSchedule(sub, arg2) {
     <div class="admin-tabs no-print" style="margin-bottom:12px">
       ${tabs.map(([id, label]) => `<button class="admin-tab ${sub === id ? "active" : ""}" data-stab="${id}">${esc(label)}</button>`).join("")}
     </div>
-    ${sub !== "my" ? schedWeekNav(sub, weekStart) : `<p class="muted">${esc(schedWeekRangeLabel(weekStart))}</p>`}
+    ${sub !== "my" ? schedWeekNav(sub, weekStart) : `<div class="no-print" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+      <p class="muted" style="margin:0">${esc(schedWeekRangeLabel(weekStart))}</p>
+      <button class="btn btn-small" data-cal-export style="margin-left:auto">📅 ${esc(T("sched.addToCalendar"))}</button>
+    </div>`}
     <div id="sched-body"><div class="loading">${esc(T("count.loading"))}</div></div>
     <div style="margin-top:16px" class="no-print"><button class="btn" data-act="back-home">${esc(T("common.back"))}</button></div>
   </div>`;
@@ -4697,11 +4843,14 @@ async function renderSchedule(sub, arg2) {
   $app().querySelector('[data-act="nav-logout"]').onclick = logout;
   const navLang = $app().querySelector('[data-act="nav-lang"]');
   if (navLang) navLang.onclick = () => { setLang(lang() === "es" ? "en" : "es"); router(); };
+  const calBtn = $app().querySelector("[data-cal-export]");
+  if (calBtn) calBtn.onclick = schedCalRangeDialog;
 
   const body = $app().querySelector("#sched-body");
   try {
     if (sub === "my") body.innerHTML = await schedMyHtml(weekStart);
     else if (sub === "team") body.innerHTML = await schedTeamHtml(weekStart);
+    else if (sub === "swaps") body.innerHTML = await schedSwapsHtml();
     else if (sub === "builder") body.innerHTML = await schedBuilderHtml(weekStart);
     else if (sub === "timeoff") body.innerHTML = await schedTimeoffHtml();
     else body.innerHTML = await schedAvailHtml();
@@ -4725,9 +4874,88 @@ function schedWeekNav(sub, weekStart) {
   </div>`;
 }
 
-/* ---------- My Week ---------- */
-async function schedMyHtml(weekStart) {
+/* ---------- Calendar export (.ics) ---------- */
+// One .ics file the phone opens in its own calendar app (iOS Calendar,
+// Google Calendar on Android). Times are America/Los_Angeles via VTIMEZONE,
+// so DST is handled no matter where the file is opened.
+function schedIcsEscape(s) {
+  return String(s ?? "").replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
+}
+function schedIcsStamp(dateIso, timeHm) {
+  const t = String(timeHm || "00:00").slice(0, 5).split(":");
+  return `${dateIso.replace(/-/g, "")}T${t[0]}${t[1]}00`;
+}
+function schedBuildIcs(shifts) {
+  const stamp = new Date().toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+  const evts = shifts.map(s => {
+    const d = String(s.date || "").slice(0, 10);
+    const st = String(s.start_time || "00:00").slice(0, 5), et = String(s.end_time || "00:00").slice(0, 5);
+    const endDate = et <= st ? schedAddIso(d, 1) : d; // overnight guard
+    const pos = s.position || "";
+    const bits = [s.station ? `Station: ${s.station}` : "", s.notes || ""].filter(Boolean);
+    return ["BEGIN:VEVENT",
+      `UID:shift-${s.id}@sumo-inventory`,
+      `DTSTAMP:${stamp}`,
+      `DTSTART;TZID=America/Los_Angeles:${schedIcsStamp(d, st)}`,
+      `DTEND;TZID=America/Los_Angeles:${schedIcsStamp(endDate, et)}`,
+      `SUMMARY:${schedIcsEscape(pos ? `Sumo Sushi — ${pos}` : "Sumo Sushi")}`,
+      bits.length ? `DESCRIPTION:${schedIcsEscape(bits.join("\n"))}` : null,
+      "LOCATION:Sumo Sushi Warm Springs",
+      "END:VEVENT"].filter(Boolean).join("\r\n");
+  }).join("\r\n");
+  return ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Sumo Inventory//Schedule//EN",
+    "BEGIN:VTIMEZONE", "TZID:America/Los_Angeles",
+    "BEGIN:DAYLIGHT", "TZOFFSETFROM:-0800", "TZOFFSETTO:-0700", "TZNAME:PDT",
+    "DTSTART:19700308T020000", "RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU", "END:DAYLIGHT",
+    "BEGIN:STANDARD", "TZOFFSETFROM:-0700", "TZOFFSETTO:-0800", "TZNAME:PST",
+    "DTSTART:19701101T020000", "RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU", "END:STANDARD",
+    "END:VTIMEZONE", evts, "END:VCALENDAR"].filter(Boolean).join("\r\n") + "\r\n";
+}
+function schedDownloadIcs(filename, text) {
+  const blob = new Blob([text], { type: "text/calendar;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+}
+/** Fetch my shifts for the next `weeks` published weeks and download an .ics. */
+async function schedExportCalendar(weeks) {
   const me = String(state.session.profile.id);
+  const monday = schedIso(schedMonday(new Date()));
+  const shifts = [];
+  for (let w = 0; w < weeks; w++) {
+    try {
+      const r = await edge("schedule.get_week", { week_start: schedAddIso(monday, w * 7) });
+      if (!schedIsPublished(r.schedule)) continue;
+      for (const s of (r.shifts || [])) if (String(s.profile_id) === me) shifts.push(s);
+    } catch (e) { /* skip weeks that fail to load */ }
+  }
+  if (!shifts.length) { flashError(T("sched.calEmpty")); return; }
+  shifts.sort((a, b) => String(a.date).localeCompare(String(b.date))
+    || String(a.start_time).localeCompare(String(b.start_time)));
+  schedDownloadIcs(`sumo-schedule-${monday}.ics`, schedBuildIcs(shifts));
+  showSavedToast(T("sched.calDone"));
+}
+function schedCalRangeDialog() {
+  showModal(`<h3>📅 ${esc(T("sched.addToCalendar"))}</h3>
+    <p class="muted">${esc(T("sched.calRange"))}</p>
+    <div class="modal-actions" style="flex-direction:column;align-items:stretch">
+      <button class="btn" data-cal-weeks="1">${esc(T("sched.calThisWeek"))}</button>
+      <button class="btn" data-cal-weeks="2">${esc(T("sched.cal2Weeks"))}</button>
+      <button class="btn" data-cal-weeks="4">${esc(T("sched.cal4Weeks"))}</button>
+    </div>`);
+  document.querySelectorAll("[data-cal-weeks]").forEach(b => b.onclick = async () => {
+    closeModal();
+    b.disabled = true;
+    try { await schedExportCalendar(Number(b.dataset.calWeeks)); }
+    catch (e) { flashError(e.detail || e.message || "Error"); }
+  });
+}
+
+/* ---------- My Week ---------- */
+async function schedMyHtml(weekStart) {  const me = String(state.session.profile.id);
   const r = await edge("schedule.get_week", { week_start: weekStart });
   if (!schedIsPublished(r.schedule)) return `<p class="muted">${esc(T("sched.noPublished"))}</p>`;
   const days = [];
@@ -4735,16 +4963,32 @@ async function schedMyHtml(weekStart) {
   const mine = (r.shifts || []).filter(s => String(s.profile_id) === me);
   if (!mine.length) return `<p class="muted">${esc(T("sched.noShifts"))}</p>`;
   const byStart = (a, b) => String(a.start_time || "").localeCompare(String(b.start_time || ""));
+  // Active swap listings keyed by shift id, so My Week shows the release
+  // button or the current listing status per shift.
+  const swapByShift = {};
+  try {
+    const sw = await edge("swaps.list");
+    for (const x of (sw.swaps || [])) {
+      if (x && x.shift && !["approved", "denied", "cancelled"].includes(x.status)) swapByShift[String(x.shift.id)] = x;
+    }
+  } catch (e) { /* board unavailable: no release buttons this render */ }
+  const todayLocal = schedIso(new Date());
   return days.map(d => {
     const ds = mine.filter(s => String(s.date || "").slice(0, 10) === d).sort(byStart);
     return `<div class="admin-card" style="margin-bottom:10px">
       <div class="card-head"><strong>${esc(schedDayName(d))}</strong><span class="muted">${esc(schedDayLabel(d))}</span></div>
-      ${ds.length ? ds.map(s => `
+      ${ds.length ? ds.map(s => {
+        const swp = swapByShift[String(s.id)];
+        const relBtn = !swp && String(s.date || "").slice(0, 10) >= todayLocal
+          ? `<button class="btn btn-small btn-ghost" data-release-shift="${esc(s.id)}" style="margin-top:6px">🔄 ${esc(T("sched.release"))}</button>`
+          : swp ? `<div style="margin-top:6px">${schedSwapStatusPill(swp.status)}</div>` : "";
+        return `
         <div style="padding:8px 0;border-top:1px solid var(--border)">
           <strong>${esc(schedFmtTime(s.start_time))} – ${esc(schedFmtTime(s.end_time))}</strong>
           ${s.position ? `<div class="muted" style="font-size:13px">${esc(s.position)}${s.station ? " · " + esc(s.station) : ""}</div>` : ""}
           ${s.notes ? `<div class="muted" style="font-size:13px">${esc(s.notes)}</div>` : ""}
-        </div>`).join("") : `<p class="muted" style="margin:8px 0 0">${esc(T("sched.noShiftsDay"))}</p>`}
+          ${relBtn}
+        </div>`; }).join("") : `<p class="muted" style="margin:8px 0 0">${esc(T("sched.noShiftsDay"))}</p>`}
     </div>`;
   }).join("");
 }
@@ -4965,6 +5209,7 @@ async function schedTimeoffHtml() {
         <button class="btn btn-small btn-primary" data-decide="approved" style="flex:1">${esc(T("sched.approve"))}</button>
         <button class="btn btn-small btn-danger" data-decide="denied" style="flex:1">${esc(T("sched.deny"))}</button>
       </div>` : ""}
+      ${!inbox && x.status === "pending" ? `<button class="btn btn-small btn-ghost" data-req-cancel style="margin-top:8px">🗑️ ${esc(T("sched.cancelRequest"))}</button>` : ""}
     </div>`;
   return `
     ${canSchedManage() ? `<h2>${esc(T("sched.inbox"))}</h2>
@@ -4981,6 +5226,79 @@ async function schedTimeoffHtml() {
     </div>
     <h2>${esc(T("sched.myRequests"))}</h2>
     ${mine.length ? mine.map(x => reqCard(x, false)).join("") : `<p class="muted">${esc(T("sched.noRequests"))}</p>}`}`;
+}
+
+/* ---------- Swap Board ---------- */
+/** Release -> teammate picks up -> manager approves/denies -> both sides get
+ *  an in-app notification with the decision. */
+function schedSwapStatusPill(s) {
+  const key = "sched.status" + String(s || "").charAt(0).toUpperCase() + String(s || "").slice(1);
+  const cls = s === "open" ? "pill-counted" : s === "claimed" ? "pill-zero"
+    : s === "approved" ? "pill-counted" : "pill-review";
+  return `<span class="pill ${cls}">${esc(T(key))}</span>`;
+}
+function schedSwapShiftLine(sh) {
+  return `<div><strong>${esc(schedDayName(sh.date))}</strong> <span class="muted">${esc(schedDayLabel(sh.date))}</span></div>
+    <div style="font-size:16px;margin-top:2px"><strong>${esc(schedFmtTime(sh.start_time))} – ${esc(schedFmtTime(sh.end_time))}</strong></div>
+    ${sh.position ? `<div class="muted" style="font-size:13px">${esc(sh.position)}${sh.station ? " · " + esc(sh.station) : ""}</div>` : ""}`;
+}
+async function schedSwapsHtml() {
+  const me = String(state.session.profile.id);
+  const isMgr = canSchedManage();
+  const r = await edge("swaps.list");
+  const swaps = (r.swaps || []).filter(s => s && s.shift);
+  const open = swaps.filter(s => s.status === "open");
+  const inbox = isMgr ? swaps.filter(s => s.status === "claimed") : [];
+  const mine = swaps.filter(s => String(s.released_by) === me || String(s.claimed_by) === me);
+
+  const openCard = (s) => {
+    const isMine = String(s.released_by) === me;
+    return `<div class="admin-card" data-swap="${esc(s.id)}" style="margin-bottom:10px">
+      <div class="card-head"><div>${schedSwapShiftLine(s.shift)}
+        <div class="muted" style="font-size:13px;margin-top:2px">${esc(T("sched.releasedBy"))}: ${esc(s.released_name || "")}</div></div>
+        ${schedSwapStatusPill(s.status)}</div>
+      ${isMine
+        ? `<div class="muted" style="font-size:13px;margin-top:8px">${esc(T("sched.yourListing"))}</div>
+           <button class="btn btn-small btn-ghost" data-swap-cancel style="margin-top:8px">${esc(T("sched.cancelSwap"))}</button>`
+        : `<button class="btn btn-small btn-primary" data-claim style="width:100%;margin-top:8px">${esc(T("sched.pickup"))}</button>`}
+    </div>`;
+  };
+  const inboxCard = (s) => {
+    const warns = (s.warnings || []).map(w => w.message || w.code).filter(Boolean);
+    return `<div class="admin-card" data-swap="${esc(s.id)}" style="margin-bottom:10px">
+      <div class="card-head"><div>${schedSwapShiftLine(s.shift)}
+        <div class="muted" style="font-size:13px;margin-top:2px">${esc(T("sched.releasedBy"))}: ${esc(s.released_name || "")} → ${esc(T("sched.claimer"))}: ${esc(s.claimed_name || "")}</div></div>
+        ${schedSwapStatusPill(s.status)}</div>
+      ${warns.length ? `<div class="banner" style="margin-top:8px;font-size:13px">⚠️ ${esc(T("sched.swapWarnNote"))}<ul style="margin:4px 0 0;padding-left:18px">${warns.map(w => `<li>${esc(w)}</li>`).join("")}</ul></div>` : ""}
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="btn btn-small btn-primary" data-swap-decide="approved" style="flex:1">${esc(T("sched.approve"))}</button>
+        <button class="btn btn-small btn-danger" data-swap-decide="denied" style="flex:1">${esc(T("sched.deny"))}</button>
+      </div>
+    </div>`;
+  };
+  const myCard = (s) => {
+    const isReleaser = String(s.released_by) === me;
+    const canCancel = isReleaser && (s.status === "open" || (isMgr && s.status === "claimed"));
+    const canRelist = isReleaser && (s.status === "denied" || s.status === "cancelled");
+    const other = isReleaser
+      ? (s.claimed_name ? `${esc(T("sched.claimer"))}: ${esc(s.claimed_name)}` : "")
+      : `${esc(T("sched.releasedBy"))}: ${esc(s.released_name || "")}`;
+    return `<div class="admin-card" data-swap="${esc(s.id)}" style="margin-bottom:10px">
+      <div class="card-head"><div>${schedSwapShiftLine(s.shift)}
+        ${other ? `<div class="muted" style="font-size:13px;margin-top:2px">${other}</div>` : ""}</div>
+        ${schedSwapStatusPill(s.status)}</div>
+      ${canCancel ? `<button class="btn btn-small btn-ghost" data-swap-cancel style="margin-top:8px">${esc(T("sched.cancelSwap"))}</button>` : ""}
+      ${canRelist ? `<button class="btn btn-small" data-swap-relist="${esc(s.shift.id)}" style="margin-top:8px">${esc(T("sched.relist"))}</button>` : ""}
+    </div>`;
+  };
+
+  return `
+    ${isMgr ? `<h2>${esc(T("sched.swapInbox"))}</h2>
+      ${inbox.length ? inbox.map(inboxCard).join("") : `<p class="muted">${esc(T("sched.noSwapInbox"))}</p>`}` : ""}
+    <h2>${esc(T("sched.openShifts"))}</h2>
+    ${open.length ? open.map(openCard).join("") : `<p class="muted">${esc(T("sched.noOpenSwaps"))}</p>`}
+    <h2>${esc(T("sched.mySwaps"))}</h2>
+    ${mine.length ? mine.map(myCard).join("") : `<p class="muted">${esc(T("sched.noMySwaps"))}</p>`}`;
 }
 
 /* ---------- Availability ---------- */
@@ -5091,6 +5409,60 @@ function wireSchedBody(sub, weekStart, body) {
       document.getElementById("warn-ok").onclick = closeModal;
     });
   }
+  if (sub === "my") {
+    body.querySelectorAll("[data-release-shift]").forEach(b => b.onclick = async () => {
+      if (!await confirmDialog(T("sched.releaseTitle"), T("sched.releaseMsg"), T("sched.release"))) return;
+      b.disabled = true; // double-submit guard
+      try {
+        await edge("swaps.release", { shift_id: b.dataset.releaseShift });
+        showSavedToast(T("sched.released"));
+        router();
+      } catch (e) { flashError(e.detail || T("sched.releaseFail")); b.disabled = false; }
+    });
+  }
+  if (sub === "swaps") {
+    body.querySelectorAll("[data-claim]").forEach(b => b.onclick = async () => {
+      const card = b.closest("[data-swap]");
+      if (!card) return;
+      if (!await confirmDialog(T("sched.pickupTitle"), T("sched.pickupMsg"), T("sched.pickup"))) return;
+      b.disabled = true; // double-submit guard
+      try {
+        const r = await edge("swaps.claim", { swap_id: card.dataset.swap });
+        const warns = (r.warnings || []).map(w => w.message || w.code).filter(Boolean);
+        showSavedToast(T("sched.claimSent") + (warns.length ? " ⚠️ " + warns.join("; ") : ""));
+        router();
+      } catch (e) { flashError(e.detail || T("sched.claimFail")); b.disabled = false; }
+    });
+    body.querySelectorAll("[data-swap-decide]").forEach(b => b.onclick = async () => {
+      const card = b.closest("[data-swap]");
+      if (!card) return;
+      b.disabled = true; // double-submit guard
+      try {
+        await edge("swaps.decide", { swap_id: card.dataset.swap, decision: b.dataset.swapDecide });
+        showSavedToast(T("common.saved"));
+        router();
+      } catch (e) { flashError(e.detail || T("sched.swapDecideFail")); b.disabled = false; }
+    });
+    body.querySelectorAll("[data-swap-cancel]").forEach(b => b.onclick = async () => {
+      const card = b.closest("[data-swap]");
+      if (!card) return;
+      if (!await confirmDialog(T("sched.cancelTitle"), T("sched.cancelMsg"), T("sched.cancelSwap"))) return;
+      b.disabled = true; // double-submit guard
+      try {
+        await edge("swaps.cancel", { swap_id: card.dataset.swap });
+        showSavedToast(T("sched.cancelled"));
+        router();
+      } catch (e) { flashError(e.detail || T("sched.swapDecideFail")); b.disabled = false; }
+    });
+    body.querySelectorAll("[data-swap-relist]").forEach(b => b.onclick = async () => {
+      b.disabled = true; // double-submit guard
+      try {
+        await edge("swaps.release", { shift_id: b.dataset.swapRelist });
+        showSavedToast(T("sched.released"));
+        router();
+      } catch (e) { flashError(e.detail || T("sched.releaseFail")); b.disabled = false; }
+    });
+  }
   if (sub === "timeoff") {
     const sendBtn = document.getElementById("to-send");
     if (sendBtn) sendBtn.onclick = async () => {
@@ -5117,6 +5489,17 @@ function wireSchedBody(sub, weekStart, body) {
         showSavedToast(T("common.saved"));
         router();
       } catch (e) { flashError(e.detail || T("sched.decideFail")); b.disabled = false; }
+    });
+    body.querySelectorAll("[data-req-cancel]").forEach(b => b.onclick = async () => {
+      const card = b.closest("[data-req]");
+      if (!card) return;
+      if (!confirm(T("sched.cancelRequestConfirm"))) return;
+      b.disabled = true; // double-submit guard
+      try {
+        await edge("timeoff.cancel", { id: card.dataset.req });
+        showSavedToast(T("common.saved"));
+        router();
+      } catch (e) { flashError(e.detail || e.message || T("sched.cancelRequestFail")); b.disabled = false; }
     });
   }
   if (sub === "avail") {
