@@ -371,6 +371,16 @@ en: {
   "sched.noOpenSwaps": "No shifts on the swap board right now.",
   "sched.pickup": "Pick up",
   "sched.posOnlyShift": "Only {pos} staff can pick up this shift.",
+  "sched.positions": "Positions",
+  "sched.positionsTitle": "Manage positions",
+  "sched.positionsHint": "Position choices for shifts and staff. Picking from a list keeps pickup rules exact. Removing a position doesn't change existing shifts or staff.",
+  "sched.positionName": "New position name",
+  "sched.addPosition": "Add",
+  "sched.positionsSaved": "Positions saved.",
+  "sched.positionsFail": "Could not save positions.",
+  "sched.posDup": "That position is already listed.",
+  "sched.posEmpty": "Enter a position name first.",
+  "sched.noPositions": "No positions yet — add one below.",
   "sched.pickupTitle": "Pick up this shift?",
   "sched.pickupMsg": "A manager has to approve the pickup before it's yours.",
   "sched.claimSent": "Pickup requested — waiting on manager approval.",
@@ -692,6 +702,16 @@ es: {
   "sched.noOpenSwaps": "No hay turnos en el tablón ahora.",
   "sched.pickup": "Tomar turno",
   "sched.posOnlyShift": "Solo el personal de {pos} puede tomar este turno.",
+  "sched.positions": "Puestos",
+  "sched.positionsTitle": "Gestionar puestos",
+  "sched.positionsHint": "Opciones de puesto para turnos y personal. Elegir de la lista mantiene exactas las reglas de toma de turnos. Quitar un puesto no cambia los turnos ni el personal existentes.",
+  "sched.positionName": "Nombre del nuevo puesto",
+  "sched.addPosition": "Añadir",
+  "sched.positionsSaved": "Puestos guardados.",
+  "sched.positionsFail": "No se pudieron guardar los puestos.",
+  "sched.posDup": "Ese puesto ya está en la lista.",
+  "sched.posEmpty": "Ingresa primero el nombre del puesto.",
+  "sched.noPositions": "Aún no hay puestos — añade uno abajo.",
   "sched.pickupTitle": "¿Tomar este turno?",
   "sched.pickupMsg": "Un gerente debe aprobar el cambio antes de que sea tuyo.",
   "sched.claimSent": "Solicitud enviada — esperando aprobación del gerente.",
@@ -3442,19 +3462,21 @@ async function renderAdmin(tab, arg2) {
   }
   $app().innerHTML = navHtml() + `<div class="view"><div class="loading">Loading admin…</div></div>`;
   try {
-    const [it, a, v, u, pl, sg] = await Promise.all([
+    const [it, a, v, u, pl, sg, sched] = await Promise.all([
       edge("items.list").catch(() => ({ items: state.items })),
       edge("areas.list").catch(() => ({ areas: state.areas })),
       edge("vendors.list").catch(() => ({ vendors: state.vendors })),
       edge("users.list").catch(() => ({ users: [] })),
       edge("pools.list").catch(() => ({ pools: state.pools })),
       edge("settings.get").catch(() => ({ settings: state.settings })),
+      edge("schedule.get_settings").catch(() => ({})),
     ]);
     state.items = it.items || it || [];
     state.areas = a.areas || a || [];
     state.vendors = v.vendors || v || [];
     state.users = u.users || u || [];
     state.pools = pl.pools || pl || [];
+    if (Array.isArray(sched.positions)) schedPositions = sched.positions.filter(x => typeof x === "string");
     if (sg.settings) state.settings = Object.assign({ store_name: "Sumo Sushi", show_prices: false }, sg.settings);
   } catch (e) { if (e.status === 401 || e.code === "unauthorized") { dropSession(); go("#/login"); return; } }
 
@@ -4752,12 +4774,15 @@ function schedIso(d) {
 }
 /** Start (local) of the week containing d, honoring the configured start day. */
 let schedWeekStartDayNum = 1; // 0=Sun..6=Sat; loaded from the server per schedule render
-async function schedLoadWeekStartDay() {
+let schedPositions = []; // managed position list; loaded from the server
+/** Store-level schedule settings: week-start day + managed position list. */
+async function schedLoadScheduleSettings() {
   try {
     const r = await edge("schedule.get_settings");
     const n = Number(r.week_start_day);
     if (Number.isInteger(n) && n >= 0 && n <= 6) schedWeekStartDayNum = n;
-  } catch (e) { /* keep default Monday */ }
+    if (Array.isArray(r.positions)) schedPositions = r.positions.filter(x => typeof x === "string");
+  } catch (e) { /* keep defaults */ }
   return schedWeekStartDayNum;
 }
 function schedWeekStart(d) {
@@ -4837,7 +4862,7 @@ async function renderSchedule(sub, arg2) {
   if (canSchedManage()) tabs.push(["builder", T("sched.builder")]);
   tabs.push(["timeoff", T("sched.timeoff")], ["avail", T("sched.avail")]);
   if (!tabs.some(([id]) => id === sub)) sub = "my";
-  await schedLoadWeekStartDay(); // store-level week-start day (default Monday)
+  await schedLoadScheduleSettings(); // store-level week-start day + position list
   // My Week is always the current week; the other tabs keep ?w= in the URL.
   const weekStart = sub === "my" ? schedIso(schedWeekStart(new Date())) : schedWeekStartFromRoute();
 
@@ -5065,6 +5090,15 @@ function schedWeekdayNames() {
   for (let i = 0; i < 7; i++) names.push(new Date(2026, 8, 27 + i).toLocaleDateString(locale(), { weekday: "long" }));
   return names;
 }
+/** Position <select> from the managed list; falls back to a text input when
+ *  the list hasn't loaded (keeps the editor usable offline / on error). */
+function schedPositionInputHtml(attr, selected) {
+  const sel = String(selected || "").toLowerCase();
+  if (!schedPositions.length) return `<input ${attr} value="${esc(selected || "")}">`;
+  const opts = [`<option value="">—</option>`].concat(schedPositions.map(p =>
+    `<option value="${esc(p)}"${p.toLowerCase() === sel ? " selected" : ""}>${esc(p)}</option>`)).join("");
+  return `<select ${attr}>${opts}</select>`;
+}
 /** Week-start day <select> for the schedule builder (managers only). */
 function schedWeekStartSelectHtml() {
   const names = schedWeekdayNames();
@@ -5072,6 +5106,64 @@ function schedWeekStartSelectHtml() {
     `<option value="${i}"${i === schedWeekStartDayNum ? " selected" : ""}>${esc(n)}</option>`).join("");
   return `<label style="margin-left:auto;display:flex;gap:6px;align-items:center;font-size:13px" class="no-print">
     ${esc(T("sched.weekStartOn"))} <select id="sched-weekstart">${opts}</select></label>`;
+}
+/** Positions manager modal (builder, managers only). Add/remove the managed
+ *  position list used by the shift editor and staff position dropdowns. */
+function schedPositionsModal() {
+  let list = schedPositions.slice();
+  const drawList = () => {
+    const box = document.getElementById("pos-list");
+    if (!box) return;
+    box.innerHTML = list.length ? list.map((p, i) =>
+      `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
+        <span style="flex:1">${esc(p)}</span>
+        <button class="btn btn-small btn-ghost" data-pos-del="${i}">✕</button>
+      </div>`).join("") : `<p class="muted">${esc(T("sched.noPositions"))}</p>`;
+    box.querySelectorAll("[data-pos-del]").forEach(b => b.onclick = () => {
+      list.splice(Number(b.dataset.posDel), 1);
+      drawList();
+    });
+  };
+  showModal(`<h3 style="margin-top:0">${esc(T("sched.positionsTitle"))}</h3>
+    <p class="muted" style="font-size:13px">${esc(T("sched.positionsHint"))}</p>
+    <div id="pos-list"></div>
+    <div class="form-row" style="margin-top:8px;align-items:end">
+      <div class="field" style="flex:1"><label>${esc(T("sched.positionName"))}</label><input id="pos-new"></div>
+      <div class="field" style="flex:0"><button class="btn btn-small" id="pos-add">${esc(T("sched.addPosition"))}</button></div>
+    </div>
+    <div id="pos-err"></div>
+    <div class="modal-actions">
+      <button class="btn" id="pos-cancel">${esc(T("common.cancel"))}</button>
+      <button class="btn btn-primary" id="pos-save">${esc(T("common.save"))}</button>
+    </div>`);
+  drawList();
+  const errBox = () => document.getElementById("pos-err");
+  const addPos = () => {
+    const inp = document.getElementById("pos-new");
+    const v = inp.value.trim();
+    errBox().innerHTML = "";
+    if (!v) { errBox().innerHTML = `<div class="error">${esc(T("sched.posEmpty"))}</div>`; return; }
+    if (list.some(p => p.toLowerCase() === v.toLowerCase())) {
+      errBox().innerHTML = `<div class="error">${esc(T("sched.posDup"))}</div>`; return;
+    }
+    list.push(v);
+    inp.value = "";
+    drawList();
+  };
+  document.getElementById("pos-add").onclick = addPos;
+  document.getElementById("pos-new").onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); addPos(); } };
+  document.getElementById("pos-cancel").onclick = closeModal;
+  document.getElementById("pos-save").onclick = async () => {
+    const btn = document.getElementById("pos-save");
+    btn.disabled = true; // double-submit guard
+    try {
+      const r = await edge("schedule.set_positions", { positions: list });
+      schedPositions = r.positions || list;
+      closeModal();
+      showSavedToast(T("sched.positionsSaved"));
+      router();
+    } catch (e) { errBox().innerHTML = `<div class="error">${esc(e.detail || T("sched.positionsFail"))}</div>`; btn.disabled = false; }
+  };
 }
 async function schedBuilderHtml(weekStart) {
   const r = await edge("schedule.get_week", { week_start: weekStart });
@@ -5095,6 +5187,7 @@ async function schedBuilderHtml(weekStart) {
         ? `<button class="btn btn-small" id="sched-unpublish">${esc(T("sched.unpublish"))}</button>`
         : `<button class="btn btn-small btn-primary" id="sched-publish">${esc(T("sched.publish"))}</button>`}
       ${schedWeekStartSelectHtml()}
+      <button class="btn btn-small" id="sched-positions">${esc(T("sched.positions"))}</button>
     </div>
     ${rows.length ? schedGridHtml(days, rows, (row, d) => schedBuilderCell(row.id, d)) : ""}
     ${rows.length
@@ -5160,7 +5253,7 @@ function schedShiftEditor(pid, iso, shift) {
       <div class="field"><label>${esc(T("sched.end"))}</label><input id="se-end" type="time" value="${esc((shift && shift.end_time || "").slice(0, 5))}"></div>
     </div>
     <div class="form-row">
-      <div class="field"><label>${esc(T("sched.position"))}</label><input id="se-pos" value="${esc(shift && shift.position || "")}"></div>
+      <div class="field"><label>${esc(T("sched.position"))}</label>${schedPositionInputHtml('id="se-pos"', shift && shift.position)}</div>
       <div class="field"><label>${esc(T("sched.station"))}</label><input id="se-station" value="${esc(shift && shift.station || "")}"></div>
     </div>
     <div class="field"><label>${esc(T("sched.note"))}</label><input id="se-notes" value="${esc(shift && shift.notes || "")}"></div>
@@ -5415,6 +5508,8 @@ function wireSchedBody(sub, weekStart, body) {
         router();
       } catch (e) { flashError(e.detail || e.message || "Error"); wsSel.disabled = false; }
     };
+    const posBtn = document.getElementById("sched-positions");
+    if (posBtn) posBtn.onclick = () => schedPositionsModal();
     const copyBtn = document.getElementById("sched-copy");
     if (copyBtn) copyBtn.onclick = async () => {
       if (!await confirmDialog(T("sched.copyTitle"), T("sched.copyMsg"), T("sched.copyWeek"))) return;
@@ -5605,7 +5700,7 @@ function schedFlagsHtml(u, viewerIsSuper) {
         <option value="">—</option>
         <option value="FOH" ${u.department === "FOH" ? "selected" : ""}>FOH</option>
         <option value="BOH" ${u.department === "BOH" ? "selected" : ""}>BOH</option></select></div>
-      <div class="field"><label>${esc(T("sched.posLabel"))}</label><input data-sf="position" value="${esc(u.position || "")}"></div>
+      <div class="field"><label>${esc(T("sched.posLabel"))}</label>${schedPositionInputHtml('data-sf="position"', u.position)}</div>
     </div>
     ${chk}
     <button class="btn btn-small btn-primary" data-u-sched style="width:100%;margin-top:8px">${esc(T("sched.saveFlags"))}</button>
