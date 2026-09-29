@@ -109,6 +109,7 @@ en: {
   "count.noPar": "no par", "count.dec": "Decrease", "count.inc": "Increase",
   "count.countFor": "Count for", "count.parFor": "Par for",
   "count.full": "Full", "count.clear": "Clear", "count.markZero": "Mark Zero",
+  "count.fullMultiHint": "Full is disabled: this item is counted in multiple locations (par is the total across all of them). Enter each count manually.",
   "count.doneBtn": "✓ Done", "count.moveArea": "Move area",
   "count.byLocation": "By location", "count.byItem": "By item", "count.byVendor": "By vendor",
   "count.noVendor": "No vendor",
@@ -129,6 +130,7 @@ en: {
   "count.aiFail": "AI parse failed.",
   "count.noVoice": "Voice input isn't available in this browser — use your phone keyboard's mic 🎤 instead.",
   "count.saveFail": "Could not save {name} — check connection. (Your other entries are safe.)",
+  "count.flushFail": "Some entries didn't save — check connection and try again.",
   "count.moveTitle": "Move item?", "count.moveMsg": "Move {name} from {from} to {to}?",
   "count.moveFail": "Could not move item.", "count.parFail": "Could not update par.",
   "review.loading": "Loading review…", "review.title": "Review & approve",
@@ -236,6 +238,7 @@ en: {
   "review.capNote": "Storage cap: {pools}",
   "review.capAppliedTitle": "Limited by storage space",
   "review.capZeroWarn": "{name}: no room left under its storage cap, so nothing was ordered.",
+  "review.maxZeroWarn": "{name}: a whole case would exceed its max on hand, so nothing was ordered.",
   "admin.addVendor": "Add vendor",
   "admin.vendorNeedName": "Vendor name can't be empty.",
   "admin.addVendorFail": "Could not add vendor.",
@@ -336,6 +339,7 @@ es: {
   "count.noPar": "sin par", "count.dec": "Disminuir", "count.inc": "Aumentar",
   "count.countFor": "Conteo de", "count.parFor": "Par de",
   "count.full": "Lleno", "count.clear": "Borrar", "count.markZero": "Marcar cero",
+  "count.fullMultiHint": "Lleno está desactivado: este artículo se cuenta en varias ubicaciones (el par es el total de todas). Ingresa cada conteo manualmente.",
   "count.doneBtn": "✓ Listo", "count.moveArea": "Mover de área",
   "count.byLocation": "Por ubicación", "count.byItem": "Por artículo", "count.byVendor": "Por proveedor",
   "count.noVendor": "Sin proveedor",
@@ -356,6 +360,7 @@ es: {
   "count.aiFail": "Falló el análisis de IA.",
   "count.noVoice": "La voz no está disponible en este navegador — usa el micrófono 🎤 del teclado de tu teléfono.",
   "count.saveFail": "No se pudo guardar {name} — revisa tu conexión. (Tus otros conteos están a salvo.)",
+  "count.flushFail": "Algunos conteos no se guardaron — revisa tu conexión e inténtalo de nuevo.",
   "count.moveTitle": "¿Mover artículo?", "count.moveMsg": "¿Mover {name} de {from} a {to}?",
   "count.moveFail": "No se pudo mover el artículo.", "count.parFail": "No se pudo actualizar el par.",
   "review.loading": "Cargando revisión…", "review.title": "Revisar y aprobar",
@@ -470,6 +475,7 @@ es: {
   "review.capNote": "Límite de almacenamiento: {pools}",
   "review.capAppliedTitle": "Limitado por espacio de almacenamiento",
   "review.capZeroWarn": "{name}: sin espacio bajo su límite de almacenamiento, no se pidió nada.",
+  "review.maxZeroWarn": "{name}: una caja completa superaría su máximo, no se pidió nada.",
   "admin.addVendor": "Agregar proveedor",
   "admin.vendorNeedName": "El nombre del proveedor no puede estar vacío.",
   "admin.addVendorFail": "No se pudo agregar el proveedor.",
@@ -578,6 +584,7 @@ const state = {
   review: null,        // { sessionId, flags: [], aiRan: bool }
   route: null,
   saveTimers: {},      // debounced entry saves per item
+  saveInFlight: {},    // in-flight entry save promises per item (awaited by flush)
   settings: null,      // { store_name, show_prices } — loaded via settings.get
   cardData: {},        // order-card payloads keyed by card id (for image share)
   lang: "en",          // UI language: "en" | "es" (per device; orders always English)
@@ -1447,7 +1454,10 @@ function drawCount() {
   // --- nav buttons ---
   $app().querySelector('[data-act="back-home"]').onclick = () => go("#/home");
   const toRev = $app().querySelector('[data-act="to-review"]');
-  if (toRev) toRev.onclick = () => go("#/review/" + c.sessionId);
+  if (toRev) toRev.onclick = async () => {
+    if (!(await flushEntrySaves())) { flashError(T("count.flushFail")); return; }
+    go("#/review/" + c.sessionId);
+  };
   $app().querySelector('[data-act="nav-logout"]').onclick = logout;
 
   // --- highlight a jumped-to item (from Review) ---
@@ -1661,6 +1671,13 @@ function onCardChange(ev) {
 /** "Full" semantics: if par>0 set count=par; otherwise open the manual
  *  entry with a hint — NEVER silently set 0 (that was the v1 bug). */
 function fullCount(item, areaId, card) {
+  // Par is the TOTAL across all locations: filling every location to par
+  // would record multiples of par. Disable Full for multi-location items.
+  if (areaIdsOf(item).length > 1) {
+    const hint = card.querySelector("[data-hint]");
+    if (hint) hint.textContent = T("count.fullMultiHint");
+    return;
+  }
   const par = Number(item.par) || 0;
   if (par > 0) {
     setCount(item, areaId, r025(par), "counted");
@@ -1682,7 +1699,7 @@ function setCount(item, areaId, n, status) {
 
 /* Entry statuses: the UI uses short names (zero/review/done/counted) while the
  * database uses zero_confirmed/needs_review. Map at the save/load boundary. */
-const toDbStatus = (s) => s === "review" ? "needs_review" : s === "zero" ? "zero_confirmed" : s === "done" ? "counted" : (s || "counted");
+const toDbStatus = (s) => s === "review" ? "needs_review" : s === "zero" ? "zero_confirmed" : s === "done" ? "done" : (s || "counted");
 const fromDbStatus = (s) => s === "needs_review" ? "review" : s === "zero_confirmed" ? "zero" : (s || "counted");
 
 function clearEntry(item, areaId) {
@@ -1711,9 +1728,19 @@ function toggleDone(item, areaId) {
 function persistEntry(item, areaId) {
   const key = entryKey(item.id, areaId);
   clearTimeout(state.saveTimers[key]);
-  state.saveTimers[key] = setTimeout(async () => {
-    const e = entryOf(item.id, areaId);
-    if (!e) return;
+  state.saveTimers[key] = setTimeout(() => {
+    delete state.saveTimers[key]; // fired — no longer "pending"
+    saveEntryNow(item, areaId);
+  }, 400);
+}
+/** Immediate save of one entry (the debounced body, extracted). The promise
+ *  is tracked in state.saveInFlight so flushEntrySaves can await saves whose
+ *  timers already fired. Resolves true on success, false on failure. */
+async function saveEntryNow(item, areaId) {
+  const key = entryKey(item.id, areaId);
+  const e = entryOf(item.id, areaId);
+  if (!e) return true;
+  const p = (async () => {
     try {
       await api("POST", "/entries?on_conflict=session_id,item_id,area_id",
         {
@@ -1726,10 +1753,33 @@ function persistEntry(item, areaId) {
           updated_by: state.session.profile.id,
         },
         { "Prefer": "resolution=merge-duplicates" });
+      return { ok: true };
     } catch (err) {
-      flashError(T("count.saveFail").replace("{name}", item.name));
+      return { ok: false, err };
     }
-  }, 400);
+  })();
+  state.saveInFlight[key] = p; // registered synchronously — flush sees it
+  const res = await p;
+  if (state.saveInFlight[key] === p) delete state.saveInFlight[key];
+  if (!res.ok) flashError(T("count.saveFail").replace("{name}", item.name));
+  return res.ok;
+}
+/** Flush every pending or in-flight entry save right now. Call before Review
+ *  and before Approve so the last typed number can never be lost. Resolves
+ *  true only if every save succeeded — callers must NOT proceed on false. */
+async function flushEntrySaves() {
+  // Fire pending debounced saves immediately instead of waiting.
+  const keys = Object.keys(state.saveTimers);
+  for (const k of keys) {
+    clearTimeout(state.saveTimers[k]);
+    delete state.saveTimers[k];
+    const sep = k.indexOf("::");
+    const item = (state.items || []).find(i => String(i.id) === k.slice(0, sep));
+    if (item) saveEntryNow(item, k.slice(sep + 2) || null);
+  }
+  // Await everything in flight, including saves whose timers already fired.
+  const results = await Promise.all(Object.values(state.saveInFlight));
+  return results.every(r => r && r.ok);
 }
 
 /** Manager+: edit which locations an item lives in (first checked = primary). */
@@ -2043,21 +2093,24 @@ function drawReview(notCounted, needsReview, partialItems, canApprove) {
       if (capConflict(i, have, dw)) capWarnings.push(i);
       continue;
     }
-    cands.push({ item: i, raw, dw });
+    cands.push({ item: i, raw, dw, have });
   }
   // Storage-capacity pools cap the combined on-hand + ordered quantity of item
   // groups sharing space in one area (mirrors sessions.approve).
   const cappedQty = applyPoolCaps(cands, byItem);
+  const maxZero = [];    // lines zeroed because a whole case won't fit under max_on_hand
   for (const c of cands) {
     const a = cappedQty.get(String(c.item.id));
-    if (a.qty <= 0) {
+    const qty = maxCappedQty(c.item, a.qty, c.have);
+    if (qty <= 0) {
       if (a.capped) capZero.push(c.item);
+      else if (a.qty > 0) maxZero.push(c.item);
       continue;
     }
     orderLineCount++;
-    if (a.capped) capNotes.push({ item: c.item, order: a.qty, note: poolNote(a.pools) });
+    if (a.capped) capNotes.push({ item: c.item, order: qty, note: poolNote(a.pools) });
     const vid = c.item.vendor_id || "__none__";
-    (previewGroups[vid] = previewGroups[vid] || []).push({ item: c.item, order: a.qty, line: a.qty * (Number(c.item.price) || 0) });
+    (previewGroups[vid] = previewGroups[vid] || []).push({ item: c.item, order: qty, line: qty * (Number(c.item.price) || 0) });
   }
   c._orderLineCount = orderLineCount;
   c._entryCount = entryCount;
@@ -2108,6 +2161,8 @@ function drawReview(notCounted, needsReview, partialItems, canApprove) {
       `<div>⚠️ <strong>${esc(n.item.name)}</strong> — ${fmtCount(n.order)} ${esc(n.item.unit)} — ${esc(T("review.capNote").replace("{pools}", n.note))}</div>`).join("")}</div>` : ""}
     ${capZero.length ? `<div class="warn-box">${capZero.map(i =>
       `<div>⚠️ ${esc(T("review.capZeroWarn").replace("{name}", i.name))}</div>`).join("")}</div>` : ""}
+    ${maxZero.length ? `<div class="warn-box">${maxZero.map(i =>
+      `<div>⚠️ ${esc(T("review.maxZeroWarn").replace("{name}", i.name))}</div>`).join("")}</div>` : ""}
     ${previewHtml}
 
     <div style="display:flex;gap:10px;margin:18px 0" class="no-print">
@@ -2284,6 +2339,7 @@ async function approveSession() {
   if (!ok) return;
   if (btn) btn.disabled = true;
   try {
+    if (!(await flushEntrySaves())) { flashError(T("count.flushFail")); if (btn) btn.disabled = false; return; }
     await edge("sessions.approve", { session_id: c.sessionId });
     go("#/orders");
   } catch (e) {
@@ -3365,6 +3421,15 @@ function roundCases(units, ppc, roundUp) {
     return Math.max(0, cases) * ppc;
   }
   return Math.max(0, roundUp ? Math.ceil(units - 1e-9) : Math.floor(units + 1e-9));
+}
+/** Whole-case order qty that never exceeds max_on_hand: take the normal
+ *  rounded-up qty, but if on-hand + that would pass the max, use the largest
+ *  whole case that fits instead (possibly zero). Mirrors the server. */
+function maxCappedQty(item, qty, onHand) {
+  const maxOn = maxOnNum(item);
+  if (maxOn == null) return qty;
+  if (onHand + qty <= maxOn + 1e-9) return qty;
+  return roundCases(Math.max(0, maxOn - onHand), Number(item.pieces_per_case), false);
 }
 /* ---- Storage capacity pools (mirrors the server) ----
  * A pool caps the combined on-hand + ordered quantity of items sharing space
