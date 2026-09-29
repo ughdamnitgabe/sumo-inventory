@@ -90,6 +90,7 @@ en: {
   "home.hi": "Hi", "home.parBanner": "Set par levels to generate orders",
   "home.parBanner2": "items have pars.", "home.openPar": "Open bulk par editor →",
   "home.start": "Start New Count", "home.orders": "Order History", "home.manage": "Manage",
+  "home.inventory": "Inventory",
   "home.viewOrders": "View Orders", "home.drafts": "Draft counts",
   "home.noDrafts": "No draft counts.", "home.count": "Count",
   "home.review": "Review", "home.resume": "Resume", "home.view": "View",
@@ -292,6 +293,10 @@ en: {
   "tour.startB": "Tap this to start a new count. You'll enter what you see on the shelves.",
   "tour.ordersT": "Orders live here",
   "tour.ordersB": "Finished orders appear here as clean cards you can share with vendors.",
+  "tour.invT": "Inventory",
+  "tour.invB": "Counts, drafts, and order history live here.",
+  "tour.schedT": "Schedule",
+  "tour.schedB": "Your shifts, availability, and time-off requests live here.",
   "tour.langT": "English / Español",
   "tour.langB": "Tap the 🌐 button anytime to switch languages. Orders always go out in English.",
   "tour.c1T": "This is what you enter",
@@ -362,6 +367,7 @@ es: {
   "home.hi": "Hola", "home.parBanner": "Pon los niveles de par para generar pedidos",
   "home.parBanner2": "artículos tienen par.", "home.openPar": "Abrir editor de pars →",
   "home.start": "Empezar nuevo conteo", "home.orders": "Historial de pedidos", "home.manage": "Administrar",
+  "home.inventory": "Inventario",
   "home.viewOrders": "Ver pedidos", "home.drafts": "Conteos en borrador",
   "home.noDrafts": "No hay conteos en borrador.", "home.count": "Conteo",
   "home.review": "Revisar", "home.resume": "Continuar", "home.view": "Ver",
@@ -564,6 +570,10 @@ es: {
   "tour.startB": "Toca aquí para empezar un conteo nuevo. Anotarás lo que veas en los estantes.",
   "tour.ordersT": "Los pedidos están aquí",
   "tour.ordersB": "Los pedidos terminados aparecen aquí como tarjetas listas para compartir con los proveedores.",
+  "tour.invT": "Inventario",
+  "tour.invB": "Los conteos, borradores e historial de pedidos están aquí.",
+  "tour.schedT": "Horario",
+  "tour.schedB": "Tus turnos, disponibilidad y solicitudes de tiempo libre están aquí.",
   "tour.langT": "English / Español",
   "tour.langB": "Toca el botón 🌐 cuando quieras para cambiar el idioma. Los pedidos siempre salen en inglés.",
   "tour.c1T": "Aquí anotas el conteo",
@@ -959,6 +969,7 @@ function router() {
   if (view === "login") renderLogin();
   else if (view === "set-pin") renderSetPin();
   else if (view === "home") renderHome();
+  else if (view === "inv") renderInventory();
   else if (view === "count") renderCount(arg);
   else if (view === "review") renderReview(arg);
   else if (view === "orders") renderOrders();
@@ -1181,11 +1192,63 @@ async function renderHome() {
     if (e.code === "unauthorized" || e.status === 401) { dropSession(); go("#/login"); return; }
   }
 
-  const drafts = state.sessions.filter(x => x.status === "draft");
   const canManage = has("manage");
   const isSuper = has("superadmin");
 
-  /* Par banner: visible to manager+ on Home. Nudges par setup so orders can generate. */
+  const cards = [];
+  cards.push(`<button class="menu-card" data-go="#/inv"><span class="ico">📋</span>${esc(T("home.inventory"))}</button>`);
+  if (canSchedView()) cards.push(`<button class="menu-card" data-go="#/sched"><span class="ico">🗓️</span>${esc(T("sched.tab"))}</button>`);
+  if (canManage) cards.push(`<button class="menu-card" data-go="#/admin/items"><span class="ico">🗃️</span>${esc(T("home.manage"))}</button>`);
+  if (isSuper) cards.push(`<button class="menu-card" data-go="#/admin/io"><span class="ico">⚙️</span>Super Admin</button>`);
+
+  $app().innerHTML = navHtml() + `
+  <div class="view">
+    <h1>${esc(T("home.hi"))}, ${esc(p.name)}</h1>
+    <div class="menu-grid no-print">${cards.join("")}</div>
+    ${isSuper ? "" : `<div style="text-align:center;margin-top:18px" class="no-print"><button class="btn btn-small btn-ghost" data-act="replay-tour">${esc(T("tour.replay"))}</button></div>`}
+  </div>`;
+
+  $app().querySelectorAll("[data-go]").forEach(b => b.onclick = () => go(b.dataset.go));
+  $app().querySelector('[data-act="nav-logout"]').onclick = logout;
+  const replay = $app().querySelector('[data-act="replay-tour"]');
+  if (replay) replay.onclick = () => startTour(homeTourSteps(), () => {});
+
+  // First-login guided tour (not for the super admin).
+  const tourKey = "sumoV2tour_" + p.id;
+  let tourSeen = false;
+  try { tourSeen = !!localStorage.getItem(tourKey); } catch (e) { /* noop */ }
+  if (!isSuper && !tourSeen) {
+    setTimeout(() => startTour(homeTourSteps(), () => {
+      try { localStorage.setItem(tourKey, "1"); } catch (e) { /* noop */ }
+    }), 350);
+  }
+}
+
+/* ================== VIEW: INVENTORY HOME ======================= */
+/* Section home for everything inventory: new counts, draft counts, order
+ * history. Reached from the Inventory tile on the home screen. */
+async function renderInventory() {
+  $app().innerHTML = navHtml() + `<div class="view"><div class="loading">Loading…</div></div>`;
+  try {
+    const [s, v, it, sg] = await Promise.all([
+      edge("sessions.list").catch(() => ({ sessions: [] })),
+      edge("vendors.list").catch(() => ({ vendors: [] })),
+      edge("items.list").catch(() => ({ items: [] })),
+      edge("settings.get").catch(() => ({ settings: state.settings })),
+    ]);
+    state.sessions = s.sessions || s || [];
+    state.vendors = v.vendors || v || [];
+    state.items = it.items || it || [];
+    if (sg.settings) state.settings = Object.assign({ store_name: "Sumo Sushi", show_prices: false }, sg.settings);
+    if (autoRefreshIfStale()) return;
+  } catch (e) {
+    if (e.code === "unauthorized" || e.status === 401) { dropSession(); go("#/login"); return; }
+  }
+
+  const drafts = state.sessions.filter(x => x.status === "draft");
+  const canManage = has("manage");
+
+  /* Par banner: visible to manager+ here. Nudges par setup so orders can generate. */
   let banner = "";
   if (canManage) {
     const active = state.items.filter(i => i.active !== false);
@@ -1201,14 +1264,11 @@ async function renderHome() {
     cards.push(`<button class="menu-card" data-go="#/count/new"><span class="ico">📋</span>${esc(T("home.start"))}</button>`);
   }
   cards.push(`<button class="menu-card" data-go="#/orders"><span class="ico">📦</span>${esc(T("home.orders"))}</button>`);
-  if (canSchedView()) cards.push(`<button class="menu-card" data-go="#/sched"><span class="ico">🗓️</span>${esc(T("sched.tab"))}</button>`);
-  if (canManage) cards.push(`<button class="menu-card" data-go="#/admin/items"><span class="ico">🗃️</span>${esc(T("home.manage"))}</button>`);
-  if (isSuper) cards.push(`<button class="menu-card" data-go="#/admin/io"><span class="ico">⚙️</span>Super Admin</button>`);
   if (!has("count")) cards.push(`<button class="menu-card" data-go="#/orders"><span class="ico">👁</span>${esc(T("home.viewOrders"))}</button>`);
 
   $app().innerHTML = navHtml() + `
   <div class="view">
-    <h1>${esc(T("home.hi"))}, ${esc(p.name)}</h1>
+    <h1>${esc(T("home.inventory"))}</h1>
     ${banner}
     <div class="menu-grid no-print">${cards.join("")}</div>
 
@@ -1226,7 +1286,6 @@ async function renderHome() {
           </div>
         </div>`).join("")}
     </div>
-    ${isSuper ? "" : `<div style="text-align:center;margin-top:18px" class="no-print"><button class="btn btn-small btn-ghost" data-act="replay-tour">${esc(T("tour.replay"))}</button></div>`}
   </div>`;
 
   $app().querySelectorAll("[data-go]").forEach(b => b.onclick = () => {
@@ -1237,23 +1296,11 @@ async function renderHome() {
   $app().querySelectorAll("[data-open-review]").forEach(b => b.onclick = () => go("#/review/" + b.dataset.openReview));
   $app().querySelectorAll("[data-abandon]").forEach(b => b.onclick = async () => {
     if (await confirmDialog(T("home.abandonTitle"), T("home.abandonMsg"), T("home.abandonYes"))) {
-      try { await edge("sessions.abandon", { session_id: b.dataset.abandon }); renderHome(); }
+      try { await edge("sessions.abandon", { session_id: b.dataset.abandon }); renderInventory(); }
       catch (e) { flashError(e.detail || T("home.abandonFail")); }
     }
   });
   $app().querySelector('[data-act="nav-logout"]').onclick = logout;
-  const replay = $app().querySelector('[data-act="replay-tour"]');
-  if (replay) replay.onclick = () => startTour(homeTourSteps(), () => {});
-
-  // First-login guided tour (not for the super admin).
-  const tourKey = "sumoV2tour_" + p.id;
-  let tourSeen = false;
-  try { tourSeen = !!localStorage.getItem(tourKey); } catch (e) { /* noop */ }
-  if (!isSuper && !tourSeen) {
-    setTimeout(() => startTour(homeTourSteps(), () => {
-      try { localStorage.setItem(tourKey, "1"); } catch (e) { /* noop */ }
-    }), 350);
-  }
 }
 
 async function startNewCount() {
@@ -1268,7 +1315,7 @@ async function startNewCount() {
 }
 
 /* ================== VIEW: BULK PAR EDITOR ====================== */
-/* Simple table: item | par input, one Save. Linked from the Home banner. */
+/* Simple table: item | par input, one Save. Linked from the Inventory banner. */
 function renderBulkPar() {
   if (!has("manage")) { $app().innerHTML = navHtml() + `<div class="view"><div class="error">${esc(T("common.notAuth"))}</div></div>`; return; }
   const active = state.items.filter(i => i.active !== false);
@@ -2052,8 +2099,8 @@ function startTour(steps, onEnd) {
 
 function homeTourSteps() {
   const steps = [{ sel: null, title: T("tour.welcomeT"), body: T("tour.welcomeB") }];
-  if (has("count")) steps.push({ sel: '[data-go="#/count/new"]', title: T("tour.startT"), body: T("tour.startB") });
-  steps.push({ sel: '[data-go="#/orders"]', title: T("tour.ordersT"), body: T("tour.ordersB") });
+  steps.push({ sel: '[data-go="#/inv"]', title: T("tour.invT"), body: T("tour.invB") });
+  if (canSchedView()) steps.push({ sel: '[data-go="#/sched"]', title: T("tour.schedT"), body: T("tour.schedB") });
   steps.push({ sel: '[data-act="nav-lang"]', title: T("tour.langT"), body: T("tour.langB") });
   return steps;
 }
