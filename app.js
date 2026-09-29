@@ -3001,11 +3001,17 @@ function openQuickOrder() {
     renderSheet();
   }
 
+  const qoPpc = (r) => Number(r.item.pieces_per_case) || 0;
+  const qoHasCase = (r) => qoPpc(r) > 1 && !!r.item.case_label;
   const rowSub = (r) => {
     const unitLine = r.isCase ? r.item.case_label : (r.item.unit || "");
-    const hint = (r.isCase && r.qty > 0)
-      ? ` = ${fmtCount(r.qty * Number(r.item.pieces_per_case))} ${esc(r.item.unit || "")}` : "";
-    return `<div class="muted" style="font-size:12px">${esc(unitLine)}${hint}</div>`;
+    let hint = "";
+    if (r.qty > 0) {
+      hint = r.isCase
+        ? ` = ${fmtCount(r.qty * qoPpc(r))} ${r.item.unit || ""}`
+        : (qoHasCase(r) ? ` = ${fmtCount(r.qty / qoPpc(r))} ${pluralUnit(r.item.case_label, r.qty / qoPpc(r))}` : "");
+    }
+    return `<div class="muted" style="font-size:12px">${esc(unitLine)}${esc(hint)}</div>`;
   };
   const rowsHtml = () => qo.rows.map((r, i) => `
     <div class="oedit-row">
@@ -3014,6 +3020,7 @@ function openQuickOrder() {
         <button class="btn btn-small" data-qo-step="${i}|-1">-</button>
         <input data-qo-qty="${i}" inputmode="decimal" value="${r.qty}">
         <button class="btn btn-small" data-qo-step="${i}|1">+</button>
+        ${qoHasCase(r) ? `<button class="btn btn-small" data-qo-unit="${i}">${esc(r.isCase ? r.item.case_label : (r.item.unit || "unit"))}</button>` : ""}
       </span>
     </div>`).join("");
 
@@ -3036,6 +3043,14 @@ function openQuickOrder() {
       let v = Number(inp.value);
       v = r.isCase ? Math.max(0, Math.round(v)) : Math.max(0, Math.round(v * 100) / 100);
       r.qty = v || 0;
+      renderRows();
+    });
+    box.querySelectorAll("[data-qo-unit]").forEach(b => b.onclick = () => {
+      const i = Number(b.dataset.qoUnit);
+      const r = qo.rows[i];
+      const ppc = qoPpc(r);
+      if (r.isCase) { r.qty = Math.round(r.qty * ppc * 100) / 100; r.isCase = false; }
+      else { r.qty = Math.max(0, Math.round(r.qty / ppc)); r.isCase = true; }
       renderRows();
     });
   }
@@ -3132,16 +3147,21 @@ function openOrderEditor(orderId) {
     order_qty: Number(l.order_qty) || 0,
     pieces_per_case: l.pieces_per_case ?? null,
     case_label: l.case_label ?? null,
+    useCase: Number(l.pieces_per_case) > 1 && !!l.case_label,
   }));
   const vendorItems = () => vendorItemsFor(ord.vendor_id)
     .filter(i => !draft.some(d => d.item_id && String(d.item_id) === String(i.id)));
+  const dPpc = (l) => Number(l.pieces_per_case) || 0;
+  const dHasCase = (l) => dPpc(l) > 1 && !!l.case_label;
+  // Displayed qty: whole purchase units (cases) when the case toggle is on, else base count units.
+  const dDispQty = (l) => dHasCase(l) && l.useCase
+    ? Math.round((l.order_qty / dPpc(l)) * 100) / 100
+    : Math.round(l.order_qty * 100) / 100;
   const purchaseText = (l) => {
-    const ppc = Number(l.pieces_per_case);
-    if (ppc > 1 && l.case_label && l.order_qty > 0) {
-      const pq = l.order_qty / ppc;
-      return `= ${fmtCount(pq)} ${pluralUnit(l.case_label, pq)}`;
-    }
-    return "";
+    if (!dHasCase(l) || l.order_qty <= 0) return "";
+    if (l.useCase) return `= ${fmtCount(l.order_qty)} ${l.unit || ""}`;
+    const pq = l.order_qty / dPpc(l);
+    return `= ${fmtCount(pq)} ${pluralUnit(l.case_label, pq)}`;
   };
   const rowsHtml = () => draft.map((l, i) => `
       <div class="oedit-row">
@@ -3149,8 +3169,9 @@ function openOrderEditor(orderId) {
           <div class="muted" style="font-size:12px" data-dhint="${i}">${esc(purchaseText(l))}</div></span>
         <span class="oedit-step">
           <button class="btn btn-small" data-dstep="${i}|-1">-</button>
-          <input data-dqty="${i}" inputmode="decimal" value="${l.order_qty}">
+          <input data-dqty="${i}" inputmode="decimal" value="${dDispQty(l)}">
           <button class="btn btn-small" data-dstep="${i}|1">+</button>
+          ${dHasCase(l) ? `<button class="btn btn-small" data-dunit="${i}">${esc(l.useCase ? l.case_label : (l.unit || "unit"))}</button>` : ""}
         </span>
         <button class="btn btn-small" data-drm="${i}" aria-label="remove">&times;</button>
       </div>`).join("");
@@ -3182,19 +3203,30 @@ function openOrderEditor(orderId) {
   function wire() {
     wrap.querySelectorAll("[data-dstep]").forEach(b => b.onclick = () => {
       const [i, d] = b.dataset.dstep.split("|").map(Number);
-      draft[i].order_qty = Math.max(0, Math.round((draft[i].order_qty + d) * 100) / 100);
+      const l = draft[i];
+      const step = (dHasCase(l) && l.useCase) ? dPpc(l) : 1; // whole cases in case mode
+      l.order_qty = Math.max(0, Math.round((l.order_qty + d * step) * 100) / 100);
       const inp = wrap.querySelector(`[data-dqty="${i}"]`);
-      if (inp) inp.value = draft[i].order_qty;
+      if (inp) inp.value = dDispQty(l);
       const hint = wrap.querySelector(`[data-dhint="${i}"]`);
-      if (hint) hint.textContent = purchaseText(draft[i]);
+      if (hint) hint.textContent = purchaseText(l);
     });
     wrap.querySelectorAll("[data-dqty]").forEach(inp => inp.onchange = () => {
       const i = Number(inp.dataset.dqty);
-      const v = Math.round(Number(inp.value) * 100) / 100;
-      draft[i].order_qty = v > 0 ? v : 0;
-      inp.value = draft[i].order_qty;
+      const l = draft[i];
+      const v = Number(inp.value);
+      // Whole cases only — vendors don't sell half a case.
+      l.order_qty = (dHasCase(l) && l.useCase)
+        ? Math.max(0, Math.round(v)) * dPpc(l)
+        : Math.max(0, Math.round(v * 100) / 100);
+      inp.value = dDispQty(l);
       const hint = wrap.querySelector(`[data-dhint="${i}"]`);
-      if (hint) hint.textContent = purchaseText(draft[i]);
+      if (hint) hint.textContent = purchaseText(l);
+    });
+    wrap.querySelectorAll("[data-dunit]").forEach(b => b.onclick = () => {
+      const i = Number(b.dataset.dunit);
+      draft[i].useCase = !draft[i].useCase;
+      render();
     });
     wrap.querySelectorAll("[data-drm]").forEach(b => b.onclick = () => {
       draft.splice(Number(b.dataset.drm), 1);
@@ -3208,7 +3240,8 @@ function openOrderEditor(orderId) {
       const qty = Math.round(Number(q.value) * 100) / 100;
       if (it && qty > 0) {
         draft.push({ item_id: it.id, item_name: it.name, unit: it.unit || "", order_qty: qty,
-          pieces_per_case: it.pieces_per_case ?? null, case_label: it.case_label ?? null });
+          pieces_per_case: it.pieces_per_case ?? null, case_label: it.case_label ?? null,
+          useCase: Number(it.pieces_per_case) > 1 && !!it.case_label });
         render();
       }
     };
