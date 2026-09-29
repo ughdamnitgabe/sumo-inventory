@@ -2594,7 +2594,7 @@ function orderCardHtml(d, opts = {}) {
           <span class="order-card-qty">${esc(l.qty)}</span>
         </div>`).join("")}
       </div>
-      <div class="order-card-foot">${d.count} item${d.count === 1 ? "" : "s"}${d.total ? ` · Estimated total: ${esc(d.total)}` : ""}</div>
+      ${d.total ? `<div class="order-card-foot">Estimated total: ${esc(d.total)}</div>` : ""}
     </div>
     ${opts.actions === false ? "" : `<div class="order-card-actions no-print">
       ${(d.contactName || d.contactPhone) ? `<div class="order-card-contact">${esc(T("orders.sendTo"))}: ${esc(d.contactName || "")}${d.contactName && d.contactPhone ? " · " : ""}${esc(fmtPhone(d.contactPhone))}</div>` : ""}
@@ -2663,9 +2663,7 @@ async function renderOrderCardImage(d) {
   for (const ml of metaLines) H += ml.length * 48 + 12;
   H += 30;                           // gap before rows
   for (const rh of rowH) H += rh;
-  H += 34;                           // gap before footer
-  H += 62;                           // footer
-  if (d.total) H += 56;              // total line
+  if (d.total) { H += 34; H += 56; }   // footer separator + total line
   H += 52;                           // bottom pad
 
   c.width = W;
@@ -2752,14 +2750,10 @@ async function renderOrderCardImage(d) {
     y += rh;
   });
   // Footer
-  y += 34;
-  x.fillStyle = SEAM;
-  x.fillRect(PAD, y, W - PAD * 2, 2);
-  y += 62;
-  x.fillStyle = INK;
-  x.font = F(700, 44);
-  x.fillText(`${d.count} item${d.count === 1 ? "" : "s"}`, PAD, y - 8);
   if (d.total) {
+    y += 34;
+    x.fillStyle = SEAM;
+    x.fillRect(PAD, y, W - PAD * 2, 2);
     y += 56;
     x.font = F(400, 40);
     x.fillStyle = GRAY;
