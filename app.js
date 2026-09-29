@@ -4814,6 +4814,12 @@ function schedDayLabel(iso) {
   const p = iso.split("-").map(Number);
   return new Date(p[0], p[1] - 1, p[2]).toLocaleDateString(locale(), { weekday: "short", month: "numeric", day: "numeric" });
 }
+/** "09/29/2026" — zero-padded mm/dd/yyyy for an ISO date. */
+function schedFmtMDY(iso) {
+  const p = String(iso || "").split("-").map(Number);
+  if (p.length !== 3 || p.some(n => !Number.isInteger(n))) return String(iso || "");
+  return String(p[1]).padStart(2, "0") + "/" + String(p[2]).padStart(2, "0") + "/" + p[0];
+}
 /** Full weekday name. */
 function schedDayName(iso) {
   const p = iso.split("-").map(Number);
@@ -5328,7 +5334,7 @@ async function schedTimeoffHtml() {
     <div class="admin-card" data-req="${esc(x.id)}">
       <div class="card-head">
         <div><strong>${esc(x.profile_name || "")}</strong>
-          <div class="muted" style="font-size:13px">${esc(x.start_date)} → ${esc(x.end_date)}${x.reason ? " · " + esc(x.reason) : ""}</div></div>
+          <div class="muted" style="font-size:13px">${esc(schedFmtMDY(x.start_date))} → ${esc(schedFmtMDY(x.end_date))}${x.reason ? " · " + esc(x.reason) : ""}</div></div>
         ${schedReqStatusPill(x.status)}
       </div>
       ${inbox && x.status === "pending" ? `<div style="display:flex;gap:8px;margin-top:8px">
