@@ -83,6 +83,7 @@ en: {
   "move.title": "Move to area", "move.current": "current",
   "login.prompt": "Enter your PIN to sign in", "login.signin": "Sign in",
   "login.needPin": "Enter your PIN.", "login.wrong": "Wrong PIN. Try again.",
+  "login.forgot": "Forgot PIN?", "login.forgotMsg": "Ask a manager to reset your PIN in the Users screen.",
   "login.langToggle": "Español",
   "setpin.title": "Set your PIN", "setpin.step1": "Enter a new PIN (min 4 digits)",
   "setpin.step2": "Enter it again to confirm", "setpin.min4": "PIN must be at least 4 digits.",
@@ -362,6 +363,7 @@ es: {
   "move.title": "Mover a área", "move.current": "actual",
   "login.prompt": "Ingresa tu PIN para entrar", "login.signin": "Entrar",
   "login.needPin": "Ingresa tu PIN.", "login.wrong": "PIN incorrecto. Intenta de nuevo.",
+  "login.forgot": "¿Olvidaste tu PIN?", "login.forgotMsg": "Pide a un gerente que restablezca tu PIN en la pantalla de Usuarios.",
   "login.langToggle": "English",
   "setpin.title": "Crea tu PIN", "setpin.step1": "Ingresa un PIN nuevo (mín. 4 dígitos)",
   "setpin.step2": "Ingrésalo de nuevo para confirmar", "setpin.min4": "El PIN debe tener al menos 4 dígitos.",
@@ -1068,6 +1070,7 @@ function renderLogin() {
       <button class="pin-key" data-k="back" aria-label="Backspace">←</button>
     </div>
     <div style="margin-top:16px"><button class="btn btn-primary" id="pin-go" style="width:100%">${esc(T("login.signin"))}</button></div>
+    <div style="text-align:center;margin-top:10px"><button class="btn btn-small btn-ghost" id="login-forgot">${esc(T("login.forgot"))}</button></div>
     <div style="text-align:center;margin-top:14px"><button class="btn btn-small btn-ghost" id="login-lang">🌐 ${esc(T("login.langToggle"))}</button></div>
   </div>`;
 
@@ -1082,6 +1085,9 @@ function renderLogin() {
     dots();
   });
   document.getElementById("pin-go").onclick = () => doLogin(pad.digits);
+  document.getElementById("login-forgot").onclick = () => {
+    document.getElementById("login-err").innerHTML = `<div class="muted" style="text-align:center;padding:10px">${esc(T("login.forgotMsg"))}</div>`;
+  };
   document.getElementById("login-lang").onclick = () => { setLang(lang() === "es" ? "en" : "es"); renderLogin(); };
   pad.digits = ""; dots();
 }
