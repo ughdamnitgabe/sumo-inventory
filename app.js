@@ -2241,7 +2241,7 @@ function orderCardData(vendor, lines, dateLabel) {
     const qty = (ppc > 1 && l.case_label)
       ? fmtCount(ppcQty) + " " + pluralUnit(l.case_label, ppcQty)
       : fmtCount(l.qty) + (l.unit ? " " + l.unit : "");
-    return { name: l.name, qty };
+    return { name: String(l.name || "").toUpperCase(), qty };
   });
   const text =
     `Hi ${v.name || "there"},\n\n` +
