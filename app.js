@@ -244,6 +244,12 @@ en: {
   "vendor.deliveryDays": "Delivery days",
   "vendor.contactName": "Contact name", "vendor.contactPhone": "Contact phone",
   "orders.send": "📲 Send order", "orders.sendTo": "Send to",
+  "orders.quickOrder": "⚡ Quick order", "orders.qoPickVendor": "Pick a vendor",
+  "orders.qoSearch": "Search all items…", "orders.qoCreate": "Create draft order",
+  "orders.qoNeedLines": "Add at least one item.", "orders.qoCreated": "Draft order created.",
+  "orders.qoFail": "Could not create the quick order.",
+  "admin.altVendors": "Alternate vendors",
+  "admin.altVendorsHint": "Other vendors that also carry this item — it will show in their quick orders.",
   "item.dailyUsage": "Daily usage", "item.learned": "auto: {x}/day",
   "item.maxOnHand": "Max on hand",
   "vendor.daysWorth": "days", "vendor.coverageHint": "Select order days first.",
@@ -397,6 +403,12 @@ es: {
   "orders.deleteFail": "No se pudo eliminar el pedido.",
   "orders.deleted": "Pedido eliminado.",
   "orders.orderDate": "Fecha del pedido",
+  "orders.quickOrder": "⚡ Pedido rápido", "orders.qoPickVendor": "Elige un proveedor",
+  "orders.qoSearch": "Buscar todos los artículos…", "orders.qoCreate": "Crear pedido borrador",
+  "orders.qoNeedLines": "Agrega al menos un artículo.", "orders.qoCreated": "Borrador creado.",
+  "orders.qoFail": "No se pudo crear el pedido rápido.",
+  "admin.altVendors": "Proveedores alternos",
+  "admin.altVendorsHint": "Otros proveedores que también venden este artículo — aparecerá en sus pedidos rápidos.",
   "admin.manage": "Administrar", "admin.items": "Artículos", "admin.areas": "Áreas",
   "admin.vendors": "Proveedores", "admin.users": "Usuarios",
   "users.delete": "Eliminar", "users.deleteTitle": "¿Eliminar usuario?",
@@ -1128,6 +1140,14 @@ function renderBulkPar() {
 /* ---- small lookups ---- */
 function areaName(id) { const a = state.areas.find(x => String(x.id) === String(id)); return a ? a.name : ""; }
 function vendorOf(id) { return state.vendors.find(x => String(x.id) === String(id)) || {}; }
+/** Items a vendor can supply: primary vendor_id or listed as an alternate
+ *  vendor (items.alt_vendor_ids). Used by quick orders and the draft editor. */
+function vendorItemsFor(vendorId) {
+  const vid = String(vendorId || "");
+  return (state.items || []).filter(i => i.active !== false &&
+    (String(i.vendor_id || "") === vid ||
+     (Array.isArray(i.alt_vendor_ids) && i.alt_vendor_ids.some(a => String(a) === vid))));
+}
 // Vendor-name sort: A→Z, unknown/no-vendor last.
 function cmpVendor(a, b) {
   if (!a && !b) return 0;
@@ -2560,7 +2580,11 @@ async function renderOrders() {
   $app().innerHTML = navHtml() + `
   <div class="view">
     <h1>${esc(T("orders.title"))}</h1>
-    <div class="no-print" style="margin-bottom:10px"><button class="btn btn-small" onclick="window.print()">${esc(T("orders.print"))}</button></div>
+    <div class="no-print" style="margin-bottom:10px;display:flex;gap:8px">
+      <button class="btn btn-small" onclick="window.print()">${esc(T("orders.print"))}</button>
+      ${canManage ? `<button class="btn btn-small btn-primary" data-qo-start>${esc(T("orders.quickOrder"))}</button>` : ""}
+    </div>
+    <div id="qo-wrap" class="no-print"></div>
     ${state.orders.length === 0 ? `<p class="muted">${esc(T("orders.none"))}</p>` : ""}
     ${sortedOrders.map(ord => {
       const v = vendorOf(ord.vendor_id) || {};
@@ -2605,6 +2629,8 @@ async function renderOrders() {
   $app().querySelectorAll("[data-delorder]").forEach(b => b.onclick = () => deleteOrder(b.dataset.delorder, b.dataset.vendor));
   $app().querySelector('[data-act="back-home"]').onclick = () => go("#/home");
   $app().querySelector('[data-act="nav-logout"]').onclick = logout;
+  const qoStart = $app().querySelector("[data-qo-start]");
+  if (qoStart) qoStart.onclick = () => openQuickOrder();
 }
 
 async function setOrderStatus(orderId, status) {
@@ -2640,6 +2666,172 @@ function orderDateVal(ord) {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
+/* ================= QUICK ORDER ================= */
+/* Ad-hoc vendor order without a count session: pick a vendor, enter
+ * quantities (whole cases for case items, units otherwise), get a draft
+ * order dated today. The vendor's list includes items where it is the
+ * primary vendor OR an alternate vendor (items.alt_vendor_ids). */
+function openQuickOrder() {
+  const wrap = document.getElementById("qo-wrap");
+  if (!wrap) return;
+  const vendors = [...(state.vendors || [])]
+    .sort((a, b) => String(a.name).localeCompare(String(b.name)));
+  let qo = null; // { vendorId, date, rows: [{item, qty, isCase}] }
+
+  const laToday = () => {
+    try { return new Date().toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" }); }
+    catch (e) { return new Date().toISOString().slice(0, 10); }
+  };
+  const mkRow = (item) => ({
+    item, qty: 0,
+    isCase: Number(item.pieces_per_case) > 1 && !!item.case_label,
+  });
+
+  function renderVendorPick() {
+    wrap.innerHTML = `<div class="admin-card">
+      <h3 style="margin-top:0">${esc(T("orders.quickOrder"))}</h3>
+      <p class="muted">${esc(T("orders.qoPickVendor"))}</p>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+        ${vendors.map(v => `<button class="btn btn-small" data-qo-vendor="${esc(v.id)}">${esc(v.name)}</button>`).join("")}
+      </div>
+      <button class="btn btn-small" data-qo-cancel>${esc(T("orders.cancel"))}</button>
+    </div>`;
+    wrap.querySelectorAll("[data-qo-vendor]").forEach(b => b.onclick = () => startSheet(b.dataset.qoVendor));
+    wrap.querySelector("[data-qo-cancel]").onclick = () => { wrap.innerHTML = ""; };
+    try { wrap.scrollIntoView({ block: "nearest" }); } catch (e) { /* noop */ }
+  }
+
+  function startSheet(vendorId) {
+    qo = {
+      vendorId,
+      date: laToday(),
+      rows: vendorItemsFor(vendorId)
+        .sort((a, b) => String(a.name).localeCompare(String(b.name)))
+        .map(mkRow),
+    };
+    renderSheet();
+  }
+
+  const rowSub = (r) => {
+    const unitLine = r.isCase ? r.item.case_label : (r.item.unit || "");
+    const hint = (r.isCase && r.qty > 0)
+      ? ` = ${fmtCount(r.qty * Number(r.item.pieces_per_case))} ${esc(r.item.unit || "")}` : "";
+    return `<div class="muted" style="font-size:12px">${esc(unitLine)}${hint}</div>`;
+  };
+  const rowsHtml = () => qo.rows.map((r, i) => `
+    <div class="oedit-row">
+      <span class="oedit-name">${esc(r.item.name)}${rowSub(r)}</span>
+      <span class="oedit-step">
+        <button class="btn btn-small" data-qo-step="${i}|-1">-</button>
+        <input data-qo-qty="${i}" inputmode="decimal" value="${r.qty}">
+        <button class="btn btn-small" data-qo-step="${i}|1">+</button>
+      </span>
+    </div>`).join("");
+
+  function renderRows() {
+    const box = wrap.querySelector("[data-qo-rows]");
+    if (!box) return;
+    box.innerHTML = rowsHtml() || `<p class="muted">—</p>`;
+    box.querySelectorAll("[data-qo-step]").forEach(b => b.onclick = () => {
+      const [i, d] = b.dataset.qoStep.split("|").map(Number);
+      const r = qo.rows[i];
+      r.qty = Math.max(0, Math.round((r.qty + d) * 100) / 100);
+      const inp = box.querySelector(`[data-qo-qty="${i}"]`);
+      if (inp) inp.value = r.qty;
+      renderRows();
+    });
+    box.querySelectorAll("[data-qo-qty]").forEach(inp => inp.onchange = () => {
+      const i = Number(inp.dataset.qoQty);
+      const r = qo.rows[i];
+      // Whole cases only — vendors don't sell half a case.
+      let v = Number(inp.value);
+      v = r.isCase ? Math.max(0, Math.round(v)) : Math.max(0, Math.round(v * 100) / 100);
+      r.qty = v || 0;
+      renderRows();
+    });
+  }
+
+  function renderAddList(q) {
+    const box = wrap.querySelector("[data-qo-addlist]");
+    if (!box) return;
+    q = String(q || "").trim().toLowerCase();
+    if (q.length < 2) { box.innerHTML = ""; return; }
+    const inRows = new Set(qo.rows.map(r => String(r.item.id)));
+    const hits = (state.items || [])
+      .filter(i => i.active !== false && !inRows.has(String(i.id)) &&
+        String(i.name || "").toLowerCase().includes(q))
+      .sort((a, b) => String(a.name).localeCompare(String(b.name)))
+      .slice(0, 8);
+    box.innerHTML = hits.map(i =>
+      `<button class="btn btn-small" data-qo-add="${esc(i.id)}" style="margin:0 8px 8px 0">+ ${esc(i.name)}</button>`).join("");
+    box.querySelectorAll("[data-qo-add]").forEach(b => b.onclick = () => {
+      const it = (state.items || []).find(x => String(x.id) === String(b.dataset.qoAdd));
+      if (it) {
+        qo.rows.push(mkRow(it));
+        const s = wrap.querySelector("[data-qo-search]");
+        if (s) s.value = "";
+        box.innerHTML = "";
+        renderRows();
+      }
+    });
+  }
+
+  function renderSheet() {
+    const v = vendorOf(qo.vendorId);
+    wrap.innerHTML = `<div class="admin-card">
+      <h3 style="margin-top:0">${esc(T("orders.quickOrder"))} — ${esc(v.name || "")}</h3>
+      <div class="oedit-row">
+        <span class="oedit-name">${esc(T("orders.orderDate"))}</span>
+        <input type="date" data-qo-date value="${esc(qo.date)}" style="min-height:44px;border-radius:8px">
+      </div>
+      <div data-qo-rows style="margin-top:8px"></div>
+      <div class="field" style="margin-top:8px">
+        <input data-qo-search placeholder="${esc(T("orders.qoSearch"))}" autocomplete="off">
+      </div>
+      <div data-qo-addlist></div>
+      <div data-qo-err></div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="btn btn-primary" data-qo-create style="flex:1">${esc(T("orders.qoCreate"))}</button>
+        <button class="btn" data-qo-back style="flex:1">${esc(T("orders.qoPickVendor"))}</button>
+      </div>
+    </div>`;
+    renderRows();
+    wrap.querySelector("[data-qo-search]").oninput = (e) => renderAddList(e.target.value);
+    wrap.querySelector("[data-qo-back]").onclick = () => renderVendorPick();
+    wrap.querySelector("[data-qo-create]").onclick = createOrder;
+    try { wrap.scrollIntoView({ block: "nearest" }); } catch (e) { /* noop */ }
+  }
+
+  async function createOrder() {
+    const errBox = wrap.querySelector("[data-qo-err]");
+    errBox.innerHTML = "";
+    const lines = qo.rows.filter(r => r.qty > 0).map(r => ({
+      item_id: r.item.id,
+      item_name: r.item.name,
+      unit: r.item.unit || "",
+      order_qty: r.isCase
+        ? Math.round(r.qty * Number(r.item.pieces_per_case) * 100) / 100
+        : r.qty,
+    }));
+    if (!lines.length) {
+      errBox.innerHTML = `<div class="error">${esc(T("orders.qoNeedLines"))}</div>`;
+      return;
+    }
+    const dateInput = wrap.querySelector("[data-qo-date]");
+    try {
+      await edge("orders.quick_create", {
+        vendor_id: qo.vendorId,
+        lines,
+        order_date: dateInput && dateInput.value ? dateInput.value : undefined,
+      });
+      showSavedToast(T("orders.qoCreated"));
+      renderOrders();
+    } catch (e) { errBox.innerHTML = `<div class="error">${esc(e.detail || T("orders.qoFail"))}</div>`; }
+  }
+
+  renderVendorPick();
+}
+
 function openOrderEditor(orderId) {
   const ord = (state.orders || []).find(o => String(o.id) === String(orderId));
   if (!ord || ord.status !== "draft") return;
@@ -2652,9 +2844,8 @@ function openOrderEditor(orderId) {
     pieces_per_case: l.pieces_per_case ?? null,
     case_label: l.case_label ?? null,
   }));
-  const vendorItems = () => (state.items || []).filter(i =>
-    String(i.vendor_id || "") === String(ord.vendor_id || "") &&
-    !draft.some(d => d.item_id && String(d.item_id) === String(i.id)));
+  const vendorItems = () => vendorItemsFor(ord.vendor_id)
+    .filter(i => !draft.some(d => d.item_id && String(d.item_id) === String(i.id)));
   const purchaseText = (l) => {
     const ppc = Number(l.pieces_per_case);
     if (ppc > 1 && l.case_label && l.order_qty > 0) {
@@ -2827,6 +3018,11 @@ function adminItemsHtml() {
   // Checkbox list for an item's locations; first checked = primary.
   const areaChecks = (selIds) => state.areas.map(a =>
     `<label class="check"><input type="checkbox" data-area-check value="${esc(a.id)}" ${selIds.includes(String(a.id)) ? "checked" : ""}> ${esc(a.name)}</label>`).join("");
+  // Checkbox list for an item's alternate vendors; the primary vendor is
+  // excluded here (the server strips it anyway if the primary changes).
+  const altVendorChecks = (item) => state.vendors
+    .filter(v => String(v.id) !== String(item.vendor_id || ""))
+    .map(v => `<label class="check"><input type="checkbox" data-alt-vendor-check value="${esc(v.id)}" ${(Array.isArray(item.alt_vendor_ids) && item.alt_vendor_ids.some(a => String(a) === String(v.id))) ? "checked" : ""}> ${esc(v.name)}</label>`).join("");
   const vendorOpts = (sel) => `<option value="">—</option>` + state.vendors.map(v =>
     `<option value="${esc(v.id)}" ${String(v.id) === String(sel) ? "selected" : ""}>${esc(v.name)}</option>`).join("");
 
@@ -2889,6 +3085,8 @@ function adminItemsHtml() {
       <div class="field"><label>${esc(T("admin.areasLabel"))}</label><div class="check-list">${areaChecks(areaIdsOf(i))}</div>
         <div class="muted" style="font-size:12px">${esc(T("admin.areasHint"))}</div></div>
       <div class="field"><label>${esc(T("admin.vendor"))}</label><select data-f="vendor_id">${vendorOpts(i.vendor_id)}</select></div>
+      <div class="field"><label>${esc(T("admin.altVendors"))}</label><div class="check-list">${altVendorChecks(i)}</div>
+        <div class="muted" style="font-size:12px">${esc(T("admin.altVendorsHint"))}</div></div>
       <div class="field"><label>${esc(T("common.notes"))}</label><input data-f="notes" value="${esc(i.notes || "")}"></div>
       <div style="display:flex;gap:8px;margin-top:8px">
         <button class="btn btn-primary btn-small" data-ai-save style="flex:1">${esc(T("common.save"))}</button>
@@ -3688,6 +3886,7 @@ function wireAdmin(tab, arg2) {
         for (const f of ["daily_usage_manual", "max_on_hand"]) data[f] = data[f] === "" ? null : Number(data[f]);
         if (!data.vendor_id) data.vendor_id = null;
         data.area_ids = [...card.querySelectorAll("[data-area-check]:checked")].map(b => b.value);
+        data.alt_vendor_ids = [...card.querySelectorAll("[data-alt-vendor-check]:checked")].map(b => b.value);
         try { await edge("items.update", { item_id: id, ...data }); flashSaved(card); }
         catch (e) { flashError(e.detail || T("admin.saveItemFail")); }
       };
