@@ -3239,9 +3239,14 @@ function openOrderEditor(orderId) {
       const it = (state.items || []).find(x => String(x.id) === String(sel.value));
       const qty = Math.round(Number(q.value) * 100) / 100;
       if (it && qty > 0) {
-        draft.push({ item_id: it.id, item_name: it.name, unit: it.unit || "", order_qty: qty,
+        // The add-qty box is in purchase units (cases) for case items, matching
+        // the "(case)" label in the dropdown; lines always store base units.
+        const ppc = Number(it.pieces_per_case) || 0;
+        const asCase = ppc > 1 && !!it.case_label;
+        draft.push({ item_id: it.id, item_name: it.name, unit: it.unit || "",
+          order_qty: asCase ? Math.round(qty * ppc * 100) / 100 : qty,
           pieces_per_case: it.pieces_per_case ?? null, case_label: it.case_label ?? null,
-          useCase: Number(it.pieces_per_case) > 1 && !!it.case_label });
+          useCase: asCase });
         render();
       }
     };
