@@ -155,6 +155,10 @@ en: {
   "review.approveYes": "Approve", "review.approveFail": "Approval failed.",
   "review.blockTitle": "Cannot approve — these items need review:",
   "review.blockMsg": "Open each item in the count and resolve it, then approve again.",
+  "review.fixHint": "Enter the missing counts below (0 if the location is empty), save, then approve.",
+  "review.fixInvalid": "Enter a valid count (0 or more) for each location.",
+  "review.fixFail": "Couldn't save those counts. Try again.",
+  "review.allFixed": "All missing counts saved \u2014 tap Approve count.",
   "review.info": "ℹ️ Info", "review.warn": "⚠️ Warning",
   "orders.loading": "Loading orders…", "orders.title": "Orders",
   "orders.print": "🖨 Print",
@@ -366,6 +370,10 @@ es: {
   "review.approveYes": "Aprobar", "review.approveFail": "Falló la aprobación.",
   "review.blockTitle": "No se puede aprobar — estos artículos necesitan revisión:",
   "review.blockMsg": "Abre cada artículo en el conteo y resuélvelo, luego aprueba de nuevo.",
+  "review.fixHint": "Ingresa los conteos faltantes abajo (0 si la ubicaci\u00f3n est\u00e1 vac\u00eda), guarda y luego aprueba.",
+  "review.fixInvalid": "Ingresa un conteo v\u00e1lido (0 o m\u00e1s) para cada ubicaci\u00f3n.",
+  "review.fixFail": "No se pudieron guardar esos conteos. Int\u00e9ntalo de nuevo.",
+  "review.allFixed": "Conteos guardados \u2014 toca Aprobar conteo.",
   "review.info": "ℹ️ Info", "review.warn": "⚠️ Advertencia",
   "orders.loading": "Cargando pedidos…", "orders.title": "Pedidos",
   "orders.print": "🖨 Imprimir",
@@ -1862,7 +1870,7 @@ async function renderReview(sessionId) {
     return b && areaIdsOf(i).some(id => !b.rows.some(r => String(r.area_id) === String(id)));
   });
 
-  state.review = { sessionId, flags: [], aiRan: false, blocking: null, blockDetail: null, sessionStatus, _byItem: byItem };
+  state.review = { sessionId, flags: [], aiRan: false, blocking: null, blockCode: null, blockDetail: null, sessionStatus, _byItem: byItem };
 
   const canApprove = has("approve");
   drawReview(notCounted, needsReview, partialItems, canApprove);
@@ -2020,11 +2028,96 @@ function renderFlags() {
 function renderBlocking() {
   const c = state.review;
   const box = document.getElementById("approve-err");
+  const items = Array.isArray(c.blocking) ? c.blocking : [];
+  const fixable = c.blockCode === "incomplete_locations" && items.length > 0;
+  // Group missing locations by item so each item drops down into its own fix form.
+  const groups = [];
+  if (fixable) {
+    const byId = new Map();
+    for (const b of items) {
+      const k = String(b.item_id || b.item_name);
+      if (!byId.has(k)) byId.set(k, { item_id: b.item_id, item_name: b.item_name || b.name || "?", areas: [] });
+      if (b.area_id) byId.get(k).areas.push({ area_id: b.area_id, area_name: b.area_name || "?" });
+    }
+    for (const g of byId.values()) if (g.areas.length) groups.push(g);
+  }
+  const listHtml = groups.length
+    ? `<ul class="block-fix-list">${groups.map((g, gi) => `
+      <li>
+        <button class="btn btn-small block-toggle" data-bg="${gi}">${esc(g.item_name)} — ${esc(g.areas.map(a => a.area_name).join(", "))} &#9662;</button>
+        <div class="block-form" data-bf="${gi}" hidden>
+          ${g.areas.map(a => `
+            <label class="block-row">
+              <span>${esc(a.area_name)}</span>
+              <input type="number" inputmode="decimal" min="0" step="any" value="0" data-bitem="${esc(String(g.item_id))}" data-barea="${esc(String(a.area_id))}">
+            </label>`).join("")}
+          <div><button class="btn btn-small btn-primary" data-bsave="${esc(String(g.item_id))}">${esc(T("common.save"))}</button></div>
+        </div>
+      </li>`).join("")}</ul>`
+    : `<ul>${items.map(b => `<li>${esc(b.item_name || b.name || b)}${b.area_name ? ` — ${esc(b.area_name)}` : ""}</li>`).join("")}</ul>`;
   box.innerHTML = `<div class="error"><strong>${esc(T("review.blockTitle"))}</strong>
     ${c.blockDetail ? `<p style="margin:8px 0">${esc(c.blockDetail)}</p>` : ""}
-    <ul>${c.blocking.map(b => `<li>${esc(b.item_name || b.name || b)}${b.area_name ? ` — ${esc(b.area_name)}` : ""}</li>`).join("")}</ul>
-    ${esc(T("review.blockMsg"))}</div>`;
+    ${listHtml}
+    <p class="muted" style="margin:8px 0 0">${esc(groups.length ? T("review.fixHint") : T("review.blockMsg"))}</p></div>`;
   box.scrollIntoView();
+  box.querySelectorAll(".block-toggle").forEach(t => {
+    t.onclick = () => {
+      const f = box.querySelector(`[data-bf="${t.dataset.bg}"]`);
+      if (!f) return;
+      f.hidden = !f.hidden;
+      t.innerHTML = t.innerHTML.replace(/▾|▴/, f.hidden ? "▾" : "▴");
+    };
+  });
+  box.querySelectorAll("[data-bsave]").forEach(b => {
+    b.onclick = () => saveBlockingCounts(b.dataset.bsave, b);
+  });
+}
+
+/** Save missing location counts inline from the approve-blocking box, so the
+ *  user never has to go back to the count screen. */
+async function saveBlockingCounts(itemId, btn) {
+  const c = state.review;
+  const box = document.getElementById("approve-err");
+  const inputs = [...box.querySelectorAll(`input[data-bitem="${CSS.escape(String(itemId))}"]`)];
+  const rows = [];
+  for (const inp of inputs) {
+    const v = inp.value.trim();
+    if (v === "" || isNaN(Number(v)) || Number(v) < 0) {
+      inp.focus();
+      flashError(T("review.fixInvalid"));
+      return;
+    }
+    rows.push({ area_id: inp.dataset.barea, count: Number(v) });
+  }
+  if (!rows.length) return;
+  btn.disabled = true;
+  try {
+    for (const r of rows) {
+      await api("POST", "/entries?on_conflict=session_id,item_id,area_id",
+        {
+          session_id: c.sessionId,
+          item_id: itemId,
+          area_id: r.area_id,
+          count: r.count,
+          status: r.count === 0 ? "zero_confirmed" : "counted",
+          note: null,
+          updated_by: state.session.profile.id,
+        },
+        { "Prefer": "resolution=merge-duplicates" });
+    }
+    showSavedToast();
+    const rest = (c.blocking || []).filter(b => String(b.item_id) !== String(itemId));
+    c.blocking = rest;
+    if (!rest.length) {
+      box.innerHTML = `<div class="notice">${esc(T("review.allFixed"))}</div>`;
+      box.scrollIntoView();
+    } else {
+      renderBlocking();
+    }
+  } catch (e) {
+    btn.disabled = false;
+    flashError(e.detail || T("review.fixFail"));
+  }
 }
 
 /** AI check -> ai-review -> plain-English warning/info rows. */
@@ -2086,6 +2179,7 @@ async function approveSession() {
     } else if (e.status === 409 || e.code === "needs_review") {
       c.blocking = (e.data && (e.data.blocking || e.data.items)) || e.detail || [];
       if (!Array.isArray(c.blocking)) c.blocking = [c.blocking];
+      c.blockCode = e.code || null;
       c.blockDetail = (e.data && e.data.detail) || e.detail || null;
       renderBlocking();
     } else {

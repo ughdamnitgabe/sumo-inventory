@@ -369,3 +369,12 @@ table.bulk-par input { width: 90px; min-height: 44px; font-size: 16px; text-alig
   padding: 10px 22px; border-radius: 999px; box-shadow: 0 4px 14px rgba(0,0,0,.35);
   pointer-events: none; white-space: nowrap; }
 #saved-toast.show { transform: translate(-50%, 0); }
+
+/* Inline missing-count fix on the review/approve page: blocking items drop
+ * down into per-location count inputs so the user never leaves the screen. */
+.block-fix-list { list-style: none; margin: 8px 0; padding: 0; }
+.block-fix-list li { margin: 8px 0; }
+.block-toggle { width: 100%; text-align: left; }
+.block-form { display: grid; gap: 8px; margin: 8px 0 4px; padding: 10px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; }
+.block-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; color: var(--text); }
+.block-row input { width: 110px; }
