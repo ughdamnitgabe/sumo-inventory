@@ -172,6 +172,11 @@ en: {
   "orders.addItem": "Add item", "orders.qty": "Qty",
   "orders.linesFail": "Could not save order.",
   "orders.needLines": "Add at least one item.",
+  "orders.delete": "Delete", "orders.deleteTitle": "Delete order?",
+  "orders.deleteMsg": "This permanently deletes the order for {vendor}. This cannot be undone.",
+  "orders.deleteFail": "Could not delete order.",
+  "orders.deleted": "Order deleted.",
+  "orders.orderDate": "Order date",
   "admin.manage": "Manage", "admin.items": "Items", "admin.areas": "Areas",
   "admin.vendors": "Vendors", "admin.users": "Users",
   "users.delete": "Delete", "users.deleteTitle": "Delete user?",
@@ -387,6 +392,11 @@ es: {
   "orders.addItem": "Añadir artículo", "orders.qty": "Cant.",
   "orders.linesFail": "No se pudo guardar el pedido.",
   "orders.needLines": "Añade al menos un artículo.",
+  "orders.delete": "Eliminar", "orders.deleteTitle": "\u00bfEliminar pedido?",
+  "orders.deleteMsg": "Esto elimina permanentemente el pedido de {vendor}. No se puede deshacer.",
+  "orders.deleteFail": "No se pudo eliminar el pedido.",
+  "orders.deleted": "Pedido eliminado.",
+  "orders.orderDate": "Fecha del pedido",
   "admin.manage": "Administrar", "admin.items": "Artículos", "admin.areas": "Áreas",
   "admin.vendors": "Proveedores", "admin.users": "Usuarios",
   "users.delete": "Eliminar", "users.deleteTitle": "¿Eliminar usuario?",
@@ -2543,6 +2553,7 @@ async function renderOrders() {
   } catch (e) { if (e.status === 401 || e.code === "unauthorized") { dropSession(); go("#/login"); return; } }
 
   const canManage = has("approve"); // manager+: mark sent/received
+  const isSuper = has("superadmin"); // superadmin: delete test orders
   const statusLabel = (s) => s === "sent" ? T("orders.sent") : s === "received" ? T("orders.received") : T("orders.draft");
   const pill = (s) => {
     const cls = s === "sent" ? "pill-sent" : s === "received" ? "pill-received" : "pill-draft";
@@ -2573,7 +2584,7 @@ async function renderOrders() {
         name: l.item_name, qty: l.order_qty, unit: l.unit, line: Number(l.line_cost) || 0,
         pieces_per_case: l.pieces_per_case, case_label: l.case_label,
       }));
-      const d = orderCardData(vendor, lines, fmtLongDateEn(ord.created_at));
+      const d = orderCardData(vendor, lines, fmtLongDateEn(ord.order_date || ord.created_at));
       return `<div class="order-wrap">
         <div class="order-status-row no-print">
           ${pill(ord.status)}
@@ -2584,6 +2595,8 @@ async function renderOrders() {
               ? `<button class="btn btn-small" data-sent="${esc(ord.id)}">${esc(T("orders.markSent"))}</button>` : ""}
             ${canManage && ord.status === "sent"
               ? `<button class="btn btn-small" data-received="${esc(ord.id)}">${esc(T("orders.markReceived"))}</button>` : ""}
+            ${isSuper
+              ? `<button class="btn btn-small" data-delorder="${esc(ord.id)}" data-vendor="${esc(vendor.name)}">${esc(T("orders.delete"))}</button>` : ""}
           </span>
         </div>
         <div class="order-edit no-print" data-editwrap="${esc(ord.id)}" hidden></div>
@@ -2597,6 +2610,7 @@ async function renderOrders() {
   $app().querySelectorAll("[data-sent]").forEach(b => b.onclick = () => setOrderStatus(b.dataset.sent, "sent"));
   $app().querySelectorAll("[data-received]").forEach(b => b.onclick = () => setOrderStatus(b.dataset.received, "received"));
   $app().querySelectorAll("[data-edit]").forEach(b => b.onclick = () => openOrderEditor(b.dataset.edit));
+  $app().querySelectorAll("[data-delorder]").forEach(b => b.onclick = () => deleteOrder(b.dataset.delorder, b.dataset.vendor));
   $app().querySelector('[data-act="back-home"]').onclick = () => go("#/home");
   $app().querySelector('[data-act="nav-logout"]').onclick = logout;
 }
@@ -2608,9 +2622,32 @@ async function setOrderStatus(orderId, status) {
   } catch (e) { flashError(e.detail || T("orders.statusFail")); }
 }
 
+/** Superadmin-only: permanently delete an order (for clearing test orders). */
+async function deleteOrder(orderId, vendorName) {
+  if (!await confirmDialog(T("orders.deleteTitle"),
+    T("orders.deleteMsg").replace("{vendor}", vendorName || "?"), T("orders.delete"))) return;
+  try {
+    await edge("orders.delete", { order_id: orderId });
+    showSavedToast(T("orders.deleted"));
+    renderOrders();
+  } catch (e) { flashError(e.detail || T("orders.deleteFail")); }
+}
+
 /* Manual override: edit a draft order's lines (per vendor) before the card
  * is generated — e.g. bump quantities for a big party. Quantities, add/remove
  * lines; the card and vendor text rebuild from the saved lines. */
+/** YYYY-MM-DD for the order-date picker, matching the day the order card shows.
+ *  Noon-UTC stored order days slice exactly; legacy timestamps use the local day. */
+function orderDateVal(ord) {
+  const iso = (ord && (ord.order_date || ord.created_at)) || "";
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (d.getUTCHours() === 12 && d.getUTCMinutes() === 0 && d.getUTCSeconds() === 0)
+    return iso.slice(0, 10);
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
 function openOrderEditor(orderId) {
   const ord = (state.orders || []).find(o => String(o.id) === String(orderId));
   if (!ord || ord.status !== "draft") return;
@@ -2657,6 +2694,10 @@ function openOrderEditor(orderId) {
   };
   function render() {
     wrap.innerHTML = `
+      <div class="oedit-row">
+        <span class="oedit-name">${esc(T("orders.orderDate"))}</span>
+        <input type="date" data-ddate value="${esc(orderDateVal(ord))}" style="min-height:44px;border-radius:8px">
+      </div>
       <div data-drows>${rowsHtml()}</div>
       ${addHtml()}
       <div data-derr></div>
@@ -2709,7 +2750,12 @@ function openOrderEditor(orderId) {
         return;
       }
       try {
-        const r = await edge("orders.update-lines", { order_id: ord.id, lines: payload });
+        const dateInput = wrap.querySelector("[data-ddate]");
+        const r = await edge("orders.update-lines", {
+          order_id: ord.id,
+          lines: payload,
+          order_date: dateInput && dateInput.value ? dateInput.value : undefined,
+        });
         const idx = (state.orders || []).findIndex(o => String(o.id) === String(ord.id));
         if (idx >= 0 && r && r.order) state.orders[idx] = r.order;
         renderOrders();
