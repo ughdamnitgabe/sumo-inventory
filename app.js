@@ -250,6 +250,7 @@ en: {
   "orders.qoFail": "Could not create the quick order.",
   "admin.altVendors": "Alternate vendors",
   "admin.altVendorsHint": "Other vendors that also carry this item — it will show in their quick orders.",
+  "admin.searchItems": "🔍 Search items…", "admin.noItemsMatch": "No items match.",
   "item.dailyUsage": "Daily usage", "item.learned": "auto: {x}/day",
   "item.maxOnHand": "Max on hand",
   "vendor.daysWorth": "days", "vendor.coverageHint": "Select order days first.",
@@ -409,6 +410,7 @@ es: {
   "orders.qoFail": "No se pudo crear el pedido rápido.",
   "admin.altVendors": "Proveedores alternos",
   "admin.altVendorsHint": "Otros proveedores que también venden este artículo — aparecerá en sus pedidos rápidos.",
+  "admin.searchItems": "🔍 Buscar artículos…", "admin.noItemsMatch": "Sin resultados.",
   "admin.manage": "Administrar", "admin.items": "Artículos", "admin.areas": "Áreas",
   "admin.vendors": "Proveedores", "admin.users": "Usuarios",
   "users.delete": "Eliminar", "users.deleteTitle": "¿Eliminar usuario?",
@@ -580,6 +582,9 @@ const state = {
   cardData: {},        // order-card payloads keyed by card id (for image share)
   lang: "en",          // UI language: "en" | "es" (per device; orders always English)
 };
+// Live filter text for the Manage → Items list (module-level so it survives
+// tab re-renders while typing).
+let adminItemSearch = "";
 
 /** Load store settings (store name, price toggle). Cached; cheap to refresh. */
 async function loadSettings() {
@@ -3027,6 +3032,9 @@ function adminItemsHtml() {
     `<option value="${esc(v.id)}" ${String(v.id) === String(sel) ? "selected" : ""}>${esc(v.name)}</option>`).join("");
 
   return `<div class="admin-card">
+      <div class="field" style="margin-bottom:0"><input id="ai-search" placeholder="${esc(T("admin.searchItems"))}" value="${esc(adminItemSearch)}" autocomplete="off"></div>
+    </div>
+    <div class="admin-card">
       <h3 style="margin-top:0">${esc(T("admin.csvTitle"))}</h3>
       <p class="muted">${esc(T("admin.csvHelp"))}</p>
       <button class="btn" id="csv-download" style="width:100%">${esc(T("admin.csvDownload"))}</button>
@@ -3052,7 +3060,19 @@ function adminItemsHtml() {
       <div id="ni-err"></div>
       <button class="btn btn-primary" id="ni-add" style="width:100%">${esc(T("admin.addItem"))}</button>
     </div>
-    ${state.items.map(i => `
+    <div id="admin-item-list">${adminItemCardsHtml()}</div>`;
+}
+
+/* Item cards for Manage → Items, filtered by the live search box. Kept as a
+ * separate function so typing in the search re-renders only the list (the
+ * Add-item form and its inputs are left untouched). */
+function adminItemCardsHtml() {
+  const q = adminItemSearch.trim().toLowerCase();
+  const list = q
+    ? state.items.filter(i => String(i.name || "").toLowerCase().includes(q))
+    : state.items;
+  if (!list.length) return `<p class="muted">${esc(T("admin.noItemsMatch"))}</p>`;
+  return `${list.map(i => `
     <div class="admin-card" data-item="${esc(i.id)}">
       <div class="card-head">
         <div><strong>${esc(i.name)}</strong>
@@ -3092,6 +3112,33 @@ function adminItemsHtml() {
         <button class="btn btn-primary btn-small" data-ai-save style="flex:1">${esc(T("common.save"))}</button>
       </div>
     </div>`).join("")}`;
+}
+
+/* Wire the per-item save/archive buttons inside a Manage → Items card
+ * container. Called once for the full tab and again after every search
+ * re-render (re-rendered cards lose their handlers). */
+function wireItemCards(root, rerender) {
+  root.querySelectorAll("[data-item]").forEach(card => {
+    const id = card.dataset.item;
+    card.querySelector("[data-ai-save]").onclick = async () => {
+      const data = {};
+      card.querySelectorAll("[data-f]").forEach(inp => data[inp.dataset.f] = inp.value);
+      data.par = data.par === "" ? 0 : Number(data.par);
+      data.price = data.price === "" ? 0 : Number(data.price);
+      data.pieces_per_case = data.pieces_per_case === "" ? null : Number(data.pieces_per_case);
+      for (const f of ["daily_usage_manual", "max_on_hand"]) data[f] = data[f] === "" ? null : Number(data[f]);
+      if (!data.vendor_id) data.vendor_id = null;
+      data.area_ids = [...card.querySelectorAll("[data-area-check]:checked")].map(b => b.value);
+      data.alt_vendor_ids = [...card.querySelectorAll("[data-alt-vendor-check]:checked")].map(b => b.value);
+      try { await edge("items.update", { item_id: id, ...data }); flashSaved(card); }
+      catch (e) { flashError(e.detail || T("admin.saveItemFail")); }
+    };
+    card.querySelector("[data-ai-toggle]").onclick = async () => {
+      const item = itemById(id);
+      try { await edge("items.update", { item_id: id, active: item.active === false }); rerender(); }
+      catch (e) { flashError(e.detail || T("admin.archiveFail")); }
+    };
+  });
 }
 
 /* ---------------- Areas tab ---------------- */
@@ -3875,27 +3922,13 @@ function wireAdmin(tab, arg2) {
         rerender();
       } catch (e) { err.innerHTML = `<div class="error">${esc(e.detail || T("admin.addItemFail"))}</div>`; }
     };
-    body.querySelectorAll("[data-item]").forEach(card => {
-      const id = card.dataset.item;
-      card.querySelector("[data-ai-save]").onclick = async () => {
-        const data = {};
-        card.querySelectorAll("[data-f]").forEach(inp => data[inp.dataset.f] = inp.value);
-        data.par = data.par === "" ? 0 : Number(data.par);
-        data.price = data.price === "" ? 0 : Number(data.price);
-        data.pieces_per_case = data.pieces_per_case === "" ? null : Number(data.pieces_per_case);
-        for (const f of ["daily_usage_manual", "max_on_hand"]) data[f] = data[f] === "" ? null : Number(data[f]);
-        if (!data.vendor_id) data.vendor_id = null;
-        data.area_ids = [...card.querySelectorAll("[data-area-check]:checked")].map(b => b.value);
-        data.alt_vendor_ids = [...card.querySelectorAll("[data-alt-vendor-check]:checked")].map(b => b.value);
-        try { await edge("items.update", { item_id: id, ...data }); flashSaved(card); }
-        catch (e) { flashError(e.detail || T("admin.saveItemFail")); }
-      };
-      card.querySelector("[data-ai-toggle]").onclick = async () => {
-        const item = itemById(id);
-        try { await edge("items.update", { item_id: id, active: item.active === false }); rerender(); }
-        catch (e) { flashError(e.detail || T("admin.archiveFail")); }
-      };
-    });
+    const searchInput = document.getElementById("ai-search");
+    if (searchInput) searchInput.oninput = (e) => {
+      adminItemSearch = e.target.value;
+      const list = document.getElementById("admin-item-list");
+      if (list) { list.innerHTML = adminItemCardsHtml(); wireItemCards(list, rerender); }
+    };
+    wireItemCards(body, rerender);
   }
 
   if (tab === "bulk") {
