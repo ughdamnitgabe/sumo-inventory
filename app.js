@@ -4242,10 +4242,14 @@ function wireAdmin(tab, arg2) {
       try {
         const v = String(Date.now());
         await edge("settings.set", { key: "app_version", value: v });
-        // Don't banner our own device for the update we just pushed.
-        try { localStorage.setItem(APP_VER_KEY, v); } catch (e) { /* noop */ }
         state.settings = Object.assign({}, state.settings, { app_version: v });
         msg.innerHTML = `<div class="ok">${esc(T("update.pushed"))}</div>`;
+        // The push only bumps the server signal — this browser still runs the
+        // cached bundle until it does a real page load (index.html cache-busts
+        // app.js on every load). Hard-refresh so this device picks up the
+        // deployed code too; the seen-version is stored before reloading, so
+        // the fresh load won't banner or loop.
+        setTimeout(hardRefreshToLatest, 800);
       } catch (e) { msg.innerHTML = `<div class="error">${esc(e.detail || T("update.pushFail"))}</div>`; }
     };
     document.getElementById("set-save").onclick = async () => {
