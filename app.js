@@ -3099,20 +3099,25 @@ async function renderAdmin(tab, arg2) {
 }
 
 /* ---------------- Items tab ---------------- */
-function adminItemsHtml() {
-  const areaOpts = (sel) => state.areas.map(a =>
-    `<option value="${esc(a.id)}" ${String(a.id) === String(sel) ? "selected" : ""}>${esc(a.name)}</option>`).join("");
-  // Checkbox list for an item's locations; first checked = primary.
-  const areaChecks = (selIds) => state.areas.map(a =>
+/* Option/checkbox builders for Manage → Items. Module scope (not nested in
+ * adminItemsHtml) so the extracted adminItemCardsHtml() can use them too. */
+function areaChecks(selIds) {
+  return state.areas.map(a =>
     `<label class="check"><input type="checkbox" data-area-check value="${esc(a.id)}" ${selIds.includes(String(a.id)) ? "checked" : ""}> ${esc(a.name)}</label>`).join("");
-  // Checkbox list for an item's alternate vendors; the primary vendor is
-  // excluded here (the server strips it anyway if the primary changes).
-  const altVendorChecks = (item) => state.vendors
+}
+// Checkbox list for an item's alternate vendors; the primary vendor is
+// excluded here (the server strips it anyway if the primary changes).
+function altVendorChecks(item) {
+  return state.vendors
     .filter(v => String(v.id) !== String(item.vendor_id || ""))
     .map(v => `<label class="check"><input type="checkbox" data-alt-vendor-check value="${esc(v.id)}" ${(Array.isArray(item.alt_vendor_ids) && item.alt_vendor_ids.some(a => String(a) === String(v.id))) ? "checked" : ""}> ${esc(v.name)}</label>`).join("");
-  const vendorOpts = (sel) => `<option value="">—</option>` + state.vendors.map(v =>
+}
+function vendorOpts(sel) {
+  return `<option value="">—</option>` + state.vendors.map(v =>
     `<option value="${esc(v.id)}" ${String(v.id) === String(sel) ? "selected" : ""}>${esc(v.name)}</option>`).join("");
+}
 
+function adminItemsHtml() {
   return `<div class="admin-card">
       <div class="field" style="margin-bottom:0"><input id="ai-search" placeholder="${esc(T("admin.searchItems"))}" value="${esc(adminItemSearch)}" autocomplete="off"></div>
     </div>
