@@ -370,6 +370,7 @@ en: {
   "sched.openShifts": "Open shifts",
   "sched.noOpenSwaps": "No shifts on the swap board right now.",
   "sched.pickup": "Pick up",
+  "sched.posOnlyShift": "Only {pos} staff can pick up this shift.",
   "sched.pickupTitle": "Pick up this shift?",
   "sched.pickupMsg": "A manager has to approve the pickup before it's yours.",
   "sched.claimSent": "Pickup requested — waiting on manager approval.",
@@ -690,6 +691,7 @@ es: {
   "sched.openShifts": "Turnos disponibles",
   "sched.noOpenSwaps": "No hay turnos en el tablón ahora.",
   "sched.pickup": "Tomar turno",
+  "sched.posOnlyShift": "Solo el personal de {pos} puede tomar este turno.",
   "sched.pickupTitle": "¿Tomar este turno?",
   "sched.pickupMsg": "Un gerente debe aprobar el cambio antes de que sea tuyo.",
   "sched.claimSent": "Solicitud enviada — esperando aprobación del gerente.",
@@ -5284,6 +5286,9 @@ async function schedSwapsHtml() {
 
   const openCard = (s) => {
     const isMine = String(s.released_by) === me;
+    const myPos = (state.session.profile.position || "").trim().toLowerCase();
+    const shiftPos = (s.shift.position || "").trim();
+    const posOk = isMgr || !shiftPos || (!!myPos && myPos === shiftPos.toLowerCase());
     return `<div class="admin-card" data-swap="${esc(s.id)}" style="margin-bottom:10px">
       <div class="card-head"><div>${schedSwapShiftLine(s.shift)}
         <div class="muted" style="font-size:13px;margin-top:2px">${esc(T("sched.releasedBy"))}: ${esc(s.released_name || "")}</div></div>
@@ -5291,7 +5296,9 @@ async function schedSwapsHtml() {
       ${isMine
         ? `<div class="muted" style="font-size:13px;margin-top:8px">${esc(T("sched.yourListing"))}</div>
            <button class="btn btn-small btn-ghost" data-swap-cancel style="margin-top:8px">${esc(T("sched.cancelSwap"))}</button>`
-        : `<button class="btn btn-small btn-primary" data-claim style="width:100%;margin-top:8px">${esc(T("sched.pickup"))}</button>`}
+        : posOk
+          ? `<button class="btn btn-small btn-primary" data-claim style="width:100%;margin-top:8px">${esc(T("sched.pickup"))}</button>`
+          : `<div class="muted" style="font-size:13px;margin-top:8px">🔒 ${esc(T("sched.posOnlyShift").replace("{pos}", shiftPos))}</div>`}
     </div>`;
   };
   const inboxCard = (s) => {
