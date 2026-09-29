@@ -598,13 +598,37 @@ async function loadSettings() {
 }
 /* ---------------- Push updates ---------------- */
 // Superadmin bumps settings.app_version ("Push update"); every client compares
-// it against the version it launched with and shows an update banner on change.
+// it against the version it launched with. On safe screens (login, home) a
+// stale client refreshes itself automatically; anywhere else (e.g. mid-count)
+// it shows the green update banner instead so no work is yanked away.
 const APP_VER_KEY = "sumo_app_version_seen";
+function getSeenVersion() {
+  try { return localStorage.getItem(APP_VER_KEY); } catch (e) { return null; }
+}
+function setSeenVersion(v) {
+  try { localStorage.setItem(APP_VER_KEY, v); } catch (e) { /* noop */ }
+}
+/** Hard reload with a cache-busting URL (defeats the iOS home-screen cache). */
+function hardRefreshToLatest() {
+  setSeenVersion(String(state.settings && state.settings.app_version != null ? state.settings.app_version : "0"));
+  location.href = location.pathname + "?v=" + Date.now() + location.hash;
+}
+/**
+ * Auto-refresh path for safe screens. The seen version is stored BEFORE
+ * reloading, so this can never loop. Returns true when the page is reloading
+ * (the caller must stop and return immediately).
+ */
+function autoRefreshIfStale() {
+  const server = String(state.settings && state.settings.app_version != null ? state.settings.app_version : "0");
+  const seen = getSeenVersion();
+  if (!seen) { setSeenVersion(server); return false; }
+  if (server !== seen) { hardRefreshToLatest(); return true; }
+  return false;
+}
 function checkVersionSeen(server) {
   if (!state.session) return; // login screen: nothing to update yet
-  let seen = null;
-  try { seen = localStorage.getItem(APP_VER_KEY); } catch (e) { /* noop */ }
-  if (!seen) { try { localStorage.setItem(APP_VER_KEY, server); } catch (e) { /* noop */ } return; }
+  const seen = getSeenVersion();
+  if (!seen) { setSeenVersion(server); return; }
   if (server !== seen && !document.getElementById("update-banner")) showUpdateBanner(server);
 }
 function showUpdateBanner(server) {
@@ -613,11 +637,64 @@ function showUpdateBanner(server) {
   bar.innerHTML = `<span>${esc(T("update.available"))}</span><button id="update-now">${esc(T("update.now"))}</button>`;
   document.body.prepend(bar);
   document.getElementById("update-now").onclick = () => {
-    try { localStorage.setItem(APP_VER_KEY, server); } catch (e) { /* noop */ }
+    setSeenVersion(server);
     // Cache-bust the reload itself: a query string forces iOS to refetch
     // index.html instead of serving its home-screen cache.
     location.href = location.pathname + "?v=" + Date.now() + location.hash;
   };
+}
+
+/* ---------------- Idle re-login ---------------- */
+// Shared restaurant device: if the app sits in the background longer than
+// this, coming back to the foreground forces a fresh PIN login. The login
+// itself auto-refreshes when a push is pending, so one login always lands on
+// the latest version.
+const IDLE_RELOGIN_MS = 15 * 60 * 1000; // 15 minutes
+const LAST_ACTIVE_KEY = "sumoV2lastActive";
+let hiddenAt = 0; // when this page last went to the background (0 = not tracked)
+function stampActive() {
+  try { localStorage.setItem(LAST_ACTIVE_KEY, String(Date.now())); } catch (e) { /* noop */ }
+}
+function lastActiveAt() {
+  try { return Number(localStorage.getItem(LAST_ACTIVE_KEY)) || 0; } catch (e) { return 0; }
+}
+/** True when the persisted last-active stamp is older than the idle limit
+ *  (covers the case where iOS killed the page while it was backgrounded). */
+function idlePastLimit() {
+  const la = lastActiveAt();
+  return la > 0 && Date.now() - la > IDLE_RELOGIN_MS;
+}
+
+/**
+ * Session watchers, registered once at boot. Every callback self-guards on
+ * state.session, so this works no matter which auth path boot takes (fresh
+ * login screen, restored session, forced set-pin, or idle-timeout logout).
+ * - Push-update poll: every 5 minutes while the app is open and visible.
+ * - Activity heartbeat: every 60 seconds, so the idle timer survives iOS
+ *   killing the backgrounded page.
+ * - Foreground return: backgrounded past the idle limit -> forced PIN login
+ *   (the login itself auto-refreshes when a push is pending). Otherwise just
+ *   stamp activity and check for a pushed update (banner if one is mid-work).
+ */
+function startSessionWatchers() {
+  if (state.session) loadSettings();
+  setInterval(() => {
+    if (state.session && !document.hidden) { stampActive(); loadSettings(); }
+  }, 5 * 60 * 1000);
+  setInterval(() => { if (state.session && !document.hidden) stampActive(); }, 60 * 1000);
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      if (state.session) { hiddenAt = Date.now(); stampActive(); }
+      return;
+    }
+    if (state.session && hiddenAt && Date.now() - hiddenAt > IDLE_RELOGIN_MS) {
+      hiddenAt = 0;
+      logout(); // forced re-login; the login auto-refreshes when a push is pending
+      return;
+    }
+    hiddenAt = 0;
+    if (state.session) { stampActive(); loadSettings(); }
+  });
 }
 const storeName = () => (state.settings && state.settings.store_name) || "Sumo Sushi";
 const showPrices = () => !!(state.settings && state.settings.show_prices);
@@ -686,6 +763,7 @@ function dropSession() {
  *  call (areas.list works for any role). On 401 -> drop + login. */
 async function boot() {
   try { state.lang = localStorage.getItem(LANG_KEY) || "en"; } catch (e) { state.lang = "en"; }
+  startSessionWatchers(); // self-guarded; registered before any auth path below
   const raw = localStorage.getItem(SESSION_KEY);
   if (raw) {
     try {
@@ -695,7 +773,14 @@ async function boot() {
       // server — not the saved login copy — decides who sees the dead screen.
       const r = await edge("areas.list");
       state.areas = r.areas || r || [];
-      if (state.session.profile && state.session.profile.must_change_pin) {
+      // The page may have been killed by iOS while backgrounded: past the
+      // idle limit, force a fresh login instead of restoring the old session.
+      // (No return here — falls through to router(), which shows the login
+      // screen once the session is dropped.)
+      if (idlePastLimit()) {
+        dropSession();
+        location.hash = "#/login";
+      } else if (state.session.profile && state.session.profile.must_change_pin) {
         location.hash = "#/set-pin";
         return;
       }
@@ -706,15 +791,8 @@ async function boot() {
   }
   router();
   window.addEventListener("hashchange", router);
-  // Push-update checks: on launch, every 5 minutes while open, and whenever
-  // the app comes back to the foreground (iOS home-screen resume).
-  if (state.session) {
-    loadSettings();
-    setInterval(() => { if (state.session && !document.hidden) loadSettings(); }, 5 * 60 * 1000);
-    document.addEventListener("visibilitychange", () => {
-      if (!document.hidden && state.session) loadSettings();
-    });
-  }
+  // Push-update + idle watchers are registered in startSessionWatchers() at
+  // the top of boot() so every auth path gets them.
   // Top-bar Home button, delegated so every view gets it without per-view wiring.
   document.addEventListener("click", (e) => {
     const t = e.target.closest('[data-act="nav-home"]');
@@ -905,6 +983,7 @@ async function doLogin(pin) {
     // PIN travels only in this request body; it is never stored.
     const r = await edge("login", { pin });
     saveSession({ token: r.token, profile: r.profile });
+    stampActive();
     // First-login accounts must change PIN before any other call is allowed.
     if (r.profile && r.profile.must_change_pin) { go("#/set-pin"); return; }
     const a = await edge("areas.list");
@@ -996,6 +1075,9 @@ async function renderHome() {
     state.vendors = v.vendors || v || [];
     state.items = it.items || it || [];
     if (sg.settings) state.settings = Object.assign({ store_name: "Sumo Sushi", show_prices: false }, sg.settings);
+    // Home is a safe screen (no unsaved state): a pushed update refreshes
+    // itself here automatically instead of waiting for a banner tap.
+    if (autoRefreshIfStale()) return;
   } catch (e) {
     if (e.code === "unauthorized" || e.status === 401) { dropSession(); go("#/login"); return; }
   }
