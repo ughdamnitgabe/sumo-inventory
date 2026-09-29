@@ -311,6 +311,7 @@ en: {
   "sched.builder": "Schedule Builder", "sched.timeoff": "Time Off", "sched.avail": "Availability",
   "sched.prevWeek": "Previous week", "sched.nextWeek": "Next week", "sched.thisWeek": "This week",
   "sched.draft": "DRAFT — not visible to staff", "sched.published": "Published",
+  "sched.noPeople": "No one has schedule access yet. Turn it on per person in the Users screen, then build the schedule here.",
   "sched.publish": "Publish", "sched.unpublish": "Unpublish",
   "sched.unpublished": "Unpublished",
   "sched.copyWeek": "Copy last week",
@@ -591,6 +592,7 @@ es: {
   "sched.builder": "Crear horario", "sched.timeoff": "Días libres", "sched.avail": "Disponibilidad",
   "sched.prevWeek": "Semana anterior", "sched.nextWeek": "Semana siguiente", "sched.thisWeek": "Esta semana",
   "sched.draft": "BORRADOR — no visible para el personal", "sched.published": "Publicado",
+  "sched.noPeople": "Nadie tiene acceso al horario aún. Actívalo por persona en la pantalla de Usuarios y luego arma el horario aquí.",
   "sched.publish": "Publicar", "sched.unpublish": "Despublicar",
   "sched.unpublished": "Despublicado",
   "sched.copyWeek": "Copiar semana anterior",
@@ -4785,8 +4787,10 @@ async function schedBuilderHtml(weekStart) {
         ? `<button class="btn btn-small" id="sched-unpublish">${esc(T("sched.unpublish"))}</button>`
         : `<button class="btn btn-small btn-primary" id="sched-publish">${esc(T("sched.publish"))}</button>`}
     </div>
-    ${schedGridHtml(days, rows, (row, d) => schedBuilderCell(row.id, d))}
-    <p class="muted" style="font-size:13px;margin-top:8px">${esc(T("sched.builderHint"))}</p>`;
+    ${rows.length ? schedGridHtml(days, rows, (row, d) => schedBuilderCell(row.id, d)) : ""}
+    ${rows.length
+      ? `<p class="muted" style="font-size:13px;margin-top:8px">${esc(T("sched.builderHint"))}</p>`
+      : `<p class="muted" style="margin-top:8px">${esc(T("sched.noPeople"))}</p>`}`;
 }
 
 /** Shifts for one builder cell, sorted by start time. */
@@ -4948,6 +4952,7 @@ async function schedTimeoffHtml() {
 }
 
 /* ---------- Availability ---------- */
+const hasTimes = (st) => st === "limited" || st === "blocked";
 function schedAvailStatusLabel(st) {
   return st === "unavailable" ? T("sched.unavailable") : st === "limited" ? T("sched.limited") : st === "blocked" ? T("sched.blocked") : T("sched.available");
 }
@@ -4959,7 +4964,6 @@ async function schedAvailHtml() {
   rows.filter(x => String(x.profile_id) === me).forEach(x => byDay[Number(x.weekday)] = x);
   const stOpts = (sel) => [["available", T("sched.available")], ["unavailable", T("sched.unavailable")], ["limited", T("sched.limited")], ["blocked", T("sched.blocked")]]
     .map(([v, l]) => `<option value="${v}" ${sel === v ? "selected" : ""}>${esc(l)}</option>`).join("");
-  const hasTimes = (st) => st === "limited" || st === "blocked";
   let html = `<div class="admin-card"><h3 style="margin-top:0">${esc(T("sched.avail"))}</h3>
     ${[0, 1, 2, 3, 4, 5, 6].map(i => {
       const wd = (i + 1) % 7; // display Mon..Sun -> stored weekday 0=Sunday
