@@ -314,6 +314,9 @@ en: {
   "sched.calThisWeek": "This week", "sched.cal2Weeks": "Next 2 weeks", "sched.cal4Weeks": "Next 4 weeks",
   "sched.calDone": "Calendar file downloaded — open it to add your shifts.",
   "sched.calEmpty": "No shifts in that range.",
+  "sched.weekStartOn": "Week starts on",
+  "sched.weekStartWarn": "Existing schedules will be re-grouped into the new weeks. Shift dates don't change. Applies to the whole team.",
+  "sched.weekStartSaved": "Week start updated.",
   "sched.draft": "DRAFT — not visible to staff", "sched.published": "Published",
   "sched.noPeople": "No one has schedule access yet. Turn it on per person in the Users screen, then build the schedule here.",
   "sched.publish": "Publish", "sched.unpublish": "Unpublish",
@@ -631,6 +634,9 @@ es: {
   "sched.calThisWeek": "Esta semana", "sched.cal2Weeks": "Próximas 2 semanas", "sched.cal4Weeks": "Próximas 4 semanas",
   "sched.calDone": "Archivo descargado — ábrelo para añadir tus turnos.",
   "sched.calEmpty": "No hay turnos en ese rango.",
+  "sched.weekStartOn": "La semana empieza el",
+  "sched.weekStartWarn": "Los horarios existentes se reagruparán en las nuevas semanas. Las fechas de los turnos no cambian. Aplica a todo el equipo.",
+  "sched.weekStartSaved": "Inicio de semana actualizado.",
   "sched.draft": "BORRADOR — no visible para el personal", "sched.published": "Publicado",
   "sched.noPeople": "Nadie tiene acceso al horario aún. Actívalo por persona en la pantalla de Usuarios y luego arma el horario aquí.",
   "sched.publish": "Publicar", "sched.unpublish": "Despublicar",
@@ -4742,10 +4748,19 @@ function showSavedToast(msg) {
 function schedIso(d) {
   return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
 }
-/** Monday (local) of the week containing d. */
-function schedMonday(d) {
+/** Start (local) of the week containing d, honoring the configured start day. */
+let schedWeekStartDayNum = 1; // 0=Sun..6=Sat; loaded from the server per schedule render
+async function schedLoadWeekStartDay() {
+  try {
+    const r = await edge("schedule.get_settings");
+    const n = Number(r.week_start_day);
+    if (Number.isInteger(n) && n >= 0 && n <= 6) schedWeekStartDayNum = n;
+  } catch (e) { /* keep default Monday */ }
+  return schedWeekStartDayNum;
+}
+function schedWeekStart(d) {
   const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  x.setDate(x.getDate() - ((x.getDay() + 6) % 7));
+  x.setDate(x.getDate() - ((x.getDay() - schedWeekStartDayNum + 7) % 7));
   return x;
 }
 /** Strict YYYY-MM-DD check (no rollover: "2026-13-40" fails). */
@@ -4760,12 +4775,12 @@ function schedAddIso(iso, n) {
   if (p.length !== 3 || p.some(x => !Number.isInteger(x))) return null;
   return schedIso(new Date(p[0], p[1] - 1, p[2] + n));
 }
-/** Week start from the ?w=YYYY-MM-DD query param, else this week's Monday. */
+/** Week start from the ?w=YYYY-MM-DD query param, else this week's start day. */
 function schedWeekStartFromRoute() {
   const q = (state.route && state.route.query) || "";
   const m = q.match(/(?:^|&)w=(\d{4}-\d{2}-\d{2})(?:&|$)/);
   if (m && schedValidIso(m[1])) return m[1];
-  return schedIso(schedMonday(new Date()));
+  return schedIso(schedWeekStart(new Date()));
 }
 /** "Mon 9/28" (locale-aware). */
 function schedDayLabel(iso) {
@@ -4820,8 +4835,9 @@ async function renderSchedule(sub, arg2) {
   if (canSchedManage()) tabs.push(["builder", T("sched.builder")]);
   tabs.push(["timeoff", T("sched.timeoff")], ["avail", T("sched.avail")]);
   if (!tabs.some(([id]) => id === sub)) sub = "my";
+  await schedLoadWeekStartDay(); // store-level week-start day (default Monday)
   // My Week is always the current week; the other tabs keep ?w= in the URL.
-  const weekStart = sub === "my" ? schedIso(schedMonday(new Date())) : schedWeekStartFromRoute();
+  const weekStart = sub === "my" ? schedIso(schedWeekStart(new Date())) : schedWeekStartFromRoute();
 
   $app().innerHTML = navHtml() + `
   <div class="view">
@@ -4865,7 +4881,7 @@ async function renderSchedule(sub, arg2) {
 /** Week nav: ← Previous week · This week · Next week →, plus the week range. */
 function schedWeekNav(sub, weekStart) {
   const prev = schedAddIso(weekStart, -7), next = schedAddIso(weekStart, 7);
-  const cur = schedIso(schedMonday(new Date()));
+  const cur = schedIso(schedWeekStart(new Date()));
   return `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px" class="no-print">
     <button class="btn btn-small" data-go="#/sched/${sub}?w=${prev}">← ${esc(T("sched.prevWeek"))}</button>
     <button class="btn btn-small" data-go="#/sched/${sub}?w=${cur}">${esc(T("sched.thisWeek"))}</button>
@@ -4923,7 +4939,7 @@ function schedDownloadIcs(filename, text) {
 /** Fetch my shifts for the next `weeks` published weeks and download an .ics. */
 async function schedExportCalendar(weeks) {
   const me = String(state.session.profile.id);
-  const monday = schedIso(schedMonday(new Date()));
+  const monday = schedIso(schedWeekStart(new Date()));
   const shifts = [];
   for (let w = 0; w < weeks; w++) {
     try {
@@ -5041,6 +5057,20 @@ async function schedTeamHtml(weekStart) {
 }
 
 /* ---------- Builder (manage only) ---------- */
+/** Long weekday names starting Sunday, locale-aware. */
+function schedWeekdayNames() {
+  const names = [];
+  for (let i = 0; i < 7; i++) names.push(new Date(2026, 8, 27 + i).toLocaleDateString(locale(), { weekday: "long" }));
+  return names;
+}
+/** Week-start day <select> for the schedule builder (managers only). */
+function schedWeekStartSelectHtml() {
+  const names = schedWeekdayNames();
+  const opts = names.map((n, i) =>
+    `<option value="${i}"${i === schedWeekStartDayNum ? " selected" : ""}>${esc(n)}</option>`).join("");
+  return `<label style="margin-left:auto;display:flex;gap:6px;align-items:center;font-size:13px" class="no-print">
+    ${esc(T("sched.weekStartOn"))} <select id="sched-weekstart">${opts}</select></label>`;
+}
 async function schedBuilderHtml(weekStart) {
   const r = await edge("schedule.get_week", { week_start: weekStart });
   let schedule = r.schedule;
@@ -5057,11 +5087,12 @@ async function schedBuilderHtml(weekStart) {
     ${published
       ? `<div class="notice" style="margin-bottom:12px"><strong>✓ ${esc(T("sched.published"))}</strong></div>`
       : `<div class="banner" style="margin-bottom:12px"><strong>${esc(T("sched.draft"))}</strong></div>`}
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px" class="no-print">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center" class="no-print">
       <button class="btn btn-small" id="sched-copy">${esc(T("sched.copyWeek"))}</button>
       ${published
         ? `<button class="btn btn-small" id="sched-unpublish">${esc(T("sched.unpublish"))}</button>`
         : `<button class="btn btn-small btn-primary" id="sched-publish">${esc(T("sched.publish"))}</button>`}
+      ${schedWeekStartSelectHtml()}
     </div>
     ${rows.length ? schedGridHtml(days, rows, (row, d) => schedBuilderCell(row.id, d)) : ""}
     ${rows.length
@@ -5362,6 +5393,21 @@ async function schedAvailHtml() {
 /* ---------- schedule view wiring (after body HTML is set) ---------- */
 function wireSchedBody(sub, weekStart, body) {
   if (sub === "builder" && state.sched) {
+    const wsSel = document.getElementById("sched-weekstart");
+    if (wsSel) wsSel.onchange = async () => {
+      const day = Number(wsSel.value);
+      if (!await confirmDialog(T("sched.weekStartOn"), T("sched.weekStartWarn"), T("common.confirm"))) {
+        wsSel.value = String(schedWeekStartDayNum);
+        return;
+      }
+      wsSel.disabled = true; // double-submit guard
+      try {
+        await edge("schedule.set_week_start_day", { week_start_day: day });
+        schedWeekStartDayNum = day;
+        showSavedToast(T("sched.weekStartSaved"));
+        router();
+      } catch (e) { flashError(e.detail || e.message || "Error"); wsSel.disabled = false; }
+    };
     const copyBtn = document.getElementById("sched-copy");
     if (copyBtn) copyBtn.onclick = async () => {
       if (!await confirmDialog(T("sched.copyTitle"), T("sched.copyMsg"), T("sched.copyWeek"))) return;
