@@ -15,14 +15,15 @@
 <body>
   <div id="app"><div class="loading">Loading&#8230;</div></div>
   <script>
-    // Always fetch the newest code: iOS home-screen web apps cache
-    // aggressively, so bust the cache on every launch.
+    // Version-stamped cache busting: the phone caches app.js/styles.css
+    // between deploys (fast launches) and fetches fresh code whenever
+    // APP_V changes. Bump APP_V on every frontend deploy.
+    var APP_V = "20260930f";
     (function () {
-      var v = Date.now();
       var css = document.getElementById("app-css");
-      if (css) css.href = "styles.css?v=" + v;
+      if (css) css.href = "styles.css?v=" + APP_V;
       var s = document.createElement("script");
-      s.src = "app.js?v=" + v;
+      s.src = "app.js?v=" + APP_V;
       s.onerror = function () {
         var el = document.querySelector("#app .loading");
         var es = (navigator.language || "").toLowerCase().indexOf("es") === 0;
