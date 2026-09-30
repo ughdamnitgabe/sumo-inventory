@@ -283,6 +283,10 @@ en: {
   "admin.active": "active", "admin.disabled": "disabled",
   "admin.enable": "Enable", "admin.disable": "Disable",
   "admin.saveRole": "Save role", "admin.setNewPin": "Set new PIN (enter twice)", "admin.availFor": "Edit availability",
+  "admin.schedprof": "Scheduling profile", "admin.schedprofMin": "Min hours/week", "admin.schedprofMax": "Max hours/week",
+  "admin.schedprofRank": "Seniority rank (1 = most senior)", "admin.schedprofRest": "Min rest between shifts (hrs)",
+  "admin.schedprofDoubles": "Can work doubles", "admin.schedprofSave": "Save scheduling profile",
+  "admin.schedprofFail": "Could not save scheduling profile.",
   "admin.newPin": "New PIN", "admin.confirmPin": "Confirm PIN",
   "admin.setPinBtn": "Set PIN",
   "admin.userStatusFail": "Could not change user status.",
@@ -648,6 +652,10 @@ es: {
   "admin.active": "activo", "admin.disabled": "desactivado",
   "admin.enable": "Activar", "admin.disable": "Desactivar",
   "admin.saveRole": "Guardar rol", "admin.setNewPin": "Poner PIN nuevo (dos veces)", "admin.availFor": "Editar disponibilidad",
+  "admin.schedprof": "Perfil de turnos", "admin.schedprofMin": "Horas mín./semana", "admin.schedprofMax": "Horas máx./semana",
+  "admin.schedprofRank": "Antigüedad (1 = más senior)", "admin.schedprofRest": "Descanso mín. entre turnos (h)",
+  "admin.schedprofDoubles": "Puede doblar turnos", "admin.schedprofSave": "Guardar perfil de turnos",
+  "admin.schedprofFail": "No se pudo guardar el perfil de turnos.",
   "admin.newPin": "PIN nuevo", "admin.confirmPin": "Confirmar PIN",
   "admin.setPinBtn": "Poner PIN",
   "admin.userStatusFail": "No se pudo cambiar el estado del usuario.",
@@ -4263,6 +4271,20 @@ function adminUsersHtml() {
       <button class="btn btn-small" data-u-pin style="width:100%">${esc(T("admin.setPinBtn"))}</button>`}
       ${schedFlagsHtml(u, viewerIsSuper)}
       ${canSchedManage() && !isSA ? `<button class="btn btn-small" data-u-avail data-avail-name="${esc(u.name)}" style="width:100%;min-height:44px;margin-top:10px">📅 ${esc(T("admin.availFor"))}</button>` : ""}
+      ${canSchedManage() && !isSA ? `<button class="btn btn-small" data-u-sprof style="width:100%;min-height:44px;margin-top:10px">⏱ ${esc(T("admin.schedprof"))}</button>
+      <div data-u-sprof-form hidden style="margin-top:10px;border-top:1px solid var(--border);padding-top:10px">
+        <div class="form-row">
+          <div class="field"><label>${esc(T("admin.schedprofMin"))}</label><input data-sp="min_hours" inputmode="numeric" placeholder="—"></div>
+          <div class="field"><label>${esc(T("admin.schedprofMax"))}</label><input data-sp="max_hours" inputmode="numeric" placeholder="40"></div>
+        </div>
+        <div class="form-row">
+          <div class="field"><label>${esc(T("admin.schedprofRank"))}</label><input data-sp="seniority_rank" inputmode="numeric" placeholder="—"></div>
+          <div class="field"><label>${esc(T("admin.schedprofRest"))}</label><input data-sp="min_rest_hours" inputmode="numeric" placeholder="10"></div>
+        </div>
+        <label class="check-row" style="margin-top:8px"><input type="checkbox" data-sp="doubles_ok" checked>
+          <span>${esc(T("admin.schedprofDoubles"))}</span></label>
+        <button class="btn btn-small btn-primary" data-u-sprof-save style="width:100%;min-height:44px;margin-top:8px">${esc(T("admin.schedprofSave"))}</button>
+      </div>` : ""}
       </div>
     </div>`;
     }).join("")}`;
@@ -4967,6 +4989,49 @@ function wireAdmin(tab, arg2) {
         state.availForName = avBtn.dataset.availName || "";
         go("#/sched/avail?for=" + encodeURIComponent(id));
       };
+      // Manager-only scheduling-profile editor: first tap lazy-loads the
+      // employee's current values from schedprofile.get, then toggles the
+      // inline form; Save writes via schedprofile.set (backend enforces the
+      // manager-only rule on both actions too).
+      const spBtn = card.querySelector("[data-u-sprof]");
+      const spForm = card.querySelector("[data-u-sprof-form]");
+      const spSave = card.querySelector("[data-u-sprof-save]");
+      if (spBtn && spForm && spSave) {
+        let spLoaded = false;
+        spBtn.onclick = async () => {
+          if (spForm.hidden && !spLoaded) {
+            try {
+              const r = await edge("schedprofile.get", { profile_id: id });
+              const pr = (r && r.profile) || {};
+              const setVal = (k, v) => { const el = spForm.querySelector(`[data-sp="${k}"]`); if (el) el.value = v == null ? "" : v; };
+              setVal("min_hours", pr.min_hours);
+              setVal("max_hours", pr.max_hours);
+              setVal("seniority_rank", pr.seniority_rank);
+              setVal("min_rest_hours", pr.min_rest_hours);
+              const dbl = spForm.querySelector('[data-sp="doubles_ok"]');
+              if (dbl) dbl.checked = pr.doubles_ok !== false;
+              spLoaded = true;
+            } catch (e) { flashError(e.detail || T("admin.schedprofFail")); return; }
+          }
+          spForm.hidden = !spForm.hidden;
+        };
+        spSave.onclick = async () => {
+          spSave.disabled = true; // double-submit guard
+          try {
+            const num = (k) => { const v = spForm.querySelector(`[data-sp="${k}"]`).value.trim(); return v === "" ? null : Number(v); };
+            await edge("schedprofile.set", {
+              profile_id: id,
+              min_hours: num("min_hours"),
+              max_hours: num("max_hours"),
+              seniority_rank: num("seniority_rank"),
+              min_rest_hours: num("min_rest_hours"),
+              doubles_ok: spForm.querySelector('[data-sp="doubles_ok"]').checked,
+            });
+            flashSaved(card);
+          } catch (e) { flashError(e.detail || T("admin.schedprofFail")); }
+          finally { spSave.disabled = false; }
+        };
+      }
       const roleBtn = card.querySelector("[data-u-role]");
       if (roleBtn) roleBtn.onclick = async () => {
         const role = card.querySelector('[data-uf="role"]').value;
