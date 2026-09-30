@@ -342,6 +342,7 @@ en: {
   "sched.availExplainer": "“Available only between…” means you CAN work those hours; “Unavailable between…” means you CAN'T.",
   "sched.availApplyAll": "Copy Monday to all days",
   "sched.noPublished": "No schedule published for this week.",
+  "sched.draftBanner": "DRAFT — not published yet.",
   "sched.noShifts": "No shifts this week.", "sched.noShiftsDay": "No shifts",
   "sched.warnApproved": "Approved time off overlaps this shift",
   "sched.warnPending": "Pending time-off request overlaps this shift",
@@ -368,6 +369,8 @@ en: {
   "sched.discard": "Discard",
   "sched.noRequests": "No time-off requests.", "sched.noRequestsInbox": "No pending requests — you're all caught up.",
   "sched.requestSent": "Request sent.", "sched.requestFail": "Could not send request.",
+  "sched.addTimeOffFor": "Add time off for employee", "sched.pickPerson": "Choose a person.",
+  "sched.addTimeOffForFail": "Could not add time off.", "sched.reqChip": "REQ",
   "sched.needDates": "Choose a start and end date.", "sched.badDates": "The end date can't be before the start date.",
   "sched.pastDate": "Time-off requests can't start in the past.", "sched.decideFail": "Could not update request.",
   "sched.cancelRequest": "Cancel request", "sched.cancelRequestConfirm": "Delete this time-off request?",
@@ -701,6 +704,7 @@ es: {
   "sched.availExplainer": "«Disponible solo entre…» significa que SÍ puedes trabajar esas horas; «No disponible entre…» significa que NO.",
   "sched.availApplyAll": "Copiar el lunes a todos los días",
   "sched.noPublished": "No hay horario publicado para esta semana.",
+  "sched.draftBanner": "BORRADOR — aún no publicado.",
   "sched.noShifts": "No tienes turnos esta semana.", "sched.noShiftsDay": "Sin turnos",
   "sched.warnApproved": "Tiene días libres aprobados que coinciden con este turno",
   "sched.warnPending": "Tiene una solicitud de días libres pendiente que coincide con este turno",
@@ -727,6 +731,8 @@ es: {
   "sched.discard": "Descartar",
   "sched.noRequests": "Sin solicitudes de días libres.", "sched.noRequestsInbox": "No hay solicitudes pendientes — estás al día.",
   "sched.requestSent": "Solicitud enviada.", "sched.requestFail": "No se pudo enviar la solicitud.",
+  "sched.addTimeOffFor": "Agregar días libres para un empleado", "sched.pickPerson": "Elige una persona.",
+  "sched.addTimeOffForFail": "No se pudieron agregar los días libres.", "sched.reqChip": "REQ",
   "sched.needDates": "Elige fecha de inicio y fin.", "sched.badDates": "La fecha de fin no puede ser anterior a la de inicio.",
   "sched.pastDate": "Las solicitudes no pueden empezar en el pasado.", "sched.decideFail": "No se pudo actualizar la solicitud.",
   "sched.cancelRequest": "Cancelar solicitud", "sched.cancelRequestConfirm": "¿Eliminar esta solicitud de días libres?",
@@ -5375,9 +5381,20 @@ function schedNoPublishedHtml() {
   return `<p class="muted">${esc(T("sched.noPublished"))}</p>
     <p><a href="#/sched/swaps">${esc(T("sched.checkSwaps"))}</a></p>`;
 }
+/** Amber banner for managers viewing a draft (unpublished) week. */
+function schedDraftBannerHtml() {
+  return `<div class="banner" style="margin-bottom:10px">⚠️ <strong>${esc(T("sched.draftBanner"))}</strong></div>`;
+}
+/** Draft-week policy: managers see the draft shifts with a banner; everyone
+ *  else keeps the unpublished dead end. The backend only returns draft shifts
+ *  to managers, so r.schedule is null for staff here (defense in depth). */
+function schedDraftView(r) {
+  return !!(r.schedule && !schedIsPublished(r.schedule) && canSchedManage());
+}
 async function schedMyHtml(weekStart) {  const me = String(state.session.profile.id);
   const r = await schedGetWeek(weekStart);
-  if (!schedIsPublished(r.schedule)) return schedNoPublishedHtml();
+  if (!schedIsPublished(r.schedule) && !schedDraftView(r)) return schedNoPublishedHtml();
+  const draft = schedDraftView(r);
   const days = [];
   for (let i = 0; i < 7; i++) days.push(schedAddIso(weekStart, i));
   const mine = (r.shifts || []).filter(s => String(s.profile_id) === me);
@@ -5421,7 +5438,7 @@ async function schedMyHtml(weekStart) {  const me = String(state.session.profile
     </div>`;
   }).join("");
   const warn = swapsFailed ? `<div class="banner" style="margin-bottom:10px">⚠️ ${esc(T("sched.swapsLoadFail"))}</div>` : "";
-  return warn + body;
+  return (draft ? schedDraftBannerHtml() : "") + warn + body;
 }
 
 /* ---------- shared week grid ---------- */
@@ -5496,10 +5513,11 @@ async function schedTeamRows(names, hoursBy) {
   })).sort((a, b) => String(a.label).localeCompare(String(b.label)));
 }
 
-/* ---------- Team (read-only, published only) ---------- */
+/* ---------- Team (read-only; draft visible to managers with a banner) ---------- */
 async function schedTeamHtml(weekStart) {
   const r = await schedGetWeek(weekStart);
-  if (!schedIsPublished(r.schedule)) return schedNoPublishedHtml();
+  if (!schedIsPublished(r.schedule) && !schedDraftView(r)) return schedNoPublishedHtml();
+  const draft = schedDraftView(r);
   const days = schedWeekDays(weekStart);
   const names = new Map();
   const byCell = {};
@@ -5516,12 +5534,12 @@ async function schedTeamHtml(weekStart) {
   }
   const rows = schedGroupRows(await schedTeamRows(names, hoursBy));
   if (!rows.length) return `<p class="muted">${esc(T("sched.noShifts"))}</p>`;
-  return schedGridHtml(days, rows, (row, d) =>
+  const grid = schedGridHtml(days, rows, (row, d) =>
     ((byCell[row.id + "|" + d] || []).sort(schedByStart).map(s => `
       <div style="padding:6px;border:1px solid var(--border);border-radius:8px;margin:2px 0">
         <strong>${esc(schedFmtTimeRange(s.start_time, s.end_time))}</strong>
         ${s.position ? `<div class="muted" style="font-size:12px">${esc(s.position)}${s.station ? " · " + esc(s.station) : ""}</div>` : ""}
-      </div>`).join("")));
+      </div>`).join("")));  return (draft ? schedDraftBannerHtml() : "") + grid;
 }
 
 /* ---------- Builder (manage only) ---------- */
@@ -5625,6 +5643,12 @@ async function schedBuilderHtml(weekStart) {
     const tr = await edge("staffing.get_targets");
     state.sched.targets = tr.targets || [];
   } catch (e) { state.sched.targets = []; /* coverage degrades to hidden */ }
+  // Approved time-off requests for the builder's REQ chips (manager list has
+  // every request with profile_name; cached in state.sched like avail).
+  try {
+    const tq = await edge("timeoff.list", {});
+    state.sched.reqs = tq.requests || [];
+  } catch (e) { state.sched.reqs = []; /* REQ chips degrade to hidden */ }
   const published = schedIsPublished(schedule);
   const days = schedWeekDays(weekStart);
   // Closer coverage (Phase 1): a day with shifts needs >=1 approved closer on
@@ -5845,9 +5869,18 @@ function drawStaffingArrange() {
   };
 }
 
+/** TRUE when an APPROVED time-off request covers pid on iso (YYYY-MM-DD).
+ *  Builder REQ-chip coverage check; pure so it can be unit-tested verbatim. */
+function schedReqOnDate(requests, pid, iso) {
+  const id = String(pid);
+  return (requests || []).some(q => q && q.status === "approved" && String(q.profile_id) === id
+    && String(q.start_date) <= iso && iso <= String(q.end_date));
+}
+
 /** Builder cell: shift chips + warning badge + add button. */
 function schedBuilderCell(pid, iso) {
   const shifts = schedCellShifts(pid, iso);
+  const reqOn = schedReqOnDate(state.sched && state.sched.reqs, pid, iso);
   const warns = shifts.flatMap(s => state.sched.warns[String(s.id)] || []);
   // Client-side overlap detection: two shifts conflict when their time ranges
   // intersect. Shown immediately on the grid — no need to wait for save.
@@ -5860,7 +5893,8 @@ function schedBuilderCell(pid, iso) {
   }
   const person = (state.sched.people || []).find(p => String(p.id) === String(pid));
   const addLabel = `${T("sched.addShift")} — ${person ? person.name : ""}, ${schedDayLabel(iso)}`;
-  return `${shifts.map(s => `
+  return `${reqOn ? `<div style="margin:2px 0"><span class="req-chip" title="${esc(schedDayLabel(iso))}">${esc(T("sched.reqChip"))}</span></div>` : ""}
+    ${shifts.map(s => `
       <button class="btn btn-small${conflict.has(key(s)) ? " shift-conflict" : ""}" data-edit-shift="${esc(s.id)}" style="display:block;width:100%;margin:2px 0;text-align:left;white-space:normal"${conflict.has(key(s)) ? ` title="${esc(T("sched.overlapWarn"))}"` : ""}>
         <strong style="white-space:nowrap;font-size:14px">${esc(schedFmtTimeRange(s.start_time, s.end_time))}</strong>${s.position ? `<br><span class="muted" style="font-size:12px">${esc(s.position)}</span>` : ""}
       </button>`).join("")}
@@ -6076,9 +6110,34 @@ async function schedTimeoffHtml() {
       </div>` : ""}
       ${!inbox && x.status === "pending" ? `<button class="btn btn-small btn-ghost" data-req-cancel style="margin-top:8px">🗑️ ${esc(T("sched.cancelRequest"))}</button>` : ""}
     </div>`;
+  // Manager-only roster for the "add time off for employee" form: prefer the
+  // builder's cached roster (active + schedule access), fall back to
+  // users.list (manager role). No past-date floor — paper REQs get backfilled.
+  let forRoster = (state.sched && state.sched.people) || [];
+  if (canSchedManage() && !forRoster.length) {
+    try {
+      const u = await edge("users.list");
+      forRoster = (u.users || []).filter(x => x.active !== false);
+    } catch (e) { forRoster = []; }
+  }
+  const forOpts = `<option value="">— ${esc(T("sched.pickPerson"))}</option>` + forRoster
+    .slice()
+    .sort((a, b) => String(a.name || "").localeCompare(String(b.name || "")))
+    .map(x => `<option value="${esc(x.id)}">${esc(x.name || "?")}</option>`).join("");
   return `
     ${canSchedManage() ? `<h2>${esc(T("sched.inbox"))}</h2>
       ${pending.length ? pending.map(x => reqCard(x, true)).join("") : `<p class="muted">${esc(T("sched.noRequestsInbox"))}</p>`}` : ""}
+    ${canSchedManage() ? `<div class="admin-card">
+      <h3 style="margin-top:0">${esc(T("sched.addTimeOffFor"))}</h3>
+      <div class="field"><label>${esc(T("sched.person"))}</label><select id="to-for-person" style="min-height:44px">${forOpts}</select></div>
+      <div class="form-row">
+        <div class="field"><label>${esc(T("sched.from"))}</label><input id="to-for-start" type="date"></div>
+        <div class="field"><label>${esc(T("sched.to"))}</label><input id="to-for-end" type="date"></div>
+      </div>
+      <div class="field"><label>${esc(T("sched.reason"))}</label><input id="to-for-reason" placeholder="…"></div>
+      <div id="to-for-err"></div>
+      <button class="btn btn-primary" id="to-for-send" style="width:100%;min-height:44px">${esc(T("sched.addTimeOffFor"))}</button>
+    </div>` : ""}
     <div class="admin-card">
       <h3 style="margin-top:0">${esc(T("sched.requestOff"))}</h3>
       <div class="form-row">
@@ -6396,6 +6455,29 @@ function wireSchedBody(sub, weekStart, body) {
         router();
       } catch (ex) { err.innerHTML = `<div class="error">${esc(ex.detail || T("sched.requestFail"))}</div>`; }
       finally { sendBtn.disabled = false; }
+    };
+    // Manager: add approved time off for an employee (paper REQ backfill).
+    const forSendBtn = document.getElementById("to-for-send");
+    if (forSendBtn) forSendBtn.onclick = async () => {
+      const sel = document.getElementById("to-for-person");
+      const s = document.getElementById("to-for-start").value, e = document.getElementById("to-for-end").value;
+      const err = document.getElementById("to-for-err");
+      const fail = (msg) => { err.innerHTML = `<div class="error">${esc(msg)}</div>`; };
+      if (!sel || !sel.value) { fail(T("sched.pickPerson")); return; }
+      if (!s || !e) { fail(T("sched.needDates")); return; }
+      if (e < s) { fail(T("sched.badDates")); return; }
+      forSendBtn.disabled = true; // double-submit guard
+      try {
+        await edge("timeoff.create_for", {
+          profile_id: sel.value,
+          start_date: s, end_date: e,
+          reason: document.getElementById("to-for-reason").value.trim() || null,
+        });
+        if (state.sched) { state.sched.reqs = null; state.sched.avail = null; } // builder REQ chips + picker go stale
+        showSavedToast(T("common.saved"));
+        router();
+      } catch (ex) { err.innerHTML = `<div class="error">${esc(ex.detail || T("sched.addTimeOffForFail"))}</div>`; }
+      finally { forSendBtn.disabled = false; }
     };
     body.querySelectorAll("[data-decide]").forEach(b => b.onclick = async () => {
       const card = b.closest("[data-req]");
