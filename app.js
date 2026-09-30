@@ -316,6 +316,8 @@ en: {
   "sched.calEmpty": "No shifts in that range.", "sched.loading": "Loading schedule…", "sched.overlapWarn": "Overlapping shifts",
   "sched.availRecurring": "Your availability repeats every week — set it once.",
   "sched.removePosition": "Remove position", "sched.checkSwaps": "Check the Swap Board for open shifts.",
+  "sched.canOpen": "Can open (approved opener)", "sched.canClose": "Can close (approved closer)",
+  "sched.noCloser": "No approved closer scheduled", "sched.affectedShifts": "Shifts in this range",
   "sched.weekStartOn": "Week starts on",
   "sched.weekStartWarn": "Existing schedules will be re-grouped into the new weeks. Shift dates don't change. Applies to the whole team.",
   "sched.weekStartSaved": "Week start updated.",
@@ -649,6 +651,8 @@ es: {
   "sched.calEmpty": "No hay turnos en ese rango.", "sched.loading": "Cargando horario…", "sched.overlapWarn": "Turnos superpuestos",
   "sched.availRecurring": "Tu disponibilidad se repite cada semana — configúrala una vez.",
   "sched.removePosition": "Eliminar puesto", "sched.checkSwaps": "Revisa el Tablón de cambios para ver turnos disponibles.",
+  "sched.canOpen": "Puede abrir (apertura autorizada)", "sched.canClose": "Puede cerrar (cierre autorizado)",
+  "sched.noCloser": "Sin cerrador autorizado programado", "sched.affectedShifts": "Turnos en este rango",
   "sched.weekStartOn": "La semana empieza el",
   "sched.weekStartWarn": "Los horarios existentes se reagruparán en las nuevas semanas. Las fechas de los turnos no cambian. Aplica a todo el equipo.",
   "sched.weekStartSaved": "Inicio de semana actualizado.",
@@ -787,6 +791,7 @@ const roleLabel = (r) => {
 /* ============================ STATE ============================= */
 const state = {
   session: null,       // { token, profile: { id, name, role, must_change_pin? } }
+  schedWeekCache: {},  // week_start -> { at, data } for schedule.get_week (TTL below)
   areas: [],           // [{id, name}]
   vendors: [],         // [{id, name, email, notes}]
   pools: [],           // capacity pools [{id, area_id, name, max_qty, unit, item_ids}]
@@ -962,6 +967,26 @@ async function edge(action, payload = {}) {
     throw { code: data.error, detail: data.detail, status: res.status, data };
   }
   if (!res.ok) throw { code: "edge_" + res.status, status: res.status, data };
+  // Schedule mutations invalidate the cached week payloads (see schedGetWeek).
+  if (typeof action === "string" && action.startsWith("schedule.")
+      && action !== "schedule.get_week" && action !== "schedule.ensure_draft"
+      && action !== "schedule.get_settings") {
+    state.schedWeekCache = {};
+  }
+  return data;
+}
+
+/* Week payload cache: tab switches within the TTL render instantly instead of
+ * showing the full loader every time. Mutations clear it via edge(). */
+const SCHED_WEEK_TTL = 60 * 1000;
+async function schedGetWeek(weekStart) {
+  const hit = state.schedWeekCache[weekStart];
+  if (hit && Date.now() - hit.at < SCHED_WEEK_TTL) return hit.data;
+  const data = await edge("schedule.get_week", { week_start: weekStart });
+  state.schedWeekCache[weekStart] = { at: Date.now(), data };
+  if (data && data.week_start && data.week_start !== weekStart) {
+    state.schedWeekCache[data.week_start] = { at: Date.now(), data };
+  }
   return data;
 }
 
@@ -4772,6 +4797,10 @@ function wireAdmin(tab, arg2) {
           if (ps) payload.position = ps.value.trim() || null;
           const ms = card.querySelector('[data-sf="can_manage_schedule"]');
           if (ms && !ms.disabled) payload.can_manage_schedule = ms.checked;
+          const co = card.querySelector('[data-sf="can_open"]');
+          if (co) payload.can_open = co.checked;
+          const cc = card.querySelector('[data-sf="can_close"]');
+          if (cc) payload.can_close = cc.checked;
           await edge("users.set_schedule_flags", payload);
           flashSaved(card);
         } catch (e) { flashError(e.detail || T("sched.flagsFail")); }
@@ -5111,7 +5140,7 @@ async function schedExportCalendar(weeks) {
   const shifts = [];
   for (let w = 0; w < weeks; w++) {
     try {
-      const r = await edge("schedule.get_week", { week_start: schedAddIso(monday, w * 7) });
+      const r = await schedGetWeek(schedAddIso(monday, w * 7));
       if (!schedIsPublished(r.schedule)) continue;
       for (const s of (r.shifts || [])) if (String(s.profile_id) === me) shifts.push(s);
     } catch (e) { /* skip weeks that fail to load */ }
@@ -5145,7 +5174,7 @@ function schedNoPublishedHtml() {
     <p><a href="#/sched/swaps">${esc(T("sched.checkSwaps"))}</a></p>`;
 }
 async function schedMyHtml(weekStart) {  const me = String(state.session.profile.id);
-  const r = await edge("schedule.get_week", { week_start: weekStart });
+  const r = await schedGetWeek(weekStart);
   if (!schedIsPublished(r.schedule)) return schedNoPublishedHtml();
   const days = [];
   for (let i = 0; i < 7; i++) days.push(schedAddIso(weekStart, i));
@@ -5187,12 +5216,13 @@ async function schedMyHtml(weekStart) {  const me = String(state.session.profile
  *  scroll on small screens. cellHtml(row, iso) -> cell contents HTML. */
 function schedGridHtml(days, rows, cellHtml) {
   const headCell = "position:sticky;top:0;background:var(--card);z-index:2;padding:8px;border-bottom:1px solid var(--border)";
+  const rowLabel = "padding:8px;font-weight:600;border-top:1px solid var(--border);position:sticky;left:0;background:var(--card);z-index:3";
   return `<div class="sched-grid-fade"><div style="overflow-x:auto"><div style="min-width:780px">
     <div style="display:grid;grid-template-columns:150px repeat(7,minmax(100px,1fr))">
-      <div style="${headCell}"></div>
+      <div style="${headCell};left:0;z-index:4"></div>
       ${days.map(d => `<div style="${headCell};font-weight:700;text-align:center">${esc(schedDayLabel(d))}</div>`).join("")}
       ${rows.map(row => `
-        <div style="padding:8px;font-weight:600;border-top:1px solid var(--border)">${esc(row.label)}</div>
+        <div style="${rowLabel}">${esc(row.label)}</div>
         ${days.map(d => `<div style="padding:4px;border-top:1px solid var(--border);min-height:66px">${cellHtml(row, d)}</div>`).join("")}
       `).join("")}
     </div>
@@ -5207,7 +5237,7 @@ function schedByStart(a, b) { return String(a.start_time || "").localeCompare(St
 
 /* ---------- Team (read-only, published only) ---------- */
 async function schedTeamHtml(weekStart) {
-  const r = await edge("schedule.get_week", { week_start: weekStart });
+  const r = await schedGetWeek(weekStart);
   if (!schedIsPublished(r.schedule)) return schedNoPublishedHtml();
   const days = schedWeekDays(weekStart);
   const names = new Map();
@@ -5312,7 +5342,7 @@ function schedPositionsModal() {
   };
 }
 async function schedBuilderHtml(weekStart) {
-  const r = await edge("schedule.get_week", { week_start: weekStart });
+  const r = await schedGetWeek(weekStart);
   let schedule = r.schedule;
   if (!schedule) schedule = (await edge("schedule.ensure_draft", { week_start: weekStart })).schedule;
   const u = await edge("users.list").catch(() => ({ users: [] }));
@@ -5322,11 +5352,25 @@ async function schedBuilderHtml(weekStart) {
   state.sched = { weekStart, schedule, shifts: (r.shifts || []).slice(), people, warns: {} };
   const published = schedIsPublished(schedule);
   const days = schedWeekDays(weekStart);
-  const rows = people.map(p => ({ id: String(p.id), label: p.name }));
+  // Closer coverage (Phase 1): a day with shifts needs >=1 approved closer on
+  // a shift running to close (end >= 23:00). Only evaluated when the backend
+  // serves the flags; otherwise the feature degrades to no warning.
+  const flagsLive = people.some(p => "can_close" in p);
+  const pById = new Map(people.map(p => [String(p.id), p]));
+  const noCloserDays = flagsLive ? days.filter(d => {
+    const ds = (r.shifts || []).filter(s => s.date === d);
+    if (!ds.length) return false;
+    return !ds.some(s => {
+      const p = pById.get(String(s.profile_id));
+      return p && p.can_close && String(s.end_time).slice(0, 5) >= "23:00";
+    });
+  }) : [];
+  const rows = people.map(p => ({ id: String(p.id), label: p.name + (p.can_close ? " 🌙" : "") }));
   return `
     ${published
       ? `<div class="notice" style="margin-bottom:12px"><strong>✓ ${esc(T("sched.published"))}</strong></div>`
       : `<div class="banner" style="margin-bottom:12px"><strong>${esc(T("sched.draft"))}</strong></div>`}
+    ${noCloserDays.length ? `<div class="warn-box" style="margin-bottom:12px">⚠️ <strong>${esc(T("sched.noCloser"))}:</strong> ${noCloserDays.map(d => esc(schedDayLabel(d))).join(", ")}</div>` : ""}
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center" class="no-print">
       <button class="btn btn-small" id="sched-copy">${esc(T("sched.copyWeek"))}</button>
       ${published
@@ -5482,10 +5526,10 @@ async function schedTimeoffHtml() {
   const mine = reqs.filter(x => String(x.profile_id) === me).sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
   const pending = reqs.filter(x => x.status === "pending").sort(byStart);
   const reqCard = (x, inbox) => `
-    <div class="admin-card" data-req="${esc(x.id)}">
+    <div class="admin-card" data-req="${esc(x.id)}" data-req-name="${esc(x.profile_name || "")}" data-req-profile="${esc(x.profile_id)}" data-req-start="${esc(x.start_date)}" data-req-end="${esc(x.end_date)}" data-req-reason="${esc(x.reason || "")}">
       <div class="card-head">
         <div><strong>${esc(x.profile_name || "")}</strong>
-          <div class="muted" style="font-size:13px">${esc(schedFmtMDY(x.start_date))} → ${esc(schedFmtMDY(x.end_date))}${x.reason ? " · " + esc(x.reason) : ""}</div></div>
+          <div class="muted" style="font-size:13px">${esc(schedDayLabel(x.start_date))}${x.end_date !== x.start_date ? " → " + esc(schedDayLabel(x.end_date)) : ""}${x.reason ? " · " + esc(x.reason) : ""}</div></div>
         ${schedReqStatusPill(x.status)}
       </div>
       ${inbox && x.status === "pending" ? `<div style="display:flex;gap:8px;margin-top:8px">
@@ -5790,6 +5834,26 @@ function wireSchedBody(sub, weekStart, body) {
       if (!card) return;
       b.disabled = true;
       try {
+        // Affected-shift context: pull the week containing the request start
+        // (best-effort — the confirm still works if the fetch fails).
+        let affected = [];
+        try {
+          const wk = await schedGetWeek(card.dataset.reqStart);
+          affected = (wk.shifts || []).filter(s => String(s.profile_id) === String(card.dataset.reqProfile)
+            && s.date >= card.dataset.reqStart && s.date <= card.dataset.reqEnd);
+        } catch (e) { /* context is best-effort */ }
+        const verb = b.dataset.decide === "approved" ? T("sched.approve") : T("sched.deny");
+        const when = card.dataset.reqStart === card.dataset.reqEnd
+          ? schedDayLabel(card.dataset.reqStart)
+          : schedDayLabel(card.dataset.reqStart) + " → " + schedDayLabel(card.dataset.reqEnd);
+        let msg = `${verb}: ${card.dataset.reqName} — ${when}`;
+        if (card.dataset.reqReason) msg += `\n"${card.dataset.reqReason}"`;
+        if (affected.length) {
+          msg += `\n${T("sched.affectedShifts")}:\n` + affected
+            .map(s => `• ${schedDayLabel(s.date)} ${schedFmtTime(s.start_time)}–${schedFmtTime(s.end_time)}`)
+            .join("\n");
+        }
+        if (!confirm(msg)) { b.disabled = false; return; }
         await edge("timeoff.decide", { id: card.dataset.req, decision: b.dataset.decide });
         showSavedToast(T("common.saved"));
         router();
@@ -5860,6 +5924,10 @@ function schedFlagsHtml(u, viewerIsSuper) {
       <div class="field"><label>${esc(T("sched.posLabel"))}</label>${schedPositionInputHtml('data-sf="position"', u.position)}</div>
     </div>
     ${chk}
+    <label class="check-row" style="margin-top:8px"><input type="checkbox" data-sf="can_open" ${u.can_open ? "checked" : ""}>
+      <span>${esc(T("sched.canOpen"))}</span></label>
+    <label class="check-row" style="margin-top:8px"><input type="checkbox" data-sf="can_close" ${u.can_close ? "checked" : ""}>
+      <span>${esc(T("sched.canClose"))}</span></label>
     <button class="btn btn-small btn-primary" data-u-sched style="width:100%;margin-top:8px">${esc(T("sched.saveFlags"))}</button>
   </div>`;
 }
