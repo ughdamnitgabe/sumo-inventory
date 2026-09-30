@@ -266,8 +266,20 @@ table.bulk-par input { width: 90px; min-height: 44px; font-size: 16px; text-alig
 .modal-back { position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 100;
   display: flex; align-items: center; justify-content: center; padding: 20px; }
 .modal { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
-  padding: 20px; max-width: 420px; width: 100%; }
+  padding: 20px; max-width: 420px; width: 100%;
+  max-height: calc(100vh - 40px); max-height: calc(100dvh - 40px); overflow-y: auto; }
 .modal h3 { margin-top: 0; }
+.modal p { overflow-wrap: anywhere; }
+/* Schedule builder: right-edge fade hints at horizontal scroll on phones. */
+.sched-grid-fade { position: relative; }
+@media (max-width: 860px) {
+  .sched-grid-fade::after { content: ""; position: absolute; top: 0; right: 0; bottom: 0; width: 34px;
+    background: linear-gradient(to right, transparent, var(--bg)); pointer-events: none; }
+}
+/* Builder conflict highlight: overlapping shifts get a red edge. */
+.shift-conflict { border-left: 3px solid var(--danger) !important; }
+/* Builder "+" cells: thumb-sized tap targets. */
+.sched-add { min-height: 44px; }
 .modal .area-opt { display: block; width: 100%; text-align: left; margin: 6px 0; }
 .modal-actions { display: flex; gap: 10px; margin-top: 16px; }
 .modal-actions .btn { flex: 1; }

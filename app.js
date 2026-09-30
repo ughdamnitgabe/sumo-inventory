@@ -313,7 +313,8 @@ en: {
   "sched.addToCalendar": "Add to calendar", "sched.calRange": "Which weeks?",
   "sched.calThisWeek": "This week", "sched.cal2Weeks": "Next 2 weeks", "sched.cal4Weeks": "Next 4 weeks",
   "sched.calDone": "Calendar file downloaded — open it to add your shifts.",
-  "sched.calEmpty": "No shifts in that range.",
+  "sched.calEmpty": "No shifts in that range.", "sched.loading": "Loading schedule…", "sched.overlapWarn": "Overlapping shifts",
+  "sched.availRecurring": "Your availability repeats every week — set it once.",
   "sched.weekStartOn": "Week starts on",
   "sched.weekStartWarn": "Existing schedules will be re-grouped into the new weeks. Shift dates don't change. Applies to the whole team.",
   "sched.weekStartSaved": "Week start updated.",
@@ -329,8 +330,8 @@ en: {
   "sched.from": "From", "sched.to": "To",
   "sched.approve": "Approve", "sched.deny": "Deny",
   "sched.pending": "Pending", "sched.approved": "Approved", "sched.denied": "Denied",
-  "sched.available": "Available", "sched.unavailable": "Unavailable", "sched.limited": "Limited hours",
-  "sched.blocked": "Unavailable hours",
+  "sched.available": "Available", "sched.unavailable": "Unavailable all day", "sched.limited": "Available only between…",
+  "sched.blocked": "Unavailable between…",
   "sched.noPublished": "No schedule published for this week.",
   "sched.noShifts": "No shifts this week.", "sched.noShiftsDay": "No shifts",
   "sched.warnApproved": "Approved time off overlaps this shift",
@@ -644,7 +645,8 @@ es: {
   "sched.addToCalendar": "Añadir al calendario", "sched.calRange": "¿Qué semanas?",
   "sched.calThisWeek": "Esta semana", "sched.cal2Weeks": "Próximas 2 semanas", "sched.cal4Weeks": "Próximas 4 semanas",
   "sched.calDone": "Archivo descargado — ábrelo para añadir tus turnos.",
-  "sched.calEmpty": "No hay turnos en ese rango.",
+  "sched.calEmpty": "No hay turnos en ese rango.", "sched.loading": "Cargando horario…", "sched.overlapWarn": "Turnos superpuestos",
+  "sched.availRecurring": "Tu disponibilidad se repite cada semana — configúrala una vez.",
   "sched.weekStartOn": "La semana empieza el",
   "sched.weekStartWarn": "Los horarios existentes se reagruparán en las nuevas semanas. Las fechas de los turnos no cambian. Aplica a todo el equipo.",
   "sched.weekStartSaved": "Inicio de semana actualizado.",
@@ -660,8 +662,8 @@ es: {
   "sched.from": "Desde", "sched.to": "Hasta",
   "sched.approve": "Aprobar", "sched.deny": "Denegar",
   "sched.pending": "Pendiente", "sched.approved": "Aprobada", "sched.denied": "Denegada",
-  "sched.available": "Disponible", "sched.unavailable": "No disponible", "sched.limited": "Horario limitado",
-  "sched.blocked": "Horas no disponibles",
+  "sched.available": "Disponible", "sched.unavailable": "No disponible todo el día", "sched.limited": "Disponible solo entre…",
+  "sched.blocked": "No disponible entre…",
   "sched.noPublished": "No hay horario publicado para esta semana.",
   "sched.noShifts": "No tienes turnos esta semana.", "sched.noShiftsDay": "Sin turnos",
   "sched.warnApproved": "Tiene días libres aprobados que coinciden con este turno",
@@ -1065,6 +1067,10 @@ function showKilled() {
 
 function router() {
   if (state.killed) { showKilled(); return; }
+  // A toast belongs to the screen that raised it — never carry it onto the next one.
+  const st = document.getElementById("saved-toast");
+  if (st) st.classList.remove("show");
+  if (typeof savedToastTimer !== "undefined" && savedToastTimer) { clearTimeout(savedToastTimer); savedToastTimer = null; }
   let hash = location.hash || "#/login";
   const needAuth = !hash.startsWith("#/login") && !hash.startsWith("#/set-pin");
 
@@ -4978,8 +4984,9 @@ async function renderSchedule(sub, arg2) {
   tabs.push(["timeoff", T("sched.timeoff")], ["avail", T("sched.avail")]);
   if (!tabs.some(([id]) => id === sub)) sub = "my";
   await schedLoadScheduleSettings(); // store-level week-start day + position list
-  // My Week is always the current week; the other tabs keep ?w= in the URL.
-  const weekStart = sub === "my" ? schedIso(schedWeekStart(new Date())) : schedWeekStartFromRoute();
+  // All schedule tabs honor ?w= so managers and staff can page weeks. Availability
+  // is recurring (Mon–Sun repeats), so it shows an explanatory label instead.
+  const weekStart = schedWeekStartFromRoute();
 
   $app().innerHTML = navHtml() + `
   <div class="view">
@@ -4987,11 +4994,13 @@ async function renderSchedule(sub, arg2) {
     <div class="admin-tabs no-print" style="margin-bottom:12px">
       ${tabs.map(([id, label]) => `<button class="admin-tab ${sub === id ? "active" : ""}" data-stab="${id}">${esc(label)}</button>`).join("")}
     </div>
-    ${sub !== "my" ? schedWeekNav(sub, weekStart) : `<div class="no-print" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
-      <p class="muted" style="margin:0">${esc(schedWeekRangeLabel(weekStart))}</p>
+    ${sub === "avail"
+      ? `<p class="muted" style="margin:0 0 12px">${esc(T("sched.availRecurring"))}</p>`
+      : schedWeekNav(sub, weekStart)}
+    ${sub === "my" ? `<div class="no-print" style="display:flex;margin-bottom:12px">
       <button class="btn btn-small" data-cal-export style="margin-left:auto">📅 ${esc(T("sched.addToCalendar"))}</button>
-    </div>`}
-    <div id="sched-body" style="min-height:40vh"><div class="loading">${esc(T("count.loading"))}</div></div>
+    </div>` : ""}
+    <div id="sched-body" style="min-height:40vh"><div class="loading">${esc(T("sched.loading"))}</div></div>
   </div>`;
 
   $app().querySelectorAll("[data-stab]").forEach(b => b.onclick = () => go("#/sched/" + b.dataset.stab));
@@ -5157,7 +5166,7 @@ async function schedMyHtml(weekStart) {  const me = String(state.session.profile
  *  scroll on small screens. cellHtml(row, iso) -> cell contents HTML. */
 function schedGridHtml(days, rows, cellHtml) {
   const headCell = "position:sticky;top:0;background:var(--card);z-index:2;padding:8px;border-bottom:1px solid var(--border)";
-  return `<div style="overflow-x:auto"><div style="min-width:780px">
+  return `<div class="sched-grid-fade"><div style="overflow-x:auto"><div style="min-width:780px">
     <div style="display:grid;grid-template-columns:150px repeat(7,minmax(100px,1fr))">
       <div style="${headCell}"></div>
       ${days.map(d => `<div style="${headCell};font-weight:700;text-align:center">${esc(schedDayLabel(d))}</div>`).join("")}
@@ -5321,12 +5330,23 @@ function schedCellShifts(pid, iso) {
 function schedBuilderCell(pid, iso) {
   const shifts = schedCellShifts(pid, iso);
   const warns = shifts.flatMap(s => state.sched.warns[String(s.id)] || []);
+  // Client-side overlap detection: two shifts conflict when their time ranges
+  // intersect. Shown immediately on the grid — no need to wait for save.
+  const key = (s) => s.id != null ? "id:" + s.id : "c:" + (s.client_id || "");
+  const st = (s) => String(s.start_time || "").slice(0, 5);
+  const en = (s) => String(s.end_time || "").slice(0, 5);
+  const conflict = new Set();
+  for (let i = 0; i < shifts.length; i++) for (let j = i + 1; j < shifts.length; j++) {
+    if (st(shifts[i]) < en(shifts[j]) && st(shifts[j]) < en(shifts[i])) { conflict.add(key(shifts[i])); conflict.add(key(shifts[j])); }
+  }
+  const person = (state.sched.people || []).find(p => String(p.id) === String(pid));
+  const addLabel = `${T("sched.addShift")} — ${person ? person.name : ""}, ${schedDayLabel(iso)}`;
   return `${shifts.map(s => `
-      <button class="btn btn-small" data-edit-shift="${esc(s.id)}" style="display:block;width:100%;margin:2px 0;text-align:left;white-space:normal">
+      <button class="btn btn-small${conflict.has(key(s)) ? " shift-conflict" : ""}" data-edit-shift="${esc(s.id)}" style="display:block;width:100%;margin:2px 0;text-align:left;white-space:normal"${conflict.has(key(s)) ? ` title="${esc(T("sched.overlapWarn"))}"` : ""}>
         <strong>${esc(schedFmtTime(s.start_time))}–${esc(schedFmtTime(s.end_time))}</strong>${s.position ? `<br><span class="muted">${esc(s.position)}</span>` : ""}
       </button>`).join("")}
     ${warns.length ? `<button class="btn btn-small" data-show-warns="${esc(pid)}|${esc(iso)}" aria-label="${esc(T("sched.warningsTitle"))}">⚠️</button>` : ""}
-    <button class="btn btn-small btn-ghost" data-add-shift="${esc(pid)}|${esc(iso)}" aria-label="${esc(T("sched.addShift"))}" title="${esc(T("sched.addShift"))}" style="width:100%;margin-top:2px;opacity:.4">+</button>`;
+    <button class="btn btn-small btn-ghost sched-add" data-add-shift="${esc(pid)}|${esc(iso)}" aria-label="${esc(addLabel)}" title="${esc(addLabel)}" style="width:100%;margin-top:2px;opacity:.4">+</button>`;
 }
 
 /** Map save_shifts warnings back onto the returned shifts (by id or client_id). */
@@ -5375,8 +5395,8 @@ function schedShiftEditor(pid, iso, shift) {
     <div class="field"><label>${esc(T("sched.note"))}</label><input id="se-notes" value="${esc(shift && shift.notes || "")}"></div>
     <div id="se-err"></div>
     <div class="modal-actions">
-      <button class="btn" id="se-cancel">${esc(T("common.cancel"))}</button>
       ${isNew ? "" : `<button class="btn btn-danger" id="se-delete">${esc(T("common.delete"))}</button>`}
+      <button class="btn" id="se-cancel">${esc(T("common.cancel"))}</button>
       <button class="btn btn-primary" id="se-save">${esc(T("common.save"))}</button>
     </div>`);
   document.getElementById("se-cancel").onclick = closeModal;
@@ -5467,7 +5487,7 @@ async function schedTimeoffHtml() {
       <button class="btn btn-primary" id="to-send" style="width:100%">${esc(T("sched.requestOff"))}</button>
     </div>
     <h2>${esc(T("sched.myRequests"))}</h2>
-    ${mine.length ? mine.map(x => reqCard(x, false)).join("") : `<p class="muted">${esc(T("sched.noRequests"))}</p>}`}`;
+    ${mine.length ? mine.map(x => reqCard(x, false)).join("") : `<p class="muted">${esc(T("sched.noRequests"))}</p>`}`;
 }
 
 /* ---------- Swap Board ---------- */
