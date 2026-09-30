@@ -316,7 +316,7 @@ en: {
   "sched.calEmpty": "No shifts in that range.", "sched.loading": "Loading schedule…", "sched.overlapWarn": "Overlapping shifts",
   "sched.availRecurring": "Your availability repeats every week — set it once.",
   "sched.removePosition": "Remove position", "sched.checkSwaps": "Check the Swap Board for open shifts.",
-  "sched.canOpen": "Can open (approved opener)", "sched.canClose": "Can close (approved closer)",
+  "sched.canOpen": "Can open (approved opener)", "sched.canClose": "Can close (approved closer)", "sched.group": "Schedule group", "sched.ungrouped": "Ungrouped",
   "sched.noCloser": "No approved closer scheduled", "sched.affectedShifts": "Shifts in this range",
   "sched.weekStartOn": "Week starts on",
   "sched.weekStartWarn": "Existing schedules will be re-grouped into the new weeks. Shift dates don't change. Applies to the whole team.",
@@ -329,6 +329,10 @@ en: {
   "sched.addShift": "Add shift", "sched.editShift": "Edit shift",
   "sched.start": "Start", "sched.end": "End", "sched.position": "Position",
   "sched.station": "Station", "sched.note": "Note",
+  "sched.viewGroups": "Groups", "sched.viewEmployees": "Employees", "sched.viewLabel": "Schedule view",
+  "sched.whoCanWork": "Who can work this", "sched.enterTimesFirst": "Enter start and end times first",
+  "sched.noCandidates": "No one is available for this shift", "sched.assignedTo": "Assigned to",
+  "sched.pickSomeone": "Pick someone from the list below", "sched.addOpenShift": "Add open shift",
   "sched.requestOff": "Request time off", "sched.reason": "Reason",
   "sched.from": "From", "sched.to": "To",
   "sched.approve": "Approve", "sched.deny": "Deny",
@@ -651,7 +655,7 @@ es: {
   "sched.calEmpty": "No hay turnos en ese rango.", "sched.loading": "Cargando horario…", "sched.overlapWarn": "Turnos superpuestos",
   "sched.availRecurring": "Tu disponibilidad se repite cada semana — configúrala una vez.",
   "sched.removePosition": "Eliminar puesto", "sched.checkSwaps": "Revisa el Tablón de cambios para ver turnos disponibles.",
-  "sched.canOpen": "Puede abrir (apertura autorizada)", "sched.canClose": "Puede cerrar (cierre autorizado)",
+  "sched.canOpen": "Puede abrir (apertura autorizada)", "sched.canClose": "Puede cerrar (cierre autorizado)", "sched.group": "Grupo de horario", "sched.ungrouped": "Sin grupo",
   "sched.noCloser": "Sin cerrador autorizado programado", "sched.affectedShifts": "Turnos en este rango",
   "sched.weekStartOn": "La semana empieza el",
   "sched.weekStartWarn": "Los horarios existentes se reagruparán en las nuevas semanas. Las fechas de los turnos no cambian. Aplica a todo el equipo.",
@@ -664,6 +668,10 @@ es: {
   "sched.addShift": "Agregar turno", "sched.editShift": "Editar turno",
   "sched.start": "Inicio", "sched.end": "Fin", "sched.position": "Puesto",
   "sched.station": "Estación", "sched.note": "Nota",
+  "sched.viewGroups": "Grupos", "sched.viewEmployees": "Empleados", "sched.viewLabel": "Vista del horario",
+  "sched.whoCanWork": "Quién puede cubrir este turno", "sched.enterTimesFirst": "Pon hora de inicio y fin primero",
+  "sched.noCandidates": "Nadie disponible para este turno", "sched.assignedTo": "Asignado a",
+  "sched.pickSomeone": "Elige a alguien de la lista", "sched.addOpenShift": "Añadir turno abierto",
   "sched.requestOff": "Pedir día libre", "sched.reason": "Motivo",
   "sched.from": "Desde", "sched.to": "Hasta",
   "sched.approve": "Aprobar", "sched.deny": "Denegar",
@@ -4801,7 +4809,12 @@ function wireAdmin(tab, arg2) {
           if (co) payload.can_open = co.checked;
           const cc = card.querySelector('[data-sf="can_close"]');
           if (cc) payload.can_close = cc.checked;
-          await edge("users.set_schedule_flags", payload);
+          const sg = card.querySelector('[data-sf="sched_group"]');
+          if (sg) payload.sched_group = sg.value.trim() || null;
+          await edge("users.set_schedule_flags", payload).then(r => {
+            const rec = (state.users || []).find(x => String(x.id) === String(id));
+            if (rec && r && r.user) Object.assign(rec, r.user);
+          });
           flashSaved(card);
         } catch (e) { flashError(e.detail || T("sched.flagsFail")); }
         finally { schedBtn.disabled = false; }
@@ -4934,6 +4947,7 @@ function schedIso(d) {
 }
 /** Start (local) of the week containing d, honoring the configured start day. */
 let schedWeekStartDayNum = 1; // 0=Sun..6=Sat; loaded from the server per schedule render
+let schedBuilderView = "groups"; // builder roster view: "groups" | "employees"
 let schedPositions = []; // managed position list; loaded from the server
 /** Store-level schedule settings: week-start day + managed position list. */
 async function schedLoadScheduleSettings() {
@@ -4995,6 +5009,28 @@ function schedFmtTime(t) {
   if (p.some(isNaN)) return String(t);
   return new Date(2000, 0, 1, p[0], p[1] || 0).toLocaleTimeString(locale(), { hour: "numeric", minute: "2-digit" });
 }
+/** Compact chip time range: "5:00 PM–11:59 PM" -> "5:00–11:59 PM" (meridiem shown once when shared). */
+function schedFmtTimeRange(a, b) {
+  const s = schedFmtTime(a), e = schedFmtTime(b);
+  if (/^[AP]M$/.test(s.slice(-2)) && s.slice(-2) === e.slice(-2)) return s.slice(0, -3) + "–" + e;
+  return s + "–" + e;
+}
+/** Minutes in one shift (overnight-safe). */
+function schedShiftMinutes(start, end) {
+  const t = (x) => { const p = String(x || "").slice(0, 5).split(":").map(Number); return (p[0] || 0) * 60 + (p[1] || 0); };
+  let d = t(end) - t(start);
+  if (d < 0) d += 1440;
+  return d;
+}
+/** Total scheduled hours for one person in the current builder week. */
+function schedPersonHours(pid) {
+  let m = 0;
+  for (const s of ((state.sched && state.sched.shifts) || []))
+    if (String(s.profile_id) === String(pid)) m += schedShiftMinutes(s.start_time, s.end_time);
+  return m / 60;
+}
+/** "37.5h" / "40h" */
+function schedHoursLabel(h) { return (Math.round(h * 10) / 10) + "h"; }
 /** Display-order weekday name for the availability editor (display index 0=Mon..6=Sun;
  *  stored availability.weekday is 0=Sunday, mapped via (i+1)%7 at the call sites). */
 function schedWeekdayName(i) {
@@ -5214,15 +5250,37 @@ async function schedMyHtml(weekStart) {  const me = String(state.session.profile
 /* ---------- shared week grid ---------- */
 /** Week grid: rows of people, 7 day columns. Sticky header row, horizontal
  *  scroll on small screens. cellHtml(row, iso) -> cell contents HTML. */
-function schedGridHtml(days, rows, cellHtml) {
+/* Group roster rows under labeled headers, mirroring the paper schedule's
+   blocks. Items carry a `group` string; "" = ungrouped, rendered last under an
+   "Ungrouped" header only when other groups exist. Otherwise the list stays flat. */
+function schedGroupRows(items) {
+  const order = [], seen = new Map();
+  for (const it of items) {
+    const g = (it.group || "").trim();
+    if (!seen.has(g)) { seen.set(g, []); order.push(g); }
+    seen.get(g).push(it);
+  }
+  order.sort((a, b) => (a === "" ? 1 : b === "" ? -1 : 0));
+  if (order.length === 1 && order[0] === "") return items;
+  const out = [];
+  for (const g of order) {
+    out.push({ header: g || T("sched.ungrouped") });
+    out.push(...seen.get(g));
+  }
+  return out;
+}
+function schedGridHtml(days, rows, cellHtml, dayHeadExtra) {
   const headCell = "position:sticky;top:0;background:var(--card);z-index:2;padding:8px;border-bottom:1px solid var(--border)";
   const rowLabel = "padding:8px;font-weight:600;border-top:1px solid var(--border);position:sticky;left:0;background:var(--card);z-index:3";
+  const groupHead = "grid-column:1/-1;padding:10px 8px 6px;font-weight:800;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent);border-top:1px solid var(--border);position:sticky;left:0;background:var(--card);z-index:3";
   return `<div class="sched-grid-fade"><div style="overflow-x:auto"><div style="min-width:780px">
-    <div style="display:grid;grid-template-columns:150px repeat(7,minmax(100px,1fr))">
+    <div style="display:grid;grid-template-columns:150px repeat(7,minmax(108px,1fr))">
       <div style="${headCell};left:0;z-index:4"></div>
-      ${days.map(d => `<div style="${headCell};font-weight:700;text-align:center">${esc(schedDayLabel(d))}</div>`).join("")}
-      ${rows.map(row => `
-        <div style="${rowLabel}">${esc(row.label)}</div>
+      ${days.map(d => `<div style="${headCell};font-weight:700;text-align:center">${esc(schedDayLabel(d))}${dayHeadExtra ? `<div>${dayHeadExtra(d)}</div>` : ""}</div>`).join("")}
+      ${rows.map(row => row.header
+        ? `<div style="${groupHead}">${esc(row.header)}</div>`
+        : `
+        <div style="${rowLabel}">${esc(row.label)}${row.sub ? `<div class="muted" style="font-size:12px;font-weight:400">${esc(row.sub)}</div>` : ""}</div>
         ${days.map(d => `<div style="padding:4px;border-top:1px solid var(--border);min-height:66px">${cellHtml(row, d)}</div>`).join("")}
       `).join("")}
     </div>
@@ -5234,6 +5292,21 @@ function schedWeekDays(weekStart) {
   return days;
 }
 function schedByStart(a, b) { return String(a.start_time || "").localeCompare(String(b.start_time || "")); }
+
+/** Team-view roster rows, grouped by schedule group for managers (flat for staff). */
+async function schedTeamRows(names, hoursBy) {
+  let groupOf = {};
+  if (canSchedManage()) {
+    try {
+      const u = await edge("users.list", {}).catch(() => null);
+      for (const x of ((u && (u.users || u)) || [])) groupOf[String(x.id)] = (x.sched_group || "").trim();
+    } catch (e) { /* fall through to flat list */ }
+  }
+  return [...names.entries()].map(([id, name]) => ({
+    id, label: name, group: groupOf[String(id)] || "",
+    sub: hoursBy ? schedHoursLabel(hoursBy[String(id)] || 0) : "",
+  })).sort((a, b) => String(a.label).localeCompare(String(b.label)));
+}
 
 /* ---------- Team (read-only, published only) ---------- */
 async function schedTeamHtml(weekStart) {
@@ -5248,13 +5321,17 @@ async function schedTeamHtml(weekStart) {
     const k = pid + "|" + String(s.date || "").slice(0, 10);
     (byCell[k] = byCell[k] || []).push(s);
   }
-  const rows = [...names.entries()].map(([id, name]) => ({ id, label: name }))
-    .sort((a, b) => String(a.label).localeCompare(String(b.label)));
+  const hoursBy = {};
+  for (const s of (r.shifts || [])) {
+    const pid = String(s.profile_id);
+    hoursBy[pid] = (hoursBy[pid] || 0) + schedShiftMinutes(s.start_time, s.end_time) / 60;
+  }
+  const rows = schedGroupRows(await schedTeamRows(names, hoursBy));
   if (!rows.length) return `<p class="muted">${esc(T("sched.noShifts"))}</p>`;
   return schedGridHtml(days, rows, (row, d) =>
     ((byCell[row.id + "|" + d] || []).sort(schedByStart).map(s => `
       <div style="padding:6px;border:1px solid var(--border);border-radius:8px;margin:2px 0">
-        <strong>${esc(schedFmtTime(s.start_time))}–${esc(schedFmtTime(s.end_time))}</strong>
+        <strong>${esc(schedFmtTimeRange(s.start_time, s.end_time))}</strong>
         ${s.position ? `<div class="muted" style="font-size:12px">${esc(s.position)}${s.station ? " · " + esc(s.station) : ""}</div>` : ""}
       </div>`).join("")));
 }
@@ -5365,7 +5442,12 @@ async function schedBuilderHtml(weekStart) {
       return p && p.can_close && String(s.end_time).slice(0, 5) >= "23:00";
     });
   }) : [];
-  const rows = people.map(p => ({ id: String(p.id), label: p.name + (p.can_close ? " 🌙" : "") }));
+  const items = people.map(p => ({
+    id: String(p.id), group: p.sched_group,
+    label: p.name + (p.can_close ? " 🌙" : ""),
+    sub: schedHoursLabel(schedPersonHours(String(p.id))),
+  }));
+  const rows = schedBuilderView === "groups" ? schedGroupRows(items) : items;
   return `
     ${published
       ? `<div class="notice" style="margin-bottom:12px"><strong>✓ ${esc(T("sched.published"))}</strong></div>`
@@ -5378,8 +5460,13 @@ async function schedBuilderHtml(weekStart) {
         : `<button class="btn btn-small btn-primary" id="sched-publish">${esc(T("sched.publish"))}</button>`}
       ${schedWeekStartSelectHtml()}
       <button class="btn btn-small" id="sched-positions">${esc(T("sched.positions"))}</button>
+      <div style="display:flex;gap:4px" role="group" aria-label="${esc(T("sched.viewLabel"))}">
+        <button class="btn btn-small${schedBuilderView !== "employees" ? " btn-primary" : ""}" id="sched-view-groups">${esc(T("sched.viewGroups"))}</button>
+        <button class="btn btn-small${schedBuilderView === "employees" ? " btn-primary" : ""}" id="sched-view-employees">${esc(T("sched.viewEmployees"))}</button>
+      </div>
     </div>
-    ${rows.length ? schedGridHtml(days, rows, (row, d) => schedBuilderCell(row.id, d)) : ""}
+    ${rows.length ? schedGridHtml(days, rows, (row, d) => schedBuilderCell(row.id, d), (d) =>
+      `<button class="btn btn-small btn-ghost" data-add-open-shift="${esc(d)}" aria-label="${esc(T("sched.addOpenShift") + " — " + schedDayLabel(d))}" title="${esc(T("sched.addOpenShift"))}" style="margin-top:4px;min-width:44px;min-height:32px;opacity:.6">+</button>`) : ""}
     ${rows.length
       ? `<p class="muted" style="font-size:13px;margin-top:8px">${esc(T("sched.builderHint"))}</p>`
       : `<p class="muted" style="margin-top:8px">${esc(T("sched.noPeople"))}</p>`}`;
@@ -5408,7 +5495,7 @@ function schedBuilderCell(pid, iso) {
   const addLabel = `${T("sched.addShift")} — ${person ? person.name : ""}, ${schedDayLabel(iso)}`;
   return `${shifts.map(s => `
       <button class="btn btn-small${conflict.has(key(s)) ? " shift-conflict" : ""}" data-edit-shift="${esc(s.id)}" style="display:block;width:100%;margin:2px 0;text-align:left;white-space:normal"${conflict.has(key(s)) ? ` title="${esc(T("sched.overlapWarn"))}"` : ""}>
-        <strong style="white-space:nowrap">${esc(schedFmtTime(s.start_time))}–${esc(schedFmtTime(s.end_time))}</strong>${s.position ? `<br><span class="muted">${esc(s.position)}</span>` : ""}
+        <strong style="white-space:nowrap">${esc(schedFmtTimeRange(s.start_time, s.end_time))}</strong>${s.position ? `<br><span class="muted">${esc(s.position)}</span>` : ""}
       </button>`).join("")}
     ${warns.length ? `<button class="btn btn-small" data-show-warns="${esc(pid)}|${esc(iso)}" aria-label="${esc(T("sched.warningsTitle"))}">⚠️</button>` : ""}
     <button class="btn btn-small btn-ghost sched-add" data-add-shift="${esc(pid)}|${esc(iso)}" aria-label="${esc(addLabel)}" title="${esc(addLabel)}" style="width:100%;margin-top:2px;opacity:.4">+</button>`;
@@ -5444,11 +5531,54 @@ function schedShiftPayload(s) {
 }
 
 /** Shift editor modal. Person and date are fixed by the cell that was tapped. */
+/* Eligible-staff picker for open shifts: right position, no approved time off,
+   fits their availability (unavailable/limited/blocked), no overlapping shift. */
+function schedFindCandidates(iso, start, end, position) {
+  const wd = new Date(iso + "T12:00:00").getDay(); // availability weekday: 0=Sunday
+  const av = (state.sched && state.sched.avail) || { rows: [], reqs: [] };
+  const avBy = {};
+  for (const r of (av.rows || [])) avBy[String(r.profile_id) + "|" + Number(r.weekday)] = r;
+  const off = new Set();
+  for (const q of (av.reqs || [])) {
+    if (q.status === "approved" && String(q.start_date) <= iso && iso <= String(q.end_date)) off.add(String(q.profile_id));
+  }
+  const ov = (aS, aE, bS, bE) => aS < bE && bS < aE;
+  const out = [];
+  for (const p of (state.sched.people || [])) {
+    const id = String(p.id);
+    if (position && (p.position || "") !== position) continue; // same rule as shift pickup
+    if (off.has(id)) continue;
+    const a = avBy[id + "|" + wd];
+    let sub = T("sched.available");
+    if (a) {
+      const st = a.status;
+      const bs = String(a.start_time || "").slice(0, 5), be = String(a.end_time || "").slice(0, 5);
+      if (st === "unavailable") continue;
+      if (st === "blocked" && bs && be && ov(start, end, bs, be)) continue;
+      if (st === "limited") {
+        if (!bs || !be || start < bs || end > be) continue;
+        sub = `${T("sched.available")} ${bs}–${be}`;
+      }
+    }
+    const clash = (state.sched.shifts || []).some(s =>
+      String(s.profile_id) === id && String(s.date || "").slice(0, 10) === iso &&
+      ov(start, end, String(s.start_time).slice(0, 5), String(s.end_time).slice(0, 5)));
+    if (clash) continue;
+    const role = p.position || (p.sched_group || "").trim();
+    out.push({ id, name: p.name || "?", sub: [role, sub].filter(Boolean).join(" · ") });
+  }
+  out.sort((x, y) => String(x.name).localeCompare(String(y.name)));
+  return out;
+}
+
 function schedShiftEditor(pid, iso, shift) {
   const person = (state.sched.people || []).find(p => String(p.id) === String(pid));
   const isNew = !shift;
+  const isOpen = isNew && !pid; // open-shift flow: manager picks the person from candidates
+  let chosenPid = pid ? String(pid) : null;
   showModal(`<h3>${esc(isNew ? T("sched.addShift") : T("sched.editShift"))}</h3>
-    <p class="muted">${esc(person ? person.name : "")} · ${esc(schedDayLabel(iso))}</p>
+    <p class="muted">${isOpen ? esc(schedDayLabel(iso)) : `${esc(person ? person.name : "")} · ${esc(schedDayLabel(iso))}`}</p>
+    ${isOpen ? `<p style="margin:0 0 8px"><strong>${esc(T("sched.assignedTo"))}:</strong> <span id="se-person">—</span></p>` : ""}
     <div class="form-row">
       <div class="field"><label>${esc(T("sched.start"))}</label><input id="se-start" type="time" value="${esc((shift && shift.start_time || "").slice(0, 5))}"></div>
       <div class="field"><label>${esc(T("sched.end"))}</label><input id="se-end" type="time" value="${esc((shift && shift.end_time || "").slice(0, 5))}"></div>
@@ -5458,6 +5588,7 @@ function schedShiftEditor(pid, iso, shift) {
       <div class="field"><label>${esc(T("sched.station"))}</label><input id="se-station" value="${esc(shift && shift.station || "")}"></div>
     </div>
     <div class="field"><label>${esc(T("sched.note"))}</label><input id="se-notes" value="${esc(shift && shift.notes || "")}"></div>
+    ${isOpen ? `<button class="btn btn-small" id="se-find" style="margin:4px 0 8px">${esc(T("sched.whoCanWork"))}</button><div id="se-candidates"></div>` : ""}
     <div id="se-err"></div>
     <div class="modal-actions">
       ${isNew ? "" : `<button class="btn btn-danger" id="se-delete">${esc(T("common.delete"))}</button>`}
@@ -5471,11 +5602,12 @@ function schedShiftEditor(pid, iso, shift) {
     const end = document.getElementById("se-end").value;
     const err = document.getElementById("se-err");
     if (!start || !end) { err.innerHTML = `<div class="error">${esc(T("sched.needTimes"))}</div>`; return; }
+    if (isOpen && !chosenPid) { err.innerHTML = `<div class="error">${esc(T("sched.pickSomeone"))}</div>`; return; }
     saveBtn.disabled = true; // double-submit guard
     try {
       const shifts = (state.sched.shifts || []).slice();
       const rec = schedShiftPayload({
-        profile_id: pid, date: iso, start_time: start, end_time: end,
+        profile_id: chosenPid, date: iso, start_time: start, end_time: end,
         position: document.getElementById("se-pos").value.trim(),
         station: document.getElementById("se-station").value.trim(),
         notes: document.getElementById("se-notes").value.trim(),
@@ -5500,6 +5632,44 @@ function schedShiftEditor(pid, iso, shift) {
     } catch (e) { err.innerHTML = `<div class="error">${esc(e.detail || T("sched.saveShiftFail"))}</div>`; }
     finally { saveBtn.disabled = false; }
   };
+  if (isOpen) {
+    const findBtn = document.getElementById("se-find");
+    findBtn.onclick = async () => {
+      const box = document.getElementById("se-candidates");
+      const err = document.getElementById("se-err");
+      const start = document.getElementById("se-start").value;
+      const end = document.getElementById("se-end").value;
+      const pos = document.getElementById("se-pos").value.trim();
+      if (!start || !end) { err.innerHTML = `<div class="error">${esc(T("sched.enterTimesFirst"))}</div>`; return; }
+      err.innerHTML = "";
+      findBtn.disabled = true;
+      box.innerHTML = `<p class="muted">…</p>`;
+      try {
+        if (!state.sched.avail) {
+          const [a, t] = await Promise.all([edge("availability.get", {}), edge("timeoff.list", {})]);
+          state.sched.avail = { rows: (a.rows || []), reqs: (t.requests || []) };
+        }
+        const cands = schedFindCandidates(iso, start, end, pos);
+        if (!cands.length) { box.innerHTML = `<p class="muted">${esc(T("sched.noCandidates"))}</p>`; return; }
+        box.innerHTML = cands.map(c => `
+          <button class="btn btn-ghost" data-cand="${esc(c.id)}" style="display:block;width:100%;text-align:left;margin:4px 0;padding:10px;min-height:44px">
+            <strong>${esc(c.name)}</strong>
+            <div class="muted" style="font-size:12px">${esc(c.sub)}</div>
+          </button>`).join("");
+        const mark = (btn) => box.querySelectorAll("[data-cand]").forEach(x => {
+          x.style.borderColor = x === btn ? "var(--accent)" : "";
+          x.style.borderWidth = x === btn ? "2px" : "";
+        });
+        box.querySelectorAll("[data-cand]").forEach(b => b.onclick = () => {
+          chosenPid = b.dataset.cand;
+          const c = cands.find(x => String(x.id) === String(chosenPid));
+          document.getElementById("se-person").textContent = c ? c.name : "—";
+          mark(b);
+        });
+      } catch (e) { err.innerHTML = `<div class="error">${esc(e.detail || T("sched.saveShiftFail"))}</div>`; }
+      finally { findBtn.disabled = false; }
+    };
+  }
   if (!isNew) document.getElementById("se-delete").onclick = async () => {
     if (!await confirmDialog(T("sched.deleteTitle"), T("sched.deleteMsg"), T("common.delete"))) return;
     try {
@@ -5711,6 +5881,10 @@ function wireSchedBody(sub, weekStart, body) {
     };
     const posBtn = document.getElementById("sched-positions");
     if (posBtn) posBtn.onclick = () => schedPositionsModal();
+    const vgBtn = document.getElementById("sched-view-groups");
+    if (vgBtn) vgBtn.onclick = () => { schedBuilderView = "groups"; router(); };
+    const veBtn = document.getElementById("sched-view-employees");
+    if (veBtn) veBtn.onclick = () => { schedBuilderView = "employees"; router(); };
     const copyBtn = document.getElementById("sched-copy");
     if (copyBtn) copyBtn.onclick = async () => {
       if (!await confirmDialog(T("sched.copyTitle"), T("sched.copyMsg"), T("sched.copyWeek"))) return;
@@ -5743,6 +5917,9 @@ function wireSchedBody(sub, weekStart, body) {
     body.querySelectorAll("[data-add-shift]").forEach(b => b.onclick = () => {
       const [pid, iso] = b.dataset.addShift.split("|");
       schedShiftEditor(pid, iso, null);
+    });
+    body.querySelectorAll("[data-add-open-shift]").forEach(b => b.onclick = () => {
+      schedShiftEditor(null, b.dataset.addOpenShift, null);
     });
     body.querySelectorAll("[data-edit-shift]").forEach(b => b.onclick = () => {
       const id = b.dataset.editShift;
@@ -5906,6 +6083,12 @@ function wireSchedBody(sub, weekStart, body) {
 /* Non-superadmin managers can set schedule view access, department and
  * position. The "can manage schedule" checkbox renders ONLY for superadmin
  * editors, and is disabled on the superadmin target row. */
+/** Datalist options for the schedule-group field: existing groups, A–Z. */
+function schedGroupOptionsHtml() {
+  const groups = [...new Set((state.users || []).map(x => (x.sched_group || "").trim()).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b));
+  return groups.map(g => `<option value="${esc(g)}">`).join("");
+}
 function schedFlagsHtml(u, viewerIsSuper) {
   const isSA = u.role === "superadmin";
   const chk = viewerIsSuper
@@ -5922,6 +6105,9 @@ function schedFlagsHtml(u, viewerIsSuper) {
         <option value="FOH" ${u.department === "FOH" ? "selected" : ""}>FOH</option>
         <option value="BOH" ${u.department === "BOH" ? "selected" : ""}>BOH</option></select></div>
       <div class="field"><label>${esc(T("sched.posLabel"))}</label>${schedPositionInputHtml('data-sf="position"', u.position)}</div>
+      <div class="field"><label>${esc(T("sched.group"))}</label>
+        <input data-sf="sched_group" list="sched-group-${u.id}" value="${esc(u.sched_group || "")}" maxlength="40" placeholder="—" autocomplete="off">
+        <datalist id="sched-group-${u.id}">${schedGroupOptionsHtml()}</datalist></div>
     </div>
     ${chk}
     <label class="check-row" style="margin-top:8px"><input type="checkbox" data-sf="can_open" ${u.can_open ? "checked" : ""}>
