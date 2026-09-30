@@ -380,6 +380,7 @@ en: {
   "sched.pickup": "Pick up",
   "sched.posOnlyShift": "Only {pos} staff can pick up this shift.",
   "sched.positions": "Positions",
+  "sched.users": "Users",
   "sched.positionsTitle": "Manage positions",
   "sched.positionsHint": "Position choices for shifts and staff. Picking from a list keeps pickup rules exact. Removing a position doesn't change existing shifts or staff.",
   "sched.positionName": "New position name",
@@ -719,6 +720,7 @@ es: {
   "sched.pickup": "Tomar turno",
   "sched.posOnlyShift": "Solo el personal de {pos} puede tomar este turno.",
   "sched.positions": "Puestos",
+  "sched.users": "Usuarios",
   "sched.positionsTitle": "Gestionar puestos",
   "sched.positionsHint": "Opciones de puesto para turnos y personal. Elegir de la lista mantiene exactas las reglas de toma de turnos. Quitar un puesto no cambia los turnos ni el personal existentes.",
   "sched.positionName": "Nombre del nuevo puesto",
@@ -5280,7 +5282,7 @@ function schedGridHtml(days, rows, cellHtml, dayHeadExtra) {
   const rowLabel = "padding:8px;font-weight:600;border-top:1px solid var(--border);position:sticky;left:0;background:var(--card);z-index:3";
   const groupHead = "grid-column:1/-1;padding:10px 8px 6px;font-weight:800;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent);border-top:1px solid var(--border);position:sticky;left:0;background:var(--card);z-index:3";
   return `<div class="sched-grid-fade"><div style="overflow-x:auto"><div style="min-width:780px">
-    <div style="display:grid;grid-template-columns:150px repeat(7,minmax(108px,1fr))">
+    <div style="display:grid;grid-template-columns:150px repeat(7,minmax(116px,1fr))">
       <div style="${headCell};left:0;z-index:4"></div>
       ${days.map(d => `<div style="${headCell};font-weight:700;text-align:center">${esc(schedDayLabel(d))}${dayHeadExtra ? `<div>${dayHeadExtra(d)}</div>` : ""}</div>`).join("")}
       ${rows.map(row => row.header
@@ -5468,6 +5470,7 @@ async function schedBuilderHtml(weekStart) {
         : `<button class="btn btn-small btn-primary" id="sched-publish">${esc(T("sched.publish"))}</button>`}
       ${schedWeekStartSelectHtml()}
       <button class="btn btn-small" id="sched-positions">${esc(T("sched.positions"))}</button>
+      <button class="btn btn-small" id="sched-users">${esc(T("sched.users"))}</button>
       <div style="display:flex;gap:4px" role="group" aria-label="${esc(T("sched.viewLabel"))}">
         <button class="btn btn-small${schedBuilderView !== "employees" ? " btn-primary" : ""}" id="sched-view-groups">${esc(T("sched.viewGroups"))}</button>
         <button class="btn btn-small${schedBuilderView === "employees" ? " btn-primary" : ""}" id="sched-view-employees">${esc(T("sched.viewEmployees"))}</button>
@@ -5503,7 +5506,7 @@ function schedBuilderCell(pid, iso) {
   const addLabel = `${T("sched.addShift")} — ${person ? person.name : ""}, ${schedDayLabel(iso)}`;
   return `${shifts.map(s => `
       <button class="btn btn-small${conflict.has(key(s)) ? " shift-conflict" : ""}" data-edit-shift="${esc(s.id)}" style="display:block;width:100%;margin:2px 0;text-align:left;white-space:normal"${conflict.has(key(s)) ? ` title="${esc(T("sched.overlapWarn"))}"` : ""}>
-        <strong style="white-space:nowrap">${esc(schedFmtTimeRange(s.start_time, s.end_time))}</strong>${s.position ? `<br><span class="muted">${esc(s.position)}</span>` : ""}
+        <strong style="white-space:nowrap;font-size:12px">${esc(schedFmtTimeRange(s.start_time, s.end_time))}</strong>${s.position ? `<br><span class="muted">${esc(s.position)}</span>` : ""}
       </button>`).join("")}
     ${warns.length ? `<button class="btn btn-small" data-show-warns="${esc(pid)}|${esc(iso)}" aria-label="${esc(T("sched.warningsTitle"))}">⚠️</button>` : ""}
     <button class="btn btn-small btn-ghost sched-add" data-add-shift="${esc(pid)}|${esc(iso)}" aria-label="${esc(addLabel)}" title="${esc(addLabel)}" style="width:100%;margin-top:2px;opacity:.4">+</button>`;
@@ -5889,6 +5892,8 @@ function wireSchedBody(sub, weekStart, body) {
     };
     const posBtn = document.getElementById("sched-positions");
     if (posBtn) posBtn.onclick = () => schedPositionsModal();
+    const usersBtn = document.getElementById("sched-users");
+    if (usersBtn) usersBtn.onclick = () => go("#/admin/users");
     const vgBtn = document.getElementById("sched-view-groups");
     if (vgBtn) vgBtn.onclick = () => { schedBuilderView = "groups"; router(); };
     const veBtn = document.getElementById("sched-view-employees");
