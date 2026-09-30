@@ -380,6 +380,18 @@ en: {
   "sched.pickup": "Pick up",
   "sched.posOnlyShift": "Only {pos} staff can pick up this shift.",
   "sched.positions": "Positions",
+  "sched.staffing": "Staffing",
+  "sched.staffingRecurring": "Weekly template — repeats every week.",
+  "sched.staffingNeeds": "How many per shift",
+  "sched.staffingHint": "Set how many of each position you need for each weekday and daypart. The builder shows scheduled vs needed under each day.",
+  "sched.daypartHint": "Lunch = shifts ending by 5 PM. Dinner = everything later (a midnight close counts as dinner).",
+  "sched.lunch": "Lunch",
+  "sched.dinner": "Dinner",
+  "sched.arrangeGroups": "Group order",
+  "sched.arrangeEmployees": "Employee order",
+  "sched.arrangeHint": "Use the arrows to set the exact order shown in the schedule builder, then save.",
+  "sched.staffingSaved": "Staffing needs saved",
+  "sched.orderSaved": "Order saved",
   "sched.users": "Users",
   "sched.positionsTitle": "Manage positions",
   "sched.positionsHint": "Position choices for shifts and staff. Picking from a list keeps pickup rules exact. Removing a position doesn't change existing shifts or staff.",
@@ -720,6 +732,18 @@ es: {
   "sched.pickup": "Tomar turno",
   "sched.posOnlyShift": "Solo el personal de {pos} puede tomar este turno.",
   "sched.positions": "Puestos",
+  "sched.staffing": "Personal",
+  "sched.staffingRecurring": "Plantilla semanal — se repite cada semana.",
+  "sched.staffingNeeds": "Cuántos por turno",
+  "sched.staffingHint": "Indica cuántos de cada puesto necesitas por día de la semana y turno. El programador muestra programados vs necesarios bajo cada día.",
+  "sched.daypartHint": "Almuerzo = turnos que terminan a las 5 PM. Cena = todo lo posterior (un cierre a medianoche cuenta como cena).",
+  "sched.lunch": "Almuerzo",
+  "sched.dinner": "Cena",
+  "sched.arrangeGroups": "Orden de grupos",
+  "sched.arrangeEmployees": "Orden de empleados",
+  "sched.arrangeHint": "Usa las flechas para fijar el orden exacto del programador, luego guarda.",
+  "sched.staffingSaved": "Necesidades guardadas",
+  "sched.orderSaved": "Orden guardado",
   "sched.users": "Usuarios",
   "sched.positionsTitle": "Gestionar puestos",
   "sched.positionsHint": "Opciones de puesto para turnos y personal. Elegir de la lista mantiene exactas las reglas de toma de turnos. Quitar un puesto no cambia los turnos ni el personal existentes.",
@@ -4957,6 +4981,8 @@ function schedIso(d) {
 let schedWeekStartDayNum = 1; // 0=Sun..6=Sat; loaded from the server per schedule render
 let schedBuilderView = "groups"; // builder roster view: "groups" | "employees"
 let schedPositions = []; // managed position list; loaded from the server
+let schedGroupOrder = []; // manager-arranged group display order; loaded from the server
+let schedEmployeeOrder = []; // manager-arranged employee display order (profile ids)
 /** Store-level schedule settings: week-start day + managed position list. */
 async function schedLoadScheduleSettings() {
   try {
@@ -4964,6 +4990,8 @@ async function schedLoadScheduleSettings() {
     const n = Number(r.week_start_day);
     if (Number.isInteger(n) && n >= 0 && n <= 6) schedWeekStartDayNum = n;
     if (Array.isArray(r.positions)) schedPositions = r.positions.filter(x => typeof x === "string");
+    if (Array.isArray(r.group_order)) schedGroupOrder = r.group_order.filter(x => typeof x === "string");
+    if (Array.isArray(r.employee_order)) schedEmployeeOrder = r.employee_order.filter(x => typeof x === "string");
   } catch (e) { /* keep defaults */ }
   return schedWeekStartDayNum;
 }
@@ -5069,7 +5097,7 @@ async function renderSchedule(sub, arg2) {
   if (!canSchedView()) { notAuth(); return; }
 
   const tabs = [["my", T("sched.my")], ["team", T("sched.team")], ["swaps", T("sched.swapBoard")]];
-  if (canSchedManage()) tabs.push(["builder", T("sched.builder")]);
+  if (canSchedManage()) tabs.push(["builder", T("sched.builder")], ["staffing", T("sched.staffing")]);
   tabs.push(["timeoff", T("sched.timeoff")], ["avail", T("sched.avail")]);
   if (!tabs.some(([id]) => id === sub)) sub = "my";
   await schedLoadScheduleSettings(); // store-level week-start day + position list
@@ -5085,7 +5113,9 @@ async function renderSchedule(sub, arg2) {
     </div>
     ${sub === "avail"
       ? `<p class="muted" style="margin:0 0 12px">${esc(T("sched.availRecurring"))}</p>`
-      : schedWeekNav(sub, weekStart)}
+      : sub === "staffing"
+        ? `<p class="muted" style="margin:0 0 12px">${esc(T("sched.staffingRecurring"))}</p>`
+        : schedWeekNav(sub, weekStart)}
     ${sub === "my" ? `<div class="no-print" style="display:flex;margin-bottom:12px">
       <button class="btn btn-small" data-cal-export style="margin-left:auto">📅 ${esc(T("sched.addToCalendar"))}</button>
     </div>` : ""}
@@ -5109,6 +5139,7 @@ async function renderSchedule(sub, arg2) {
     else if (sub === "team") body.innerHTML = await schedTeamHtml(weekStart);
     else if (sub === "swaps") body.innerHTML = await schedSwapsHtml();
     else if (sub === "builder") body.innerHTML = await schedBuilderHtml(weekStart);
+    else if (sub === "staffing") body.innerHTML = await schedStaffingHtml();
     else if (sub === "timeoff") body.innerHTML = await schedTimeoffHtml();
     else body.innerHTML = await schedAvailHtml();
     $app().querySelectorAll("[data-go]").forEach(b => b.onclick = () => go(b.dataset.go));
@@ -5268,7 +5299,18 @@ function schedGroupRows(items) {
     if (!seen.has(g)) { seen.set(g, []); order.push(g); }
     seen.get(g).push(it);
   }
-  order.sort((a, b) => (a === "" ? 1 : b === "" ? -1 : 0));
+  // Manager-arranged group order first, then any new groups alphabetically;
+  // ungrouped always last.
+  const rank = new Map(schedGroupOrder.map((g, i) => [String(g).toLowerCase(), i]));
+  order.sort((a, b) => {
+    if (!a && !b) return 0;
+    if (!a) return 1;
+    if (!b) return -1;
+    const ra = rank.has(a.toLowerCase()) ? rank.get(a.toLowerCase()) : Infinity;
+    const rb = rank.has(b.toLowerCase()) ? rank.get(b.toLowerCase()) : Infinity;
+    if (ra !== rb) return ra - rb;
+    return a.localeCompare(b);
+  });
   if (order.length === 1 && order[0] === "") return items;
   const out = [];
   for (const g of order) {
@@ -5431,10 +5473,20 @@ async function schedBuilderHtml(weekStart) {
   let schedule = r.schedule;
   if (!schedule) schedule = (await edge("schedule.ensure_draft", { week_start: weekStart })).schedule;
   const u = await edge("users.list").catch(() => ({ users: [] }));
+  const empRank = new Map(schedEmployeeOrder.map((id, i) => [String(id), i]));
   const people = (u.users || u || [])
     .filter(x => x.active !== false && (!!x.can_view_schedule || !!x.can_manage_schedule))
-    .sort((a, b) => String(a.name || "").localeCompare(String(b.name || "")));
+    .sort((a, b) => {
+      const ra = empRank.has(String(a.id)) ? empRank.get(String(a.id)) : Infinity;
+      const rb = empRank.has(String(b.id)) ? empRank.get(String(b.id)) : Infinity;
+      if (ra !== rb) return ra - rb;
+      return String(a.name || "").localeCompare(String(b.name || ""));
+    });
   state.sched = { weekStart, schedule, shifts: (r.shifts || []).slice(), people, warns: {} };
+  try {
+    const tr = await edge("staffing.get_targets");
+    state.sched.targets = tr.targets || [];
+  } catch (e) { state.sched.targets = []; /* coverage degrades to hidden */ }
   const published = schedIsPublished(schedule);
   const days = schedWeekDays(weekStart);
   // Closer coverage (Phase 1): a day with shifts needs >=1 approved closer on
@@ -5477,7 +5529,7 @@ async function schedBuilderHtml(weekStart) {
       </div>
     </div>
     ${rows.length ? schedGridHtml(days, rows, (row, d) => schedBuilderCell(row.id, d), (d) =>
-      `<button class="btn btn-small btn-ghost" data-add-open-shift="${esc(d)}" aria-label="${esc(T("sched.addOpenShift") + " — " + schedDayLabel(d))}" title="${esc(T("sched.addOpenShift"))}" style="margin-top:4px;min-width:44px;min-height:32px;opacity:.6">+</button>`) : ""}
+      `${schedCoverageHtml(d)}<button class="btn btn-small btn-ghost" data-add-open-shift="${esc(d)}" aria-label="${esc(T("sched.addOpenShift") + " — " + schedDayLabel(d))}" title="${esc(T("sched.addOpenShift"))}" style="margin-top:4px;min-width:44px;min-height:32px;opacity:.6">+</button>`) : ""}
     ${rows.length
       ? `<p class="muted" style="font-size:13px;margin-top:8px">${esc(T("sched.builderHint"))}</p>`
       : `<p class="muted" style="margin-top:8px">${esc(T("sched.noPeople"))}</p>`}`;
@@ -5489,6 +5541,172 @@ function schedCellShifts(pid, iso) {
     .filter(s => String(s.profile_id) === String(pid) && String(s.date || "").slice(0, 10) === iso)
     .sort(schedByStart);
 }
+/** Shift daypart for staffing coverage: lunch = ends by 5 PM, dinner = later
+ *  (a midnight 00:00 close counts as 24:00, i.e. dinner). */
+function schedShiftDaypart(s) {
+  let e = String(s.end_time || "").slice(0, 5);
+  if (e === "00:00") e = "24:00";
+  return e && e <= "17:00" ? "lunch" : "dinner";
+}
+/** Coverage lines for one builder day column, e.g. "Srv L3/4 D5/6" — red when short. */
+function schedCoverageHtml(iso) {
+  const targets = (state.sched && state.sched.targets) || [];
+  const wd = new Date(iso + "T12:00:00").getDay();
+  const need = targets.filter(t => t.weekday === wd && t.required > 0);
+  if (!need.length) return "";
+  const have = {};
+  for (const s of (state.sched.shifts || [])) {
+    if (String(s.date || "").slice(0, 10) !== iso) continue;
+    const pos = String(s.position || "").trim().toLowerCase();
+    if (!pos) continue;
+    const k = schedShiftDaypart(s) + "|" + pos;
+    have[k] = (have[k] || 0) + 1;
+  }
+  const byPos = new Map();
+  for (const t of need) {
+    const pk = String(t.position).trim().toLowerCase();
+    if (!byPos.has(pk)) byPos.set(pk, { label: String(t.position).trim(), lunch: null, dinner: null });
+    byPos.get(pk)[t.daypart] = { need: t.required, have: have[t.daypart + "|" + pk] || 0 };
+  }
+  const seg = (dp, x) => {
+    if (!x) return "";
+    const short = x.have < x.need;
+    return `<span${short ? ' style="color:var(--danger);font-weight:700"' : ""}>${dp}${x.have}/${x.need}</span>`;
+  };
+  return [...byPos.values()].map(d =>
+    `<div style="font-size:11px;font-weight:600;margin-top:2px;white-space:nowrap">${esc(d.label.slice(0, 3))} ${seg("L", d.lunch)}${d.lunch && d.dinner ? " " : ""}${seg("D", d.dinner)}</div>`
+  ).join("");
+}
+
+/* ---------- Staffing template + arrange order (manage only) ---------- */
+/** Short weekday name for a 0=Sunday..6=Saturday weekday number. */
+function schedShortWd(wd) {
+  return new Date(2026, 8, 27 + wd).toLocaleDateString(locale(), { weekday: "short" });
+}
+
+async function schedStaffingHtml() {
+  const [tg, u] = await Promise.all([
+    edge("staffing.get_targets").catch(() => ({ targets: [] })),
+    edge("users.list").catch(() => ({ users: [] })),
+  ]);
+  const people = (u.users || u || [])
+    .filter(x => x.active !== false && (!!x.can_view_schedule || !!x.can_manage_schedule));
+  const tmap = new Map();
+  for (const t of (tg.targets || [])) tmap.set(t.weekday + "|" + t.daypart + "|" + String(t.position).toLowerCase(), t.required);
+  // Groups in current display order (manager arrangement, then new groups A-Z, ungrouped last).
+  const members = new Map();
+  for (const p of people) {
+    const g = (p.sched_group || "").trim();
+    if (!members.has(g)) members.set(g, []);
+    members.get(g).push(p);
+  }
+  const grank = new Map(schedGroupOrder.map((g, i) => [String(g).toLowerCase(), i]));
+  const groups = [...members.keys()].sort((a, b) => {
+    if (!a && !b) return 0;
+    if (!a) return 1;
+    if (!b) return -1;
+    const ra = grank.has(a.toLowerCase()) ? grank.get(a.toLowerCase()) : Infinity;
+    const rb = grank.has(b.toLowerCase()) ? grank.get(b.toLowerCase()) : Infinity;
+    return ra !== rb ? ra - rb : a.localeCompare(b);
+  });
+  const erank = new Map(schedEmployeeOrder.map((id, i) => [String(id), i]));
+  const memOrder = new Map(); // group -> [profile ids in display order]
+  for (const g of groups) {
+    memOrder.set(g, members.get(g).slice().sort((a, b) => {
+      const ra = erank.has(String(a.id)) ? erank.get(String(a.id)) : Infinity;
+      const rb = erank.has(String(b.id)) ? erank.get(String(b.id)) : Infinity;
+      return ra !== rb ? ra - rb : String(a.name || "").localeCompare(String(b.name || ""));
+    }).map(p => String(p.id)));
+  }
+  state.staffing = { tmap, groups, memOrder, byId: new Map(people.map(p => [String(p.id), p])) };
+  const wdays = [0, 1, 2, 3, 4, 5, 6].map(i => (schedWeekStartDayNum + i) % 7);
+  const positions = schedPositions.length ? schedPositions : ["Server", "Bartender", "Busser", "Runner", "Host", "Barback", "Expo"];
+  const daypartBlock = (dp) => `
+    <h3 style="margin:16px 0 8px">${esc(T(dp === "lunch" ? "sched.lunch" : "sched.dinner"))}</h3>
+    <div style="overflow-x:auto"><table class="bulk-par">
+      <tr><th></th>${wdays.map(w => `<th>${esc(schedShortWd(w))}</th>`).join("")}</tr>
+      ${positions.map((pos, pi) => `<tr><td style="font-weight:600;white-space:nowrap">${esc(pos)}</td>${
+        wdays.map(w => {
+          const v = tmap.get(w + "|" + dp + "|" + String(pos).toLowerCase());
+          return `<td><input type="number" min="0" max="99" inputmode="numeric" data-tg="${w}|${dp}|${pi}" value="${v == null ? "" : v}" style="width:56px" aria-label="${esc(pos + " " + schedShortWd(w) + " " + dp)}"></td>`;
+        }).join("")
+      }</tr>`).join("")}
+    </table></div>`;
+  return `
+    <h2 style="margin:4px 0 8px">${esc(T("sched.staffingNeeds"))}</h2>
+    <p class="muted" style="font-size:13px;margin:0 0 4px">${esc(T("sched.staffingHint"))}</p>
+    <p class="muted" style="font-size:13px;margin:0 0 8px">${esc(T("sched.daypartHint"))}</p>
+    ${daypartBlock("lunch")}
+    ${daypartBlock("dinner")}
+    <div style="margin:12px 0"><button class="btn btn-primary" id="staffing-save-targets">${esc(T("common.save"))}</button></div>
+    <div id="staffing-arrange"></div>`;
+}
+
+/** Arrange-order section of the staffing tab: group order + employee order. */
+function drawStaffingArrange() {
+  const box = document.getElementById("staffing-arrange");
+  if (!box || !state.staffing) return;
+  const st = state.staffing;
+  const arrow = (kind, a, b, label) => `
+    <button class="btn btn-small btn-ghost" data-amove="${kind}|${a}|${b}|-1" aria-label="${esc(label)} ↑" style="min-width:44px;min-height:44px">↑</button>
+    <button class="btn btn-small btn-ghost" data-amove="${kind}|${a}|${b}|1" aria-label="${esc(label)} ↓" style="min-width:44px;min-height:44px">↓</button>`;
+  box.innerHTML = `
+    <h2 style="margin:20px 0 8px">${esc(T("sched.arrangeGroups"))}</h2>
+    <p class="muted" style="font-size:13px;margin:0 0 8px">${esc(T("sched.arrangeHint"))}</p>
+    <div>${st.groups.map((g, i) => `
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
+        <span style="flex:1;font-weight:700">${esc(g || T("sched.ungrouped"))}</span>
+        ${arrow("g", i, "", g || T("sched.ungrouped"))}
+      </div>`).join("")}</div>
+    <div style="margin:12px 0"><button class="btn btn-small" id="staffing-save-groups">${esc(T("common.save"))}</button></div>
+    <h2 style="margin:20px 0 8px">${esc(T("sched.arrangeEmployees"))}</h2>
+    ${st.groups.map((g, gi) => `
+      <h3 style="margin:14px 0 4px;font-size:14px">${esc(g || T("sched.ungrouped"))}</h3>
+      <div>${(st.memOrder.get(g) || []).map((id, i) => `
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
+          <span style="flex:1">${esc((st.byId.get(id) || {}).name || id)}</span>
+          ${arrow("e", gi, i, (st.byId.get(id) || {}).name || "")}
+        </div>`).join("")}</div>`).join("")}
+    <div style="margin:12px 0"><button class="btn btn-small" id="staffing-save-emps">${esc(T("common.save"))}</button></div>`;
+  box.querySelectorAll("[data-amove]").forEach(b => b.onclick = () => {
+    const [kind, a, bi, dir] = b.dataset.amove.split("|");
+    if (kind === "g") {
+      const i = Number(a), j = i + Number(dir);
+      if (j < 0 || j >= st.groups.length) return;
+      [st.groups[i], st.groups[j]] = [st.groups[j], st.groups[i]];
+    } else {
+      const g = st.groups[Number(a)];
+      const arr = st.memOrder.get(g) || [];
+      const i = Number(bi), j = i + Number(dir);
+      if (j < 0 || j >= arr.length) return;
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    drawStaffingArrange();
+  });
+  const saveGroups = document.getElementById("staffing-save-groups");
+  if (saveGroups) saveGroups.onclick = async () => {
+    saveGroups.disabled = true; // double-submit guard
+    try {
+      const r = await edge("schedule.set_group_order", { groups: st.groups.filter(g => g) });
+      schedGroupOrder = r.groups || st.groups.filter(g => g);
+      showSavedToast(T("sched.orderSaved"));
+    } catch (e) { flashError(e.detail || e.message || "Error"); }
+    saveGroups.disabled = false;
+  };
+  const saveEmps = document.getElementById("staffing-save-emps");
+  if (saveEmps) saveEmps.onclick = async () => {
+    saveEmps.disabled = true; // double-submit guard
+    try {
+      const order = [];
+      for (const g of st.groups) order.push(...(st.memOrder.get(g) || []));
+      const r = await edge("users.set_sched_order", { order });
+      schedEmployeeOrder = r.order || order;
+      showSavedToast(T("sched.orderSaved"));
+    } catch (e) { flashError(e.detail || e.message || "Error"); }
+    saveEmps.disabled = false;
+  };
+}
+
 /** Builder cell: shift chips + warning badge + add button. */
 function schedBuilderCell(pid, iso) {
   const shifts = schedCellShifts(pid, iso);
@@ -6099,6 +6317,28 @@ function wireSchedBody(sub, weekStart, body) {
         if (er) er.innerHTML = `<div class="error">${esc(e.detail || T("sched.availFail"))}</div>`;
       }
       finally { avSave.disabled = false; }
+    };
+  }
+  if (sub === "staffing") {
+    drawStaffingArrange();
+    const saveT = document.getElementById("staffing-save-targets");
+    if (saveT) saveT.onclick = async () => {
+      saveT.disabled = true; // double-submit guard
+      try {
+        const positions = schedPositions.length ? schedPositions : ["Server", "Bartender", "Busser", "Runner", "Host", "Barback", "Expo"];
+        const targets = [];
+        body.querySelectorAll("[data-tg]").forEach(inp => {
+          const parts = inp.dataset.tg.split("|");
+          const v = inp.value === "" ? 0 : Number(inp.value);
+          if (v > 0) targets.push({ weekday: Number(parts[0]), daypart: parts[1], position: positions[Number(parts[2])], required: v });
+        });
+        const r = await edge("staffing.save_targets", { targets });
+        const tmap = new Map();
+        for (const t of (r.targets || [])) tmap.set(t.weekday + "|" + t.daypart + "|" + String(t.position).toLowerCase(), t.required);
+        if (state.staffing) state.staffing.tmap = tmap;
+        showSavedToast(T("sched.staffingSaved"));
+      } catch (e) { flashError(e.detail || e.message || "Error"); }
+      saveT.disabled = false;
     };
   }
 }
