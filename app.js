@@ -282,7 +282,7 @@ en: {
   "admin.addUserFail": "Could not add user.", "admin.you": "you",
   "admin.active": "active", "admin.disabled": "disabled",
   "admin.enable": "Enable", "admin.disable": "Disable",
-  "admin.saveRole": "Save role", "admin.setNewPin": "Set new PIN (enter twice)",
+  "admin.saveRole": "Save role", "admin.setNewPin": "Set new PIN (enter twice)", "admin.availFor": "Edit availability",
   "admin.newPin": "New PIN", "admin.confirmPin": "Confirm PIN",
   "admin.setPinBtn": "Set PIN",
   "admin.userStatusFail": "Could not change user status.",
@@ -343,7 +343,7 @@ en: {
   "sched.available": "Available", "sched.unavailable": "Unavailable all day", "sched.limited": "Available only between…",
   "sched.blocked": "Unavailable between…",
   "sched.availExplainer": "“Available only between…” means you CAN work those hours; “Unavailable between…” means you CAN'T.",
-  "sched.availApplyAll": "Copy Monday to all days",
+  "sched.availApplyAll": "Copy Monday to all days", "sched.availFor": "Availability — {name}",
   "sched.noPublished": "No schedule published for this week.",
   "sched.draftBanner": "DRAFT — not published yet.",
   "sched.noShifts": "No shifts this week.", "sched.noShiftsDay": "No shifts",
@@ -647,7 +647,7 @@ es: {
   "admin.addUserFail": "No se pudo agregar el usuario.", "admin.you": "tú",
   "admin.active": "activo", "admin.disabled": "desactivado",
   "admin.enable": "Activar", "admin.disable": "Desactivar",
-  "admin.saveRole": "Guardar rol", "admin.setNewPin": "Poner PIN nuevo (dos veces)",
+  "admin.saveRole": "Guardar rol", "admin.setNewPin": "Poner PIN nuevo (dos veces)", "admin.availFor": "Editar disponibilidad",
   "admin.newPin": "PIN nuevo", "admin.confirmPin": "Confirmar PIN",
   "admin.setPinBtn": "Poner PIN",
   "admin.userStatusFail": "No se pudo cambiar el estado del usuario.",
@@ -708,7 +708,7 @@ es: {
   "sched.available": "Disponible", "sched.unavailable": "No disponible todo el día", "sched.limited": "Disponible solo entre…",
   "sched.blocked": "No disponible entre…",
   "sched.availExplainer": "«Disponible solo entre…» significa que SÍ puedes trabajar esas horas; «No disponible entre…» significa que NO.",
-  "sched.availApplyAll": "Copiar el lunes a todos los días",
+  "sched.availApplyAll": "Copiar el lunes a todos los días", "sched.availFor": "Disponibilidad — {name}",
   "sched.noPublished": "No hay horario publicado para esta semana.",
   "sched.draftBanner": "BORRADOR — aún no publicado.",
   "sched.noShifts": "No tienes turnos esta semana.", "sched.noShiftsDay": "Sin turnos",
@@ -4262,6 +4262,7 @@ function adminUsersHtml() {
         </div></div>
       <button class="btn btn-small" data-u-pin style="width:100%">${esc(T("admin.setPinBtn"))}</button>`}
       ${schedFlagsHtml(u, viewerIsSuper)}
+      ${canSchedManage() && !isSA ? `<button class="btn btn-small" data-u-avail data-avail-name="${esc(u.name)}" style="width:100%;min-height:44px;margin-top:10px">📅 ${esc(T("admin.availFor"))}</button>` : ""}
       </div>
     </div>`;
     }).join("")}`;
@@ -4958,6 +4959,14 @@ function wireAdmin(tab, arg2) {
         try { await edge("users.delete", { user_id: id }); rerender(); }
         catch (e) { flashError(e.detail || T("users.deleteFail")); }
       };
+      // Manager-only availability editor entry: opens the shared availability
+      // editor bound to this employee's profile_id (backend enforces the
+      // manager-only rule on availability.get/set too).
+      const avBtn = card.querySelector("[data-u-avail]");
+      if (avBtn) avBtn.onclick = () => {
+        state.availForName = avBtn.dataset.availName || "";
+        go("#/sched/avail?for=" + encodeURIComponent(id));
+      };
       const roleBtn = card.querySelector("[data-u-role]");
       if (roleBtn) roleBtn.onclick = async () => {
         const role = card.querySelector('[data-uf="role"]').value;
@@ -5182,6 +5191,20 @@ function schedTeamDay() {
   const m = q.match(/(?:^|&)d=(\d{4}-\d{2}-\d{2})(?:&|$)/);
   if (m && schedValidIso(m[1])) return m[1];
   return schedIso(new Date());
+}
+/** Availability tab target: ?for=<profile_id> lets a manager edit someone else's
+ *  availability with the same editor (saved via availability.set profile_id).
+ *  Null = the viewer's own availability. */
+function schedAvailForId() {
+  const q = (state.route && state.route.query) || "";
+  const m = q.match(/(?:^|&)for=([^&]+)(?:&|$)/);
+  return m ? decodeURIComponent(m[1]) : null;
+}
+/** availability.set request body: a manager-targeted edit carries the target
+ *  profile_id (backend permits it for superadmin / schedule managers only);
+ *  the self-service editor sends rows alone. */
+function schedAvailSetBody(forId, rows) {
+  return forId ? { profile_id: forId, rows } : { rows };
 }
 /** Week start containing a day ISO, honoring the store's week-start day. */
 function schedWeekStartOfDay(dayIso) {
@@ -6376,14 +6399,27 @@ function schedAvailStatusLabel(st) {
   return st === "unavailable" ? T("sched.unavailable") : st === "limited" ? T("sched.limited") : st === "blocked" ? T("sched.blocked") : T("sched.available");
 }
 async function schedAvailHtml() {
-  const me = String(state.session.profile.id);
-  const r = await edge("availability.get", {});
+  const own = String(state.session.profile.id);
+  const target = schedAvailForId();
+  // A non-manager typing a ?for= URL gets a dead end here; the backend
+  // enforces the same rule on availability.get/set (profile_id target).
+  if (target && target !== own && !canSchedManage()) {
+    return `<div class="admin-card"><div class="error">${esc(T("common.notAuth"))}</div></div>`;
+  }
+  const me = target || own;
+  // Managers editing someone else's: the name is stashed when tapping the
+  // entry on #/admin/users; fall back to the users roster, then a generic label.
+  const targetName = target && target !== own
+    ? (state.availForName || ((state.users || []).find(u => String(u.id) === target) || {}).name || T("role.staff"))
+    : null;
+  const r = await edge("availability.get", target ? { profile_id: target } : {});
   const rows = r.rows || [];
   const byDay = {};
   rows.filter(x => String(x.profile_id) === me).forEach(x => byDay[Number(x.weekday)] = x);
   const stOpts = (sel) => [["available", T("sched.available")], ["unavailable", T("sched.unavailable")], ["limited", T("sched.limited")], ["blocked", T("sched.blocked")]]
     .map(([v, l]) => `<option value="${v}" ${sel === v ? "selected" : ""}>${esc(l)}</option>`).join("");
-  let html = `<div class="admin-card"><h3 style="margin-top:0">${esc(T("sched.avail"))}</h3>
+  let html = `<div class="admin-card"><h3 style="margin-top:0">${esc(targetName ? T("sched.availFor").replace("{name}", targetName) : T("sched.avail"))}</h3>
+    ${targetName ? `<div style="margin-bottom:10px"><button class="btn btn-small btn-ghost" data-go="#/admin/users">← ${esc(T("common.back"))}</button></div>` : ""}
     <p class="muted" style="font-size:13px;margin:0 0 10px">${esc(T("sched.availExplainer"))}</p>
     <div style="margin-bottom:10px"><button class="btn btn-small btn-ghost" id="av-apply-all">${esc(T("sched.availApplyAll"))}</button></div>
     ${[0, 1, 2, 3, 4, 5, 6].map(i => {
@@ -6718,7 +6754,8 @@ function wireSchedBody(sub, weekStart, body) {
       });
       avSave.disabled = true; // double-submit guard
       try {
-        await edge("availability.set", { rows });
+        const forId = schedAvailForId();
+        await edge("availability.set", schedAvailSetBody(forId, rows));
         if (state.sched) state.sched.avail = null; // picker candidates go stale
         state.schedDirty = false;
         showSavedToast();
