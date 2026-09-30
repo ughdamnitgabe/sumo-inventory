@@ -3504,6 +3504,9 @@ async function renderAdmin(tab, arg2) {
   </div>`;
 
   $app().querySelectorAll("[data-atab]").forEach(b => b.onclick = () => go("#/admin/" + b.dataset.atab));
+  // The tab bar overflows on phones — keep the active tab visible.
+  const activeAtab = $app().querySelector('[data-atab].active');
+  if (activeAtab && activeAtab.scrollIntoView) activeAtab.scrollIntoView({ inline: "center", block: "nearest" });
   $app().querySelector('[data-act="back-home"]').onclick = () => go("#/home");
   $app().querySelector('[data-act="nav-logout"]').onclick = logout;
   wireAdmin(tab, arg2);
@@ -3532,17 +3535,8 @@ function adminItemsHtml() {
   return `<div class="admin-card">
       <div class="field" style="margin-bottom:0"><input id="ai-search" placeholder="${esc(T("admin.searchItems"))}" value="${esc(adminItemSearch)}" autocomplete="off"></div>
     </div>
-    <div class="admin-card">
-      <h3 style="margin-top:0">${esc(T("admin.csvTitle"))}</h3>
-      <p class="muted">${esc(T("admin.csvHelp"))}</p>
-      <button class="btn" id="csv-download" style="width:100%">${esc(T("admin.csvDownload"))}</button>
-      <div class="field" style="margin-top:10px"><label>${esc(T("admin.csvFile"))}</label>
-        <input type="file" id="csv-file" accept=".csv,text/csv"></div>
-      <div id="csv-err"></div>
-      <button class="btn btn-primary" id="csv-upload" style="width:100%">${esc(T("admin.csvUpload"))}</button>
-      <div id="csv-result" style="margin-top:10px"></div>
-    </div>
-    <div class="admin-card">
+    <button class="btn btn-primary" id="ai-add-toggle" style="width:100%;margin-bottom:12px">＋ ${esc(T("admin.addItem"))}</button>
+    <div class="admin-card" id="ai-add-form" hidden>
       <h3 style="margin-top:0">${esc(T("admin.addItem"))}</h3>
       <div class="field"><label>${esc(T("common.name"))}</label><input id="ni-name" placeholder="${esc(T("admin.exItem"))}"></div>
       <div class="form-row">
@@ -3570,14 +3564,23 @@ function adminItemCardsHtml() {
     ? state.items.filter(i => String(i.name || "").toLowerCase().includes(q))
     : state.items;
   if (!list.length) return `<p class="muted">${esc(T("admin.noItemsMatch"))}</p>`;
-  return `${list.map(i => `
+  return `${list.map(i => {
+    const facts = [];
+    if (Number(i.par) > 0) facts.push(`Par ${esc(fmtCount(i.par))}${i.unit ? " " + esc(i.unit) : ""}`);
+    if (Number(i.price) > 0) facts.push("$" + esc(Number(i.price).toFixed(2)));
+    return `
     <div class="admin-card" data-item="${esc(i.id)}">
-      <div class="card-head">
+      <div class="card-head" data-ai-head style="cursor:pointer">
         <div><strong>${esc(i.name)}</strong>
           <div class="muted" style="font-size:13px">${esc(itemAreas(i).map(a => a.name).filter(Boolean).join(", ") || T("admin.noArea"))} · ${esc(vendorOf(i.vendor_id).name || T("admin.noVendor"))}${i.active === false ? " · " + esc(T("admin.archived")) : ""}</div>
+          ${facts.length ? `<div class="muted" style="font-size:13px">${facts.join(" · ")}</div>` : ""}
         </div>
-        <button class="btn btn-small" data-ai-toggle>${esc(i.active === false ? T("admin.unarchive") : T("admin.archive"))}</button>
+        <div style="display:flex;align-items:center;gap:8px;flex:none">
+          <button class="btn btn-small" data-ai-toggle>${esc(i.active === false ? T("admin.unarchive") : T("admin.archive"))}</button>
+          <span data-ai-chev class="muted" style="font-size:18px;line-height:1">▾</span>
+        </div>
       </div>
+      <div data-ai-body hidden>
       <div class="form-row" style="margin-top:8px">
         <div class="field"><label>${esc(T("common.name"))}</label><input data-f="name" value="${esc(i.name)}"></div>
         <div class="field"><label>${esc(T("admin.unit"))}</label><input data-f="unit" value="${esc(i.unit || "")}"></div>
@@ -3609,7 +3612,8 @@ function adminItemCardsHtml() {
       <div style="display:flex;gap:8px;margin-top:8px">
         <button class="btn btn-primary btn-small" data-ai-save style="flex:1">${esc(T("common.save"))}</button>
       </div>
-    </div>`).join("")}`;
+      </div>
+    </div>`; }).join("")}`;
 }
 
 /* Wire the per-item save/archive buttons inside a Manage → Items card
@@ -3618,6 +3622,16 @@ function adminItemCardsHtml() {
 function wireItemCards(root, rerender) {
   root.querySelectorAll("[data-item]").forEach(card => {
     const id = card.dataset.item;
+    // Collapsed card: tap the head to expand/collapse the full edit form.
+    const head = card.querySelector("[data-ai-head]");
+    const cbody = card.querySelector("[data-ai-body]");
+    const chev = card.querySelector("[data-ai-chev]");
+    if (head && cbody) head.onclick = (e) => {
+      if (e.target.closest("[data-ai-toggle]")) return; // archive button handles its own tap
+      const opening = cbody.hidden;
+      cbody.hidden = !opening;
+      if (chev) chev.textContent = opening ? "▴" : "▾";
+    };
     card.querySelector("[data-ai-save]").onclick = async () => {
       const data = {};
       card.querySelectorAll("[data-f]").forEach(inp => data[inp.dataset.f] = inp.value);
@@ -4139,7 +4153,17 @@ function bulkItemsHtml() {
       </div>
     </div>`;
   }).join("");
-  return `<div class="admin-card" id="bulk-items">
+  return `<div class="admin-card" style="margin-bottom:12px">
+      <h3 style="margin-top:0">${esc(T("admin.csvTitle"))}</h3>
+      <p class="muted">${esc(T("admin.csvHelp"))}</p>
+      <button class="btn" id="csv-download" style="width:100%">${esc(T("admin.csvDownload"))}</button>
+      <div class="field" style="margin-top:10px"><label>${esc(T("admin.csvFile"))}</label>
+        <input type="file" id="csv-file" accept=".csv,text/csv"></div>
+      <div id="csv-err"></div>
+      <button class="btn btn-primary" id="csv-upload" style="width:100%">${esc(T("admin.csvUpload"))}</button>
+      <div id="csv-result" style="margin-top:10px"></div>
+    </div>
+    <div class="admin-card" id="bulk-items">
       <div class="field" style="margin-top:0"><input id="bulk-search" placeholder="${esc(T("admin.bulkSearch"))}"></div>
       <div class="bulk-wrap">
         <div class="bulk-scroll">${rows || `<div class="muted">${esc(T("count.noItems"))}</div>`}</div>
@@ -4364,7 +4388,42 @@ function wireAdmin(tab, arg2) {
   const rerender = () => renderAdmin(tab, arg2);
 
   if (tab === "items") {
-    document.getElementById("csv-download").onclick = () => {
+    const addToggle = document.getElementById("ai-add-toggle");
+    const addForm = document.getElementById("ai-add-form");
+    if (addToggle && addForm) addToggle.onclick = () => { addForm.hidden = !addForm.hidden; };
+    document.getElementById("ni-add").onclick = async () => {
+      const name = document.getElementById("ni-name").value.trim();
+      const err = document.getElementById("ni-err");
+      if (!name) { err.innerHTML = `<div class="error">${esc(T("admin.itemNeedName"))}</div>`; return; }
+      err.innerHTML = "";
+      try {
+        await edge("items.create", {
+          name,
+          area_ids: [...document.querySelectorAll("#ni-areas [data-area-check]:checked")].map(b => b.value),
+          vendor_id: document.getElementById("ni-vendor").value || null,
+          par: Number(document.getElementById("ni-par").value) || 0,
+          unit: document.getElementById("ni-unit").value.trim(),
+          price: Number(document.getElementById("ni-price").value) || 0,
+        });
+        rerender();
+      } catch (e) { err.innerHTML = `<div class="error">${esc(e.detail || T("admin.addItemFail"))}</div>`; }
+    };
+    const searchInput = document.getElementById("ai-search");
+    if (searchInput) searchInput.oninput = (e) => {
+      adminItemSearch = e.target.value;
+      const list = document.getElementById("admin-item-list");
+      if (list) { list.innerHTML = adminItemCardsHtml(); wireItemCards(list, rerender); }
+    };
+    wireItemCards(body, rerender);
+  }
+
+  if (tab === "bulk") {
+    document.querySelectorAll("[data-bsub]").forEach(b => b.onclick = () => go("#/admin/bulk/" + b.dataset.bsub));
+    if (arg2 === "areas") wireBulkAreas();
+    else wireBulkItems();
+    // CSV export/import lives on the Bulk tab (items sub-tab).
+    const csvDl = document.getElementById("csv-download");
+    if (csvDl) csvDl.onclick = () => {
       const blob = new Blob([itemsToCsv(state.items)], { type: "text/csv" });
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
@@ -4374,7 +4433,8 @@ function wireAdmin(tab, arg2) {
       a.remove();
       setTimeout(() => URL.revokeObjectURL(a.href), 5000);
     };
-    document.getElementById("csv-upload").onclick = async () => {
+    const csvUp = document.getElementById("csv-upload");
+    if (csvUp) csvUp.onclick = async () => {
       const err = document.getElementById("csv-err");
       const res = document.getElementById("csv-result");
       err.innerHTML = ""; res.innerHTML = "";
@@ -4413,36 +4473,6 @@ function wireAdmin(tab, arg2) {
         err.innerHTML = `<div class="error">${esc(e.detail || T("admin.csvBadFile"))}</div>`;
       }
     };
-    document.getElementById("ni-add").onclick = async () => {
-      const name = document.getElementById("ni-name").value.trim();
-      const err = document.getElementById("ni-err");
-      if (!name) { err.innerHTML = `<div class="error">${esc(T("admin.itemNeedName"))}</div>`; return; }
-      err.innerHTML = "";
-      try {
-        await edge("items.create", {
-          name,
-          area_ids: [...document.querySelectorAll("#ni-areas [data-area-check]:checked")].map(b => b.value),
-          vendor_id: document.getElementById("ni-vendor").value || null,
-          par: Number(document.getElementById("ni-par").value) || 0,
-          unit: document.getElementById("ni-unit").value.trim(),
-          price: Number(document.getElementById("ni-price").value) || 0,
-        });
-        rerender();
-      } catch (e) { err.innerHTML = `<div class="error">${esc(e.detail || T("admin.addItemFail"))}</div>`; }
-    };
-    const searchInput = document.getElementById("ai-search");
-    if (searchInput) searchInput.oninput = (e) => {
-      adminItemSearch = e.target.value;
-      const list = document.getElementById("admin-item-list");
-      if (list) { list.innerHTML = adminItemCardsHtml(); wireItemCards(list, rerender); }
-    };
-    wireItemCards(body, rerender);
-  }
-
-  if (tab === "bulk") {
-    document.querySelectorAll("[data-bsub]").forEach(b => b.onclick = () => go("#/admin/bulk/" + b.dataset.bsub));
-    if (arg2 === "areas") wireBulkAreas();
-    else wireBulkItems();
   }
 
   if (tab === "areas") {
@@ -4882,13 +4912,14 @@ async function renderSchedule(sub, arg2) {
       <p class="muted" style="margin:0">${esc(schedWeekRangeLabel(weekStart))}</p>
       <button class="btn btn-small" data-cal-export style="margin-left:auto">📅 ${esc(T("sched.addToCalendar"))}</button>
     </div>`}
-    <div id="sched-body"><div class="loading">${esc(T("count.loading"))}</div></div>
-    <div style="margin-top:16px" class="no-print"><button class="btn" data-act="back-home">${esc(T("common.back"))}</button></div>
+    <div id="sched-body" style="min-height:40vh"><div class="loading">${esc(T("count.loading"))}</div></div>
   </div>`;
 
   $app().querySelectorAll("[data-stab]").forEach(b => b.onclick = () => go("#/sched/" + b.dataset.stab));
+  // The tab bar overflows on phones — keep the active tab visible.
+  const activeStab = $app().querySelector('[data-stab].active');
+  if (activeStab && activeStab.scrollIntoView) activeStab.scrollIntoView({ inline: "center", block: "nearest" });
   $app().querySelectorAll("[data-go]").forEach(b => b.onclick = () => go(b.dataset.go));
-  $app().querySelector('[data-act="back-home"]').onclick = () => go("#/home");
   $app().querySelector('[data-act="nav-logout"]').onclick = logout;
   const navLang = $app().querySelector('[data-act="nav-lang"]');
   if (navLang) navLang.onclick = () => { setLang(lang() === "es" ? "en" : "es"); router(); };
@@ -5216,7 +5247,7 @@ function schedBuilderCell(pid, iso) {
         <strong>${esc(schedFmtTime(s.start_time))}–${esc(schedFmtTime(s.end_time))}</strong>${s.position ? `<br><span class="muted">${esc(s.position)}</span>` : ""}
       </button>`).join("")}
     ${warns.length ? `<button class="btn btn-small" data-show-warns="${esc(pid)}|${esc(iso)}" aria-label="${esc(T("sched.warningsTitle"))}">⚠️</button>` : ""}
-    <button class="btn btn-small btn-ghost" data-add-shift="${esc(pid)}|${esc(iso)}" style="width:100%;margin-top:2px">+ ${esc(T("sched.addShift"))}</button>`;
+    <button class="btn btn-small btn-ghost" data-add-shift="${esc(pid)}|${esc(iso)}" aria-label="${esc(T("sched.addShift"))}" title="${esc(T("sched.addShift"))}" style="width:100%;margin-top:2px;opacity:.4">+</button>`;
 }
 
 /** Map save_shifts warnings back onto the returned shifts (by id or client_id). */
