@@ -64,7 +64,7 @@ body {
 .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
 .btn-danger { background: var(--danger); border-color: var(--danger); color: #fff; }
 .btn-ghost { background: transparent; }
-.btn-small { min-height: 40px; padding: 6px 12px; font-size: 14px; }
+.btn-small { min-height: 44px; min-width: 44px; padding: 8px 14px; font-size: 14px; }
 
 /* ---------- Views ---------- */
 .view { padding: 14px; }
@@ -104,15 +104,15 @@ body {
 .pin-pad-wrap { max-width: 400px; margin: 0 auto; padding-top: env(safe-area-inset-top); }
 
 /* ---------- Count view ---------- */
-.area-tabs { position: sticky; top: 57px; z-index: 40; background: var(--bg);
+.area-tabs { position: sticky; top: var(--sticky-top2, calc(109px + env(safe-area-inset-top))); z-index: 40; background: var(--bg);
   padding: 8px 10px; display: flex; gap: 8px; overflow-x: auto; border-bottom: 1px solid var(--border); }
 .area-tab { flex: 0 0 auto; min-height: 44px; padding: 8px 12px; border-radius: 999px;
   border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 14px; }
-.area-tab .pill-mini { margin-left: 6px; font-size: 11px; background: var(--card2);
+.area-tab .pill-mini { margin-left: 6px; font-size: 12px; background: var(--card2);
   border-radius: 999px; padding: 2px 7px; color: var(--muted); }
 .area-tab.active { border-color: var(--accent); background: #331714; }
 /* By location / By item segmented control */
-.mode-toggle { position: sticky; top: 57px; z-index: 41; background: var(--bg);
+.mode-toggle { position: sticky; top: var(--sticky-top, calc(57px + env(safe-area-inset-top))); z-index: 41; background: var(--bg);
   display: flex; gap: 0; padding: 8px 10px 0; }
 .mode-toggle .mode-btn { flex: 1; min-height: 44px; font-size: 15px; font-weight: 700;
   border: 1px solid var(--border); background: var(--card); color: var(--muted); cursor: pointer; }
@@ -129,14 +129,14 @@ body {
 .check-list { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0; }
 /* Specificity (0,2,0)+ beats .field label/.field input so these never blow up
    into giant full-width boxes inside admin forms. */
-.check-list .check { display: inline-flex; align-items: center; gap: 8px; min-height: 36px;
+.check-list .check { display: inline-flex; align-items: center; gap: 8px; min-height: 44px;
   margin-bottom: 0; padding: 6px 12px; border: 1px solid var(--border); border-radius: 999px;
   background: var(--card); font-size: 13px; font-weight: 600; cursor: pointer; }
 .check-list .check input { width: 18px; height: 18px; margin: 0; padding: 0; flex: 0 0 auto;
   accent-color: var(--accent); }
 /* Vendor day picker chips */
 .day-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 4px; }
-.day-chip { min-height: 40px; min-width: 54px; padding: 6px 10px; border-radius: 10px;
+.day-chip { min-height: 44px; min-width: 54px; padding: 6px 10px; border-radius: 10px;
   border: 1px solid var(--border); background: var(--card); color: var(--muted);
   font-size: 13px; font-weight: 700; cursor: pointer; }
 .day-chip.active { border-color: var(--accent); background: #331714; color: var(--text); }
@@ -145,14 +145,14 @@ body {
 .cov-row .cov-day { flex: 0 0 60px; font-weight: 700; font-size: 14px; }
 .cov-row input { width: 72px; min-height: 44px; font-size: 16px; text-align: center;
   border-radius: 8px; border: 1px solid var(--border); background: var(--bg2); color: var(--text); }
-/* Push-update banner */
-#update-banner { position: sticky; top: 0; z-index: 9999;
+/* Push-update banner: static (never overlays the PIN pad or nav). */
+#update-banner { position: relative; z-index: 9999;
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
   padding: 10px 14px; padding-top: calc(10px + env(safe-area-inset-top));
   background: #14331f; color: #e8f5e9; font-size: 14px; font-weight: 600;
   border-bottom: 1px solid #2e7d32; }
 #update-banner button { background: #2e7d32; color: #fff; border: 0; border-radius: 8px;
-  padding: 8px 14px; font-size: 14px; font-weight: 700; }
+  padding: 8px 14px; font-size: 14px; font-weight: 700; min-height: 44px; }
 /* Draft order manual override editor */
 .order-edit { border: 1px solid var(--border); border-radius: 10px;
   padding: 10px; margin: 8px 0; background: var(--bg2); }
@@ -177,14 +177,14 @@ select.oedit-name { white-space: normal; min-height: 44px; border-radius: 8px;
   padding: 14px; margin: 10px 0; }
 .item-card.flash { border-color: var(--warn); box-shadow: 0 0 0 2px var(--warn); }
 .card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
-.item-name { font-size: 17px; font-weight: 700; }
+.item-name { font-size: 17px; font-weight: 700; overflow-wrap: anywhere; }
 .item-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
 .pill { flex: 0 0 auto; font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 999px;
   border: 1px solid var(--border); color: var(--muted); }
 .pill-not { color: var(--muted); }
 .pill-counted { color: var(--ok); border-color: var(--ok); }
 .pill-zero { color: var(--info); border-color: var(--info); }
-.pill-done { color: #fff; background: var(--ok); border-color: var(--ok); }
+.pill-done { color: #fff; background: #2e7d32; border-color: #2e7d32; }
 .pill-review { color: var(--warn); border-color: var(--warn); }
 
 .count-row { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
@@ -198,7 +198,7 @@ select.oedit-name { white-space: normal; min-height: 44px; border-radius: 8px;
 .quick-row .btn { min-height: var(--tap); padding: 8px 4px; font-size: 14px; }
 .row2 { display: flex; gap: 8px; margin-top: 10px; }
 .row2 .btn { flex: 1; }
-.done-on { background: var(--ok); border-color: var(--ok); color: #fff; }
+.done-on { background: #2e7d32; border-color: #2e7d32; color: #fff; }
 .readonly-count { font-size: 24px; font-weight: 800; margin-top: 10px; }
 .admin-extras { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--border);
   display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
@@ -216,7 +216,7 @@ select.oedit-name { white-space: normal; min-height: 44px; border-radius: 8px;
 .ai-draft { display: flex; align-items: center; gap: 10px; padding: 10px;
   border: 1px solid var(--border); border-radius: 10px; margin: 6px 0; background: var(--card); }
 .ai-draft input[type=checkbox] { width: 28px; height: 28px; }
-.conf { font-size: 12px; color: var(--muted); }
+.conf { font-size: 13px; color: var(--muted); }
 
 /* ---------- Review / orders ---------- */
 .review-row { display: flex; align-items: center; justify-content: space-between; gap: 10px;
@@ -345,11 +345,11 @@ table.bulk-par input { width: 90px; min-height: 44px; font-size: 16px; text-alig
 
 /* ---- Bulk edit tab ---- */
 .bulk-wrap { position: relative; }
-.bulk-scroll { max-height: 58vh; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-right: 32px; }
-.bulk-slider { position: absolute; top: 0; right: 2px; bottom: 0; width: 26px;
+.bulk-scroll { max-height: 58vh; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-right: 50px; }
+.bulk-slider { position: absolute; top: 0; right: 2px; bottom: 0; width: 44px;
   display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 2px 0; }
-.bulk-jump { width: 26px; height: 26px; border-radius: 13px; border: 1px solid var(--border);
-  background: var(--card2); font-size: 11px; line-height: 1; padding: 0; color: var(--text); flex: none; }
+.bulk-jump { width: 44px; height: 44px; border-radius: 22px; border: 1px solid var(--border);
+  background: var(--card2); font-size: 14px; line-height: 1; padding: 0; color: var(--text); flex: none; }
 .bulk-track { position: relative; flex: 1; width: 8px; min-height: 48px;
   background: rgba(255,255,255,.14); border-radius: 4px; }
 .bulk-thumb { position: absolute; top: 0; left: -7px; width: 22px; height: 42px;
@@ -367,24 +367,36 @@ table.bulk-par input { width: 90px; min-height: 44px; font-size: 16px; text-alig
 .bulk-fields { padding: 10px 12px 12px; border-top: 1px solid var(--border); }
 .bulk-area-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; }
 .bulk-area-row input { flex: 1; }
-.bulk-savebar { position: sticky; bottom: 0; background: var(--bg); padding: 10px 0 4px;
+.bulk-savebar { position: sticky; bottom: 0; background: var(--bg); padding: 10px 0 calc(4px + env(safe-area-inset-bottom));
   display: flex; align-items: center; gap: 10px; border-top: 1px solid var(--border); margin-top: 10px; }
 .bulk-savebar .btn { flex: 1; }
 .bulk-nomatch { text-align: center; padding: 18px 0 6px; }
 
 /* Count screen sort toggle (mirrors .mode-toggle look) */
 .sort-toggle { display: flex; gap: 0; padding: 10px 0 0; }
-.sort-toggle .mode-btn { flex: 1; min-height: 38px; font-size: 13px; font-weight: 700;
+.sort-toggle .mode-btn { flex: 1; min-height: 44px; font-size: 13px; font-weight: 700;
   border: 1px solid var(--border); background: var(--card); color: var(--muted); cursor: pointer; }
 .sort-toggle .mode-btn:first-child { border-radius: 10px 0 0 10px; }
 .sort-toggle .mode-btn:last-child { border-radius: 0 10px 10px 0; border-left: none; }
 .sort-toggle .mode-btn:not(:first-child):not(:last-child) { border-left: none; }
 .sort-toggle .mode-btn.active { background: #331714; border-color: var(--accent); color: var(--text); }
 
+/* Schedule builder: add-shift affordance — dashed outline, visible at rest. */
+.sched-add { border-style: dashed !important; opacity: .8; }
+.sched-add:hover, .sched-add:active { opacity: 1; }
+
+/* Manager availability grid cells: tappable dots with full detail on tap. */
+.avail-cell { background: none; border: 0; padding: 0; min-height: 44px; min-width: 44px;
+  font-size: 18px; cursor: pointer; color: inherit; }
+
+/* Sticky review-page action bar (Approve stays reachable on long pages). */
+.sticky-action { position: sticky; top: calc(57px + env(safe-area-inset-top)); z-index: 45;
+  display: flex; gap: 10px; align-items: center; background: var(--bg); padding: 8px 0; }
+
 /* Global "Saved" toast: green pill at top-center, slides down on save, auto-dismisses. */
-#saved-toast { position: fixed; top: 10px; left: 50%; z-index: 10000;
+#saved-toast { position: fixed; top: calc(10px + env(safe-area-inset-top)); left: 50%; z-index: 10000;
   transform: translate(-50%, -90px); transition: transform .28s ease;
-  background: #1f9d55; color: #fff; font-weight: 700; font-size: 14px;
+  background: #146c39; color: #fff; font-weight: 700; font-size: 14px;
   padding: 10px 22px; border-radius: 999px; box-shadow: 0 4px 14px rgba(0,0,0,.35);
   pointer-events: none; white-space: nowrap; }
 #saved-toast.show { transform: translate(-50%, 0); }
@@ -396,4 +408,7 @@ table.bulk-par input { width: 90px; min-height: 44px; font-size: 16px; text-alig
 .block-toggle { width: 100%; text-align: left; }
 .block-form { display: grid; gap: 8px; margin: 8px 0 4px; padding: 10px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; }
 .block-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; color: var(--text); }
-.block-row input { width: 110px; }
+.block-row input { width: 110px; min-height: var(--tap); }
+.bulk-area-row input { min-height: var(--tap); }
+/* Builder week-start select: unstyled selects render ~30px tall. */
+#sched-weekstart { min-height: var(--tap); font-size: 16px; }

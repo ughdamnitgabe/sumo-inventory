@@ -75,14 +75,24 @@ const STR = {
 en: {
   "common.cancel": "Cancel", "common.confirm": "Confirm", "common.back": "← Back",
   "common.save": "Save", "common.saved": "Saved", "common.delete": "Delete", "common.name": "Name",
+  "common.offline": "You're offline. Check your connection and try again.",
+  "common.forbidden": "You don't have permission for that. Ask a manager.",
+  "common.close": "Close",
+  "common.loading": "Loading…",
   "common.notes": "Notes", "common.move": "Move", "common.notAuth": "Not authorized.",
+  "common.notFound": "Not found.", "common.conflict": "That conflicts with existing data.",
+  "common.serverError": "Something went wrong. Try again.",
   "common.saving": "Saving…", "common.checking": "Checking…",
   "common.item": "Item", "common.continue": "Continue",
   "nav.homeAria": "Home", "nav.logoutAria": "Log out",
+  "nav.langAria": "Language",
   "role.manager": "Manager", "role.staff": "Staff", "role.view": "View",
   "move.title": "Move to area", "move.current": "current",
   "login.prompt": "Enter your PIN to sign in", "login.signin": "Sign in",
+  "login.clearKey": "Clear", "login.backKey": "Backspace",
   "login.needPin": "Enter your PIN.", "login.wrong": "Wrong PIN. Try again.",
+  "login.expired": "Your session expired. Please log in again.",
+  "login.rateLimited": "Too many attempts. Wait a minute and try again.",
   "login.forgot": "Forgot PIN?", "login.forgotMsg": "Ask a manager to reset your PIN in the Users screen.",
   "login.langToggle": "Español",
   "setpin.title": "Set your PIN", "setpin.step1": "Enter a new PIN (min 4 digits)",
@@ -96,13 +106,14 @@ en: {
   "home.noDrafts": "No draft counts.", "home.count": "Count",
   "home.review": "Review", "home.resume": "Resume", "home.view": "View",
   "home.discard": "Abandon", "home.abandonTitle": "Abandon count?",
-  "home.abandonMsg": "This draft count will be discarded. This cannot be undone.",
-  "home.abandonYes": "Abandon", "home.abandonFail": "Could not abandon count.",
+  "home.abandonMsg": "This draft count will be discarded. This cannot be undone.", "home.abandonFail": "Could not abandon count.",
   "home.startFail": "Could not start a new count.", "home.noSession": "Server did not return a session id.",
   "home.replay": "🔁 Replay tour",
   "par.title": "Bulk par editor",
   "par.hint": "Only items with a par above 0 generate order lines. Leave blank = no par.",
   "par.par": "Par", "par.price": "Price", "par.saveAll": "Save all",
+  "par.unitPh": "cs / lb / ea",
+  "count.dictateAria": "Dictate item name",
   "par.saved1": "Saved 1 change.", "par.savedN": "Saved {n} changes.",
   "par.saveFail": "Save failed.", "par.change": "change", "par.changes": "changes",
   "count.loading": "Loading count…",
@@ -110,7 +121,7 @@ en: {
   "pill.done": "Done", "pill.review": "Needs review",
   "count.noPar": "no par", "count.dec": "Decrease", "count.inc": "Increase",
   "count.countFor": "Count for", "count.parFor": "Par for",
-  "count.full": "Full", "count.clear": "Clear", "count.markZero": "Mark Zero",
+  "count.full": "Full", "count.markZero": "Mark Zero",
   "count.fullMultiHint": "Full is disabled: this item is counted in multiple locations (par is the total across all of them). Enter each count manually.",
   "count.doneBtn": "✓ Done", "count.moveArea": "Move area",
   "count.byLocation": "By location", "count.byItem": "By item", "count.byVendor": "By vendor",
@@ -135,8 +146,7 @@ en: {
   "count.flushFail": "Some entries didn't save — check connection and try again.",
   "count.moveTitle": "Move item?", "count.moveMsg": "Move {name} from {from} to {to}?",
   "count.moveFail": "Could not move item.", "count.parFail": "Could not update par.",
-  "review.loading": "Loading review…", "review.title": "Review & approve",
-  "review.notCounted": "Not counted", "review.allCounted": "Everything has a count. 🎉",
+  "review.loading": "Loading review…", "review.title": "Review & approve", "review.allCounted": "Everything has a count. 🎉",
   "review.missingIn": "missing: {areas}", "review.partial": "Some items still need counts in other locations.",
   "review.needsReview": "Needs review", "review.noneFlagged": "Nothing flagged.",
   "review.noEntry": "no entry yet", "review.flagged": "flagged for review",
@@ -153,10 +163,10 @@ en: {
   "review.approve": "Approve count",
   "review.alreadyApproved": "This count was already approved.",
   "review.viewOrders": "View orders",
-  "review.onlyManagers": "Only managers or the super admin can approve.",
+  "review.onlyManagers": "Only managers or the super admin can approve. Your counts are saved — a manager will review and approve them.",
   "review.approveTitle": "Approve count?",
   "review.approveMsg": "This finalizes the count and generates orders. Continue?",
-  "review.approveYes": "Approve", "review.approveFail": "Approval failed.",
+  "review.approveYes": "Approve", "review.approveFail": "Approval failed.", "review.approvedToast": "Count approved. Orders are ready.",
   "review.blockTitle": "Cannot approve — these items need review:",
   "review.blockMsg": "Open each item in the count and resolve it, then approve again.",
   "review.fixHint": "Enter the missing counts below (0 if the location is empty), save, then approve.",
@@ -172,22 +182,22 @@ en: {
   "orders.share": "📤 Share image", "orders.copy": "📋 Copy text",
   "orders.copied": "✓ Copied", "orders.imgFail": "Could not create the order image.", "orders.sendFail": "Could not share the order text.",
   "orders.statusFail": "Could not update order status.",
-  "orders.edit": "Edit", "orders.save": "Save", "orders.cancel": "Cancel",
+  "orders.edit": "Edit",
   "orders.addItem": "Add item", "orders.qty": "Qty",
   "orders.linesFail": "Could not save order.",
-  "orders.needLines": "Add at least one item.",
-  "orders.delete": "Delete", "orders.deleteTitle": "Delete order?",
+  "orders.needLines": "Add at least one item.", "orders.deleteTitle": "Delete order?",
   "orders.deleteMsg": "This permanently deletes the order for {vendor}. This cannot be undone.",
   "orders.deleteFail": "Could not delete order.",
   "orders.deleted": "Order deleted.",
-  "orders.orderDate": "Order date",
-  "admin.manage": "Manage", "admin.items": "Items", "admin.areas": "Areas",
-  "admin.vendors": "Vendors", "admin.users": "Users",
-  "users.delete": "Delete", "users.deleteTitle": "Delete user?",
+  "orders.orderDate": "Order date", "admin.items": "Items", "admin.areas": "Areas",
+  "admin.vendors": "Vendors", "admin.users": "Users", "users.deleteTitle": "Delete user?",
   "users.deleteMsg": "This permanently removes {name}. This cannot be undone.",
   "users.deleteFail": "Could not delete user.",
-  "admin.addItem": "Add item", "admin.area": "Area", "admin.vendor": "Vendor",
-  "admin.unit": "Unit", "admin.price": "Price", "admin.exItem": "e.g. Bluefin tuna",
+  "admin.addItem": "Add item", "admin.area": "Area",
+  "admin.unit": "Unit", "admin.exItem": "e.g. Bluefin tuna",
+  "admin.boxesPh": "boxes",
+  "bulk.jumpTop": "Top", "bulk.jumpBottom": "Bottom",
+  "common.removeAria": "Remove",
   "admin.itemNeedName": "Item name can't be empty.",
   "admin.addItemFail": "Could not add item.", "admin.archived": "ARCHIVED",
   "admin.unarchive": "Unarchive", "admin.archive": "Archive",
@@ -197,13 +207,9 @@ en: {
   "admin.caseLabel": "Case label", "admin.exCaseLabel": "e.g. large box",
   "admin.noVendor": "no vendor", "admin.saveItemFail": "Could not save item.",
   "admin.csvTitle": "Bulk edit (CSV)",
-  "admin.bulkTitle": "Bulk edit",
-  "admin.bulkItems": "Items", "admin.bulkAreas": "Locations",
-  "admin.bulkSearch": "🔍 Search items…", "admin.bulkNoMatch": "No items match.",
-  "admin.bulkSave": "Save {n} changes", "admin.bulkNoChanges": "No changes",
-  "admin.bulkSaving": "Saving…", "admin.bulkSaved": "Saved {n}.", "admin.bulkFail": "{n} failed.",
-  "admin.bulkActive": "Active", "admin.bulkExpand": "Tap to edit",
-  "admin.areasLabel": "Locations", "admin.areasHint": "First checked = primary location.",
+  "admin.bulkTitle": "Bulk edit", "admin.bulkNoMatch": "No items match.",
+  "admin.bulkSave": "Save {n} changes", "admin.bulkNoChanges": "No changes", "admin.bulkSaved": "Saved {n}.", "admin.bulkFail": "{n} failed.",
+  "admin.bulkActive": "Active", "admin.bulkExpand": "Tap to edit", "admin.areasHint": "First checked = primary location.",
   "admin.noArea": "No location",
   "admin.csvHelp": "Download the catalog as a spreadsheet, edit pars, areas, vendors and prices, then upload it back. Blank id = new item. List several areas separated by commas. Unknown area/vendor names are skipped.",
   "admin.csvDownload": "Download CSV", "admin.csvFile": "CSV file",
@@ -215,6 +221,7 @@ en: {
   "admin.killHelp": "Shutting off the app blocks everyone except superadmins. Counts, approvals and orders stop working immediately. Nothing is deleted — you can turn it back on at any time.",
   "admin.killLive": "LIVE", "admin.killDead": "SHUT OFF",
   "admin.killOff": "Shut off app", "admin.killOn": "Re-enable app",
+  "admin.killOnMsg": "Re-enable the app?",
   "admin.killType": "Type SHUT OFF to confirm.", "admin.killConfirmPh": "SHUT OFF",
   "admin.killMismatch": "Confirmation did not match — nothing was changed.",
   "admin.killFail": "Could not change app status.",
@@ -229,7 +236,7 @@ en: {
   "admin.delAreaFail": "Could not delete area — it may still have items.",
   "admin.capacity": "Capacity",
   "admin.capHint": "A storage cap limits the combined on-hand + ordered quantity of a group of items sharing space in one area — e.g. ice cream cases: max 40 boxes mixed across flavors in the walk-in cooler.",
-  "admin.capName": "Cap name", "admin.capMax": "Max quantity", "admin.capUnit": "Unit",
+  "admin.capName": "Cap name", "admin.capMax": "Max quantity",
   "admin.capItems": "Items sharing this cap",
   "admin.capAdd": "Add storage cap", "admin.capNeedName": "Give the cap a name.",
   "admin.capNeedMax": "Max quantity must be greater than 0.",
@@ -248,14 +255,14 @@ en: {
   "vendor.orderDays": "Order days", "vendor.orderBy": "Order by",
   "vendor.deliveryDays": "Delivery days",
   "vendor.contactName": "Contact name", "vendor.contactPhone": "Contact phone",
+  "vendor.contactNamePh": "e.g. Mike",
   "orders.send": "📲 Send order", "orders.sendTo": "Send to",
   "orders.quickOrder": "⚡ Quick order", "orders.qoPickVendor": "Pick a vendor",
   "orders.qoSearch": "Search all items…", "orders.qoCreate": "Create draft order",
   "orders.qoNeedLines": "Add at least one item.", "orders.qoCreated": "Draft order created.",
   "orders.qoFail": "Could not create the quick order.",
   "admin.altVendors": "Alternate vendors",
-  "admin.altVendorsHint": "Other vendors that also carry this item — it will show in their quick orders.",
-  "admin.searchItems": "🔍 Search items…", "admin.noItemsMatch": "No items match.",
+  "admin.altVendorsHint": "Other vendors that also carry this item — it will show in their quick orders.", "admin.noItemsMatch": "No items match.",
   "item.dailyUsage": "Daily usage", "item.learned": "auto: {x}/day",
   "item.maxOnHand": "Max on hand",
   "vendor.daysWorth": "days", "vendor.coverageHint": "Select order days first.",
@@ -280,10 +287,8 @@ en: {
   "admin.setPinBtn": "Set PIN",
   "admin.userStatusFail": "Could not change user status.",
   "admin.roleFail": "Could not update role.", "admin.setPinFail": "Could not set PIN.",
-  "admin.email": "Email", "admin.moveItemTitle": "Move item?",
+  "admin.email": "Email",
   "admin.moveItemMsg": "Move {item} from {from} to {to}?",
-  "admin.moveFail": "Could not move item.",
-  "admin.pinNeed4": "PIN must be at least 4 digits.",
   "admin.pinMismatch": "PINs don't match.",
   "admin.protected": "protected",
   "admin.saLocked": "Super Admin — only Gabe can change this",
@@ -294,7 +299,6 @@ en: {
   "tour.startB": "Tap this to start a new count. You'll enter what you see on the shelves.",
   "tour.ordersT": "Orders live here",
   "tour.ordersB": "Finished orders appear here as clean cards you can share with vendors.",
-  "tour.invT": "Inventory",
   "tour.invB": "Counts, drafts, and order history live here.",
   "tour.schedT": "Schedule",
   "tour.schedB": "Your shifts, availability, and time-off requests live here.",
@@ -302,18 +306,15 @@ en: {
   "tour.langB": "Tap the 🌐 button anytime to switch languages. Orders always go out in English.",
   "tour.c1T": "This is what you enter",
   "tour.c1B": "Type the count in the box — or tap − / + to adjust. It saves automatically.",
-  "tour.c2T": "Areas",
   "tour.c2B": "Switch areas with these tabs. The numbers show how many items are done.",
   "tour.c3T": "Quick buttons",
-  "tour.c3B": "0, fractions, Full, and ✓ Done speed things up. Mark Zero if the shelf is empty.",
-  "tour.replay": "🔁 Replay tour",
-  "sched.tab": "Schedule", "sched.my": "My Week", "sched.team": "Team",
+  "tour.c3B": "0, fractions, Full, and ✓ Done speed things up. Mark Zero if the shelf is empty.", "sched.my": "My Week", "sched.team": "Team",
   "sched.builder": "Schedule Builder", "sched.timeoff": "Time Off", "sched.avail": "Availability",
   "sched.prevWeek": "Previous week", "sched.nextWeek": "Next week", "sched.thisWeek": "This week",
-  "sched.addToCalendar": "Add to calendar", "sched.calRange": "Which weeks?",
-  "sched.calThisWeek": "This week", "sched.cal2Weeks": "Next 2 weeks", "sched.cal4Weeks": "Next 4 weeks",
+  "sched.addToCalendar": "Add to calendar", "sched.calRange": "Which weeks?", "sched.cal2Weeks": "Next 2 weeks", "sched.cal4Weeks": "Next 4 weeks",
   "sched.calDone": "Calendar file downloaded — open it to add your shifts.",
   "sched.calEmpty": "No shifts in that range.", "sched.loading": "Loading schedule…", "sched.overlapWarn": "Overlapping shifts",
+  "sched.loadingNotif": "Loading notifications…",
   "sched.availRecurring": "Your availability repeats every week — set it once.",
   "sched.removePosition": "Remove position", "sched.checkSwaps": "Check the Swap Board for open shifts.",
   "sched.canOpen": "Can open (approved opener)", "sched.canClose": "Can close (approved closer)", "sched.group": "Schedule group", "sched.ungrouped": "Ungrouped",
@@ -334,11 +335,12 @@ en: {
   "sched.noCandidates": "No one is available for this shift", "sched.assignedTo": "Assigned to",
   "sched.pickSomeone": "Pick someone from the list below", "sched.addOpenShift": "Add open shift",
   "sched.requestOff": "Request time off", "sched.reason": "Reason",
-  "sched.from": "From", "sched.to": "To",
-  "sched.approve": "Approve", "sched.deny": "Deny",
+  "sched.from": "From", "sched.to": "To", "sched.deny": "Deny",
   "sched.pending": "Pending", "sched.approved": "Approved", "sched.denied": "Denied",
   "sched.available": "Available", "sched.unavailable": "Unavailable all day", "sched.limited": "Available only between…",
   "sched.blocked": "Unavailable between…",
+  "sched.availExplainer": "“Available only between…” means you CAN work those hours; “Unavailable between…” means you CAN'T.",
+  "sched.availApplyAll": "Copy Monday to all days",
   "sched.noPublished": "No schedule published for this week.",
   "sched.noShifts": "No shifts this week.", "sched.noShiftsDay": "No shifts",
   "sched.warnApproved": "Approved time off overlaps this shift",
@@ -358,12 +360,16 @@ en: {
   "sched.teamAvail": "Team availability",
   "sched.none": "No schedule access", "sched.accessView": "Can view schedule",
   "sched.accessManage": "Can manage schedule", "sched.scheduleAccess": "Schedule access",
-  "sched.department": "Department", "sched.posLabel": "Position",
+  "sched.department": "Department",
   "sched.saveFlags": "Save schedule settings", "sched.flagsFail": "Could not save schedule settings.",
   "sched.myRequests": "My requests", "sched.inbox": "Needs your decision",
-  "sched.noRequests": "No time-off requests.",
+  "sched.decideTitle": "Decide request",
+  "sched.dirtyTitle": "Discard unsaved changes?", "sched.dirtyMsg": "You have unsaved edits on this tab. Switching tabs will lose them.",
+  "sched.discard": "Discard",
+  "sched.noRequests": "No time-off requests.", "sched.noRequestsInbox": "No pending requests — you're all caught up.",
   "sched.requestSent": "Request sent.", "sched.requestFail": "Could not send request.",
-  "sched.needDates": "Choose a start and end date.", "sched.decideFail": "Could not update request.",
+  "sched.needDates": "Choose a start and end date.", "sched.badDates": "The end date can't be before the start date.",
+  "sched.pastDate": "Time-off requests can't start in the past.", "sched.decideFail": "Could not update request.",
   "sched.cancelRequest": "Cancel request", "sched.cancelRequestConfirm": "Delete this time-off request?",
   "sched.cancelRequestFail": "Could not delete the request.",
   "sched.date": "Date", "sched.person": "Person", "sched.needTimes": "Enter a start and end time.",
@@ -383,7 +389,7 @@ en: {
   "sched.staffing": "Staffing",
   "sched.staffingRecurring": "Weekly template — repeats every week.",
   "sched.staffingNeeds": "How many per shift",
-  "sched.staffingHint": "Set how many of each position you need for each weekday and daypart. The builder shows scheduled vs needed under each day.",
+  "sched.staffingHint": "Set how many of each position you need for each weekday and daypart. The builder shows scheduled vs needed under each day. Empty = no target (clears it).",
   "sched.daypartHint": "Lunch = shifts ending by 5 PM. Dinner = everything later (a midnight close counts as dinner).",
   "sched.lunch": "Lunch",
   "sched.dinner": "Dinner",
@@ -392,7 +398,6 @@ en: {
   "sched.arrangeHint": "Use the arrows to set the exact order shown in the schedule builder, then save.",
   "sched.staffingSaved": "Staffing needs saved",
   "sched.orderSaved": "Order saved",
-  "sched.users": "Users",
   "sched.positionsTitle": "Manage positions",
   "sched.positionsHint": "Position choices for shifts and staff. Picking from a list keeps pickup rules exact. Removing a position doesn't change existing shifts or staff.",
   "sched.positionName": "New position name",
@@ -421,20 +426,32 @@ en: {
   "sched.swapDecideFail": "Could not update the request.",
   "sched.claimer": "Picked up by", "sched.releasedBy": "Released by",
   "sched.swapWarnNote": "Conflicts with their availability or time off:",
+  "sched.swapDecideTitle": "Confirm decision", "sched.swapDecideMsg": "This will notify both people. Are you sure?",
+  "sched.swapsLoadFail": "Couldn't load the swap board — shift release may be unavailable. Pull to refresh.",
   "sched.notif": "Notifications", "sched.notifEmpty": "No notifications yet.",
   "sched.markAllRead": "Mark all read",
 },
 es: {
   "common.cancel": "Cancelar", "common.confirm": "Confirmar", "common.back": "← Atrás",
   "common.save": "Guardar", "common.saved": "Guardado", "common.delete": "Eliminar", "common.name": "Nombre",
+  "common.offline": "Sin conexión. Revisa tu conexión e inténtalo de nuevo.",
+  "common.forbidden": "No tienes permiso para eso. Pregunta a un encargado.",
+  "common.close": "Cerrar",
+  "common.loading": "Cargando…",
   "common.notes": "Notas", "common.move": "Mover", "common.notAuth": "No autorizado.",
+  "common.notFound": "No encontrado.", "common.conflict": "Eso entra en conflicto con datos existentes.",
+  "common.serverError": "Algo salió mal. Inténtalo de nuevo.",
   "common.saving": "Guardando…", "common.checking": "Revisando…",
   "common.item": "Artículo", "common.continue": "Continuar",
   "nav.homeAria": "Inicio", "nav.logoutAria": "Cerrar sesión",
+  "nav.langAria": "Idioma",
   "role.manager": "Gerente", "role.staff": "Personal", "role.view": "Lectura",
   "move.title": "Mover a área", "move.current": "actual",
   "login.prompt": "Ingresa tu PIN para entrar", "login.signin": "Entrar",
+  "login.clearKey": "Borrar", "login.backKey": "Retroceso",
   "login.needPin": "Ingresa tu PIN.", "login.wrong": "PIN incorrecto. Intenta de nuevo.",
+  "login.expired": "Tu sesión expiró. Inicia sesión de nuevo.",
+  "login.rateLimited": "Demasiados intentos. Espera un minuto e inténtalo de nuevo.",
   "login.forgot": "¿Olvidaste tu PIN?", "login.forgotMsg": "Pide a un gerente que restablezca tu PIN en la pantalla de Usuarios.",
   "login.langToggle": "English",
   "setpin.title": "Crea tu PIN", "setpin.step1": "Ingresa un PIN nuevo (mín. 4 dígitos)",
@@ -448,13 +465,14 @@ es: {
   "home.noDrafts": "No hay conteos en borrador.", "home.count": "Conteo",
   "home.review": "Revisar", "home.resume": "Continuar", "home.view": "Ver",
   "home.discard": "Descartar", "home.abandonTitle": "¿Descartar conteo?",
-  "home.abandonMsg": "Este borrador se eliminará. No se puede deshacer.",
-  "home.abandonYes": "Descartar", "home.abandonFail": "No se pudo descartar el conteo.",
+  "home.abandonMsg": "Este borrador se eliminará. No se puede deshacer.", "home.abandonFail": "No se pudo descartar el conteo.",
   "home.startFail": "No se pudo empezar el conteo.", "home.noSession": "El servidor no devolvió un id de sesión.",
   "home.replay": "🔁 Ver recorrido",
   "par.title": "Editor de pars",
   "par.hint": "Solo los artículos con par mayor a 0 generan pedidos. Vacío = sin par.",
   "par.par": "Par", "par.price": "Precio", "par.saveAll": "Guardar todo",
+  "par.unitPh": "cj / lb / pz",
+  "count.dictateAria": "Dictar nombre del artículo",
   "par.saved1": "Se guardó 1 cambio.", "par.savedN": "Se guardaron {n} cambios.",
   "par.saveFail": "No se pudo guardar.", "par.change": "cambio", "par.changes": "cambios",
   "count.loading": "Cargando conteo…",
@@ -462,7 +480,7 @@ es: {
   "pill.done": "Listo", "pill.review": "Revisar",
   "count.noPar": "sin par", "count.dec": "Disminuir", "count.inc": "Aumentar",
   "count.countFor": "Conteo de", "count.parFor": "Par de",
-  "count.full": "Lleno", "count.clear": "Borrar", "count.markZero": "Marcar cero",
+  "count.full": "Lleno", "count.markZero": "Marcar cero",
   "count.fullMultiHint": "Lleno está desactivado: este artículo se cuenta en varias ubicaciones (el par es el total de todas). Ingresa cada conteo manualmente.",
   "count.doneBtn": "✓ Listo", "count.moveArea": "Mover de área",
   "count.byLocation": "Por ubicación", "count.byItem": "Por artículo", "count.byVendor": "Por proveedor",
@@ -487,8 +505,7 @@ es: {
   "count.flushFail": "Algunos conteos no se guardaron — revisa tu conexión e inténtalo de nuevo.",
   "count.moveTitle": "¿Mover artículo?", "count.moveMsg": "¿Mover {name} de {from} a {to}?",
   "count.moveFail": "No se pudo mover el artículo.", "count.parFail": "No se pudo actualizar el par.",
-  "review.loading": "Cargando revisión…", "review.title": "Revisar y aprobar",
-  "review.notCounted": "Sin contar", "review.allCounted": "Todo tiene conteo. 🎉",
+  "review.loading": "Cargando revisión…", "review.title": "Revisar y aprobar", "review.allCounted": "Todo tiene conteo. 🎉",
   "review.missingIn": "falta: {areas}", "review.partial": "Algunos artículos aún necesitan conteos en otras ubicaciones.",
   "review.needsReview": "Necesitan revisión", "review.noneFlagged": "Nada marcado.",
   "review.noEntry": "sin entrada aún", "review.flagged": "marcado para revisión",
@@ -505,10 +522,10 @@ es: {
   "review.approve": "Aprobar conteo",
   "review.alreadyApproved": "Este conteo ya fue aprobado.",
   "review.viewOrders": "Ver pedidos",
-  "review.onlyManagers": "Solo gerentes o el super admin pueden aprobar.",
+  "review.onlyManagers": "Solo gerentes o el super admin pueden aprobar. Tus conteos están guardados — un encargado los revisará y aprobará.",
   "review.approveTitle": "¿Aprobar conteo?",
   "review.approveMsg": "Esto finaliza el conteo y genera los pedidos. ¿Continuar?",
-  "review.approveYes": "Aprobar", "review.approveFail": "Falló la aprobación.",
+  "review.approveYes": "Aprobar", "review.approveFail": "Falló la aprobación.", "review.approvedToast": "Conteo aprobado. Las órdenes están listas.",
   "review.blockTitle": "No se puede aprobar — estos artículos necesitan revisión:",
   "review.blockMsg": "Abre cada artículo en el conteo y resuélvelo, luego aprueba de nuevo.",
   "review.fixHint": "Ingresa los conteos faltantes abajo (0 si la ubicaci\u00f3n est\u00e1 vac\u00eda), guarda y luego aprueba.",
@@ -524,11 +541,10 @@ es: {
   "orders.share": "📤 Compartir imagen", "orders.copy": "📋 Copiar texto",
   "orders.copied": "✓ Copiado", "orders.imgFail": "No se pudo crear la imagen del pedido.", "orders.sendFail": "No se pudo compartir el texto del pedido.",
   "orders.statusFail": "No se pudo actualizar el estado del pedido.",
-  "orders.edit": "Editar", "orders.save": "Guardar", "orders.cancel": "Cancelar",
+  "orders.edit": "Editar",
   "orders.addItem": "Añadir artículo", "orders.qty": "Cant.",
   "orders.linesFail": "No se pudo guardar el pedido.",
-  "orders.needLines": "Añade al menos un artículo.",
-  "orders.delete": "Eliminar", "orders.deleteTitle": "\u00bfEliminar pedido?",
+  "orders.needLines": "Añade al menos un artículo.", "orders.deleteTitle": "\u00bfEliminar pedido?",
   "orders.deleteMsg": "Esto elimina permanentemente el pedido de {vendor}. No se puede deshacer.",
   "orders.deleteFail": "No se pudo eliminar el pedido.",
   "orders.deleted": "Pedido eliminado.",
@@ -538,15 +554,15 @@ es: {
   "orders.qoNeedLines": "Agrega al menos un artículo.", "orders.qoCreated": "Borrador creado.",
   "orders.qoFail": "No se pudo crear el pedido rápido.",
   "admin.altVendors": "Proveedores alternos",
-  "admin.altVendorsHint": "Otros proveedores que también venden este artículo — aparecerá en sus pedidos rápidos.",
-  "admin.searchItems": "🔍 Buscar artículos…", "admin.noItemsMatch": "Sin resultados.",
-  "admin.manage": "Administrar", "admin.items": "Artículos", "admin.areas": "Áreas",
-  "admin.vendors": "Proveedores", "admin.users": "Usuarios",
-  "users.delete": "Eliminar", "users.deleteTitle": "¿Eliminar usuario?",
+  "admin.altVendorsHint": "Otros proveedores que también venden este artículo — aparecerá en sus pedidos rápidos.", "admin.noItemsMatch": "Sin resultados.", "admin.items": "Artículos", "admin.areas": "Áreas",
+  "admin.vendors": "Proveedores", "admin.users": "Usuarios", "users.deleteTitle": "¿Eliminar usuario?",
   "users.deleteMsg": "Esto elimina permanentemente a {name}. No se puede deshacer.",
   "users.deleteFail": "No se pudo eliminar el usuario.",
-  "admin.addItem": "Agregar artículo", "admin.area": "Área", "admin.vendor": "Proveedor",
-  "admin.unit": "Unidad", "admin.price": "Precio", "admin.exItem": "p. ej. atún bluefin",
+  "admin.addItem": "Agregar artículo", "admin.area": "Área",
+  "admin.unit": "Unidad", "admin.exItem": "p. ej. atún bluefin",
+  "admin.boxesPh": "cajas",
+  "bulk.jumpTop": "Arriba", "bulk.jumpBottom": "Abajo",
+  "common.removeAria": "Quitar",
   "admin.itemNeedName": "El nombre no puede estar vacío.",
   "admin.addItemFail": "No se pudo agregar el artículo.", "admin.archived": "ARCHIVADO",
   "admin.unarchive": "Desarchivar", "admin.archive": "Archivar",
@@ -556,13 +572,9 @@ es: {
   "admin.caseLabel": "Etiqueta de caja", "admin.exCaseLabel": "p. ej. caja grande",
   "admin.noVendor": "sin proveedor", "admin.saveItemFail": "No se pudo guardar el artículo.",
   "admin.csvTitle": "Edición masiva (CSV)",
-  "admin.bulkTitle": "Edición masiva",
-  "admin.bulkItems": "Artículos", "admin.bulkAreas": "Ubicaciones",
-  "admin.bulkSearch": "🔍 Buscar artículos…", "admin.bulkNoMatch": "Sin coincidencias.",
-  "admin.bulkSave": "Guardar {n} cambios", "admin.bulkNoChanges": "Sin cambios",
-  "admin.bulkSaving": "Guardando…", "admin.bulkSaved": "Guardado {n}.", "admin.bulkFail": "{n} fallidos.",
-  "admin.bulkActive": "Activo", "admin.bulkExpand": "Toca para editar",
-  "admin.areasLabel": "Ubicaciones", "admin.areasHint": "La primera marcada = ubicación principal.",
+  "admin.bulkTitle": "Edición masiva", "admin.bulkNoMatch": "Sin coincidencias.",
+  "admin.bulkSave": "Guardar {n} cambios", "admin.bulkNoChanges": "Sin cambios", "admin.bulkSaved": "Guardado {n}.", "admin.bulkFail": "{n} fallidos.",
+  "admin.bulkActive": "Activo", "admin.bulkExpand": "Toca para editar", "admin.areasHint": "La primera marcada = ubicación principal.",
   "admin.noArea": "Sin ubicación",
   "admin.csvHelp": "Descargue el catálogo como hoja de cálculo, edite pares, áreas, proveedores y precios, y súbalo de nuevo. id vacío = artículo nuevo. Los nombres de área/proveedor desconocidos se omiten.",
   "admin.csvDownload": "Descargar CSV", "admin.csvFile": "Archivo CSV",
@@ -574,6 +586,7 @@ es: {
   "admin.killHelp": "Apagar la aplicación bloquea a todos excepto a los superadministradores. Los conteos, aprobaciones y pedidos dejan de funcionar de inmediato. No se elimina nada — puede volver a encenderla en cualquier momento.",
   "admin.killLive": "ACTIVA", "admin.killDead": "APAGADA",
   "admin.killOff": "Apagar aplicación", "admin.killOn": "Reactivar aplicación",
+  "admin.killOnMsg": "¿Reactivar la aplicación?",
   "admin.killType": "Escriba SHUT OFF para confirmar.", "admin.killConfirmPh": "SHUT OFF",
   "admin.killMismatch": "La confirmación no coincide — no se cambió nada.",
   "admin.killFail": "No se pudo cambiar el estado.",
@@ -588,7 +601,7 @@ es: {
   "admin.delAreaFail": "No se pudo eliminar el área — puede tener artículos.",
   "admin.capacity": "Capacidad",
   "admin.capHint": "Un límite de almacenamiento limita la cantidad combinada en existencia + pedida de un grupo de productos que comparten espacio en un área — p. ej. helados: máx. 40 cajas mezcladas entre sabores en el walk-in.",
-  "admin.capName": "Nombre del límite", "admin.capMax": "Cantidad máxima", "admin.capUnit": "Unidad",
+  "admin.capName": "Nombre del límite", "admin.capMax": "Cantidad máxima",
   "admin.capItems": "Productos que comparten este límite",
   "admin.capAdd": "Agregar límite", "admin.capNeedName": "Ponle un nombre al límite.",
   "admin.capNeedMax": "La cantidad máxima debe ser mayor que 0.",
@@ -607,6 +620,7 @@ es: {
   "vendor.orderDays": "Días de pedido", "vendor.orderBy": "Pedir antes de",
   "vendor.deliveryDays": "Días de entrega",
   "vendor.contactName": "Nombre de contacto", "vendor.contactPhone": "Teléfono de contacto",
+  "vendor.contactNamePh": "p. ej. Mike",
   "orders.send": "📲 Enviar pedido", "orders.sendTo": "Enviar a",
   "item.dailyUsage": "Uso diario", "item.learned": "auto: {x}/día",
   "item.maxOnHand": "Máx. en almacén",
@@ -632,10 +646,8 @@ es: {
   "admin.setPinBtn": "Poner PIN",
   "admin.userStatusFail": "No se pudo cambiar el estado del usuario.",
   "admin.roleFail": "No se pudo actualizar el rol.", "admin.setPinFail": "No se pudo poner el PIN.",
-  "admin.email": "Correo", "admin.moveItemTitle": "¿Mover artículo?",
+  "admin.email": "Correo",
   "admin.moveItemMsg": "¿Mover {item} de {from} a {to}?",
-  "admin.moveFail": "No se pudo mover el artículo.",
-  "admin.pinNeed4": "El PIN debe tener al menos 4 dígitos.",
   "admin.pinMismatch": "Los PIN no coinciden.",
   "admin.protected": "protegido",
   "admin.saLocked": "Super Admin — solo Gabe puede cambiar esto",
@@ -646,7 +658,6 @@ es: {
   "tour.startB": "Toca aquí para empezar un conteo nuevo. Anotarás lo que veas en los estantes.",
   "tour.ordersT": "Los pedidos están aquí",
   "tour.ordersB": "Los pedidos terminados aparecen aquí como tarjetas listas para compartir con los proveedores.",
-  "tour.invT": "Inventario",
   "tour.invB": "Los conteos, borradores e historial de pedidos están aquí.",
   "tour.schedT": "Horario",
   "tour.schedB": "Tus turnos, disponibilidad y solicitudes de tiempo libre están aquí.",
@@ -654,18 +665,15 @@ es: {
   "tour.langB": "Toca el botón 🌐 cuando quieras para cambiar el idioma. Los pedidos siempre salen en inglés.",
   "tour.c1T": "Aquí anotas el conteo",
   "tour.c1B": "Escribe el número en la casilla, o toca − / + para ajustar. Se guarda automáticamente.",
-  "tour.c2T": "Áreas",
   "tour.c2B": "Cambia de área con estas pestañas. Los números muestran cuántos artículos ya contaste.",
   "tour.c3T": "Botones rápidos",
-  "tour.c3B": "0, fracciones, Lleno y ✓ Listo aceleran el conteo. Marca cero si el estante está vacío.",
-  "tour.replay": "🔁 Ver recorrido",
-  "sched.tab": "Horario", "sched.my": "Mi semana", "sched.team": "Equipo",
+  "tour.c3B": "0, fracciones, Lleno y ✓ Listo aceleran el conteo. Marca cero si el estante está vacío.", "sched.my": "Mi semana", "sched.team": "Equipo",
   "sched.builder": "Crear horario", "sched.timeoff": "Días libres", "sched.avail": "Disponibilidad",
   "sched.prevWeek": "Semana anterior", "sched.nextWeek": "Semana siguiente", "sched.thisWeek": "Esta semana",
-  "sched.addToCalendar": "Añadir al calendario", "sched.calRange": "¿Qué semanas?",
-  "sched.calThisWeek": "Esta semana", "sched.cal2Weeks": "Próximas 2 semanas", "sched.cal4Weeks": "Próximas 4 semanas",
+  "sched.addToCalendar": "Añadir al calendario", "sched.calRange": "¿Qué semanas?", "sched.cal2Weeks": "Próximas 2 semanas", "sched.cal4Weeks": "Próximas 4 semanas",
   "sched.calDone": "Archivo descargado — ábrelo para añadir tus turnos.",
   "sched.calEmpty": "No hay turnos en ese rango.", "sched.loading": "Cargando horario…", "sched.overlapWarn": "Turnos superpuestos",
+  "sched.loadingNotif": "Cargando notificaciones…",
   "sched.availRecurring": "Tu disponibilidad se repite cada semana — configúrala una vez.",
   "sched.removePosition": "Eliminar puesto", "sched.checkSwaps": "Revisa el Tablón de cambios para ver turnos disponibles.",
   "sched.canOpen": "Puede abrir (apertura autorizada)", "sched.canClose": "Puede cerrar (cierre autorizado)", "sched.group": "Grupo de horario", "sched.ungrouped": "Sin grupo",
@@ -686,11 +694,12 @@ es: {
   "sched.noCandidates": "Nadie disponible para este turno", "sched.assignedTo": "Asignado a",
   "sched.pickSomeone": "Elige a alguien de la lista", "sched.addOpenShift": "Añadir turno abierto",
   "sched.requestOff": "Pedir día libre", "sched.reason": "Motivo",
-  "sched.from": "Desde", "sched.to": "Hasta",
-  "sched.approve": "Aprobar", "sched.deny": "Denegar",
+  "sched.from": "Desde", "sched.to": "Hasta", "sched.deny": "Denegar",
   "sched.pending": "Pendiente", "sched.approved": "Aprobada", "sched.denied": "Denegada",
   "sched.available": "Disponible", "sched.unavailable": "No disponible todo el día", "sched.limited": "Disponible solo entre…",
   "sched.blocked": "No disponible entre…",
+  "sched.availExplainer": "«Disponible solo entre…» significa que SÍ puedes trabajar esas horas; «No disponible entre…» significa que NO.",
+  "sched.availApplyAll": "Copiar el lunes a todos los días",
   "sched.noPublished": "No hay horario publicado para esta semana.",
   "sched.noShifts": "No tienes turnos esta semana.", "sched.noShiftsDay": "Sin turnos",
   "sched.warnApproved": "Tiene días libres aprobados que coinciden con este turno",
@@ -710,12 +719,16 @@ es: {
   "sched.teamAvail": "Disponibilidad del equipo",
   "sched.none": "Sin acceso al horario", "sched.accessView": "Puede ver horario",
   "sched.accessManage": "Puede crear horarios", "sched.scheduleAccess": "Acceso al horario",
-  "sched.department": "Departamento", "sched.posLabel": "Puesto",
+  "sched.department": "Departamento",
   "sched.saveFlags": "Guardar ajustes de horario", "sched.flagsFail": "No se pudieron guardar los ajustes de horario.",
   "sched.myRequests": "Mis solicitudes", "sched.inbox": "Esperan tu decisión",
-  "sched.noRequests": "Sin solicitudes de días libres.",
+  "sched.decideTitle": "Decidir solicitud",
+  "sched.dirtyTitle": "¿Descartar cambios sin guardar?", "sched.dirtyMsg": "Tienes cambios sin guardar en esta pestaña. Cambiar de pestaña los perderá.",
+  "sched.discard": "Descartar",
+  "sched.noRequests": "Sin solicitudes de días libres.", "sched.noRequestsInbox": "No hay solicitudes pendientes — estás al día.",
   "sched.requestSent": "Solicitud enviada.", "sched.requestFail": "No se pudo enviar la solicitud.",
-  "sched.needDates": "Elige fecha de inicio y fin.", "sched.decideFail": "No se pudo actualizar la solicitud.",
+  "sched.needDates": "Elige fecha de inicio y fin.", "sched.badDates": "La fecha de fin no puede ser anterior a la de inicio.",
+  "sched.pastDate": "Las solicitudes no pueden empezar en el pasado.", "sched.decideFail": "No se pudo actualizar la solicitud.",
   "sched.cancelRequest": "Cancelar solicitud", "sched.cancelRequestConfirm": "¿Eliminar esta solicitud de días libres?",
   "sched.cancelRequestFail": "No se pudo eliminar la solicitud.",
   "sched.date": "Fecha", "sched.person": "Persona", "sched.needTimes": "Ingresa hora de inicio y fin.",
@@ -735,7 +748,7 @@ es: {
   "sched.staffing": "Personal",
   "sched.staffingRecurring": "Plantilla semanal — se repite cada semana.",
   "sched.staffingNeeds": "Cuántos por turno",
-  "sched.staffingHint": "Indica cuántos de cada puesto necesitas por día de la semana y turno. El programador muestra programados vs necesarios bajo cada día.",
+  "sched.staffingHint": "Indica cuántos de cada puesto necesitas por día de la semana y turno. El programador muestra programados vs necesarios bajo cada día. Vacío = sin objetivo (lo borra).",
   "sched.daypartHint": "Almuerzo = turnos que terminan a las 5 PM. Cena = todo lo posterior (un cierre a medianoche cuenta como cena).",
   "sched.lunch": "Almuerzo",
   "sched.dinner": "Cena",
@@ -744,7 +757,6 @@ es: {
   "sched.arrangeHint": "Usa las flechas para fijar el orden exacto del programador, luego guarda.",
   "sched.staffingSaved": "Necesidades guardadas",
   "sched.orderSaved": "Orden guardado",
-  "sched.users": "Usuarios",
   "sched.positionsTitle": "Gestionar puestos",
   "sched.positionsHint": "Opciones de puesto para turnos y personal. Elegir de la lista mantiene exactas las reglas de toma de turnos. Quitar un puesto no cambia los turnos ni el personal existentes.",
   "sched.positionName": "Nombre del nuevo puesto",
@@ -773,6 +785,8 @@ es: {
   "sched.swapDecideFail": "No se pudo actualizar la solicitud.",
   "sched.claimer": "Lo toma", "sched.releasedBy": "Liberado por",
   "sched.swapWarnNote": "Conflictos con su disponibilidad o días libres:",
+  "sched.swapDecideTitle": "Confirmar decisión", "sched.swapDecideMsg": "Esto notificará a ambas personas. ¿Seguro?",
+  "sched.swapsLoadFail": "No se pudo cargar el tablero de cambios — es posible que no puedas publicar turnos. Desliza para actualizar.",
   "sched.notif": "Notificaciones", "sched.notifEmpty": "Aún no hay notificaciones.",
   "sched.markAllRead": "Marcar todo como leído",
 }};
@@ -793,6 +807,7 @@ function T(key) {
 function setLang(l) {
   state.lang = l === "es" ? "es" : "en";
   try { localStorage.setItem(LANG_KEY, state.lang); } catch (e) { /* noop */ }
+  try { document.documentElement.lang = state.lang; } catch (e) { /* noop */ }
 }
 /** Locale tag for date formatting, follows the UI language. */
 function locale() { return lang() === "es" ? "es-US" : "en-US"; }
@@ -982,13 +997,20 @@ async function api(method, path, body = null, extraHeaders = {}) {
 }
 
 /** Edge function wrapper. POST {action, token, ...} -> JSON.
- *  Errors arrive as {error:'code', detail?} and are thrown as exceptions. */
+ *  Errors arrive as {error:'code', detail?} and are thrown as exceptions.
+ *  Network failures (offline) throw {code:'offline'} so callers can show a
+ *  translated message instead of raw "Failed to fetch". */
 async function edge(action, payload = {}) {
-  const res = await fetch(CONFIG.SUPABASE_URL + "/functions/v1/api", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action, token: state.session ? state.session.token : null, ...payload }),
-  });
+  let res;
+  try {
+    res = await fetch(CONFIG.SUPABASE_URL + "/functions/v1/api", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, token: state.session ? state.session.token : null, ...payload }),
+    });
+  } catch (e) {
+    throw { code: "offline", detail: T("common.offline") };
+  }
   let data = {};
   try { data = await res.json(); } catch (e) { /* non-JSON */ }
   if (data && data.error) {
@@ -998,7 +1020,21 @@ async function edge(action, payload = {}) {
       state.killed = true;
       showKilled();
     }
-    throw { code: data.error, detail: data.detail, status: res.status, data };
+    // Translate the bare "forbidden" code once here so every
+    // `e.detail || T(fallback)` call site shows a real sentence.
+    // F-218: also translate the other stable server codes so ES-mode users
+    // don't see raw English technical strings; dynamic validation details
+    // (badRequest specifics) still pass through verbatim.
+    const codeMsg = {
+      forbidden: T("common.forbidden"),
+      unauthorized: T("common.notAuth"),
+      not_found: T("common.notFound"),
+      conflict: T("common.conflict"),
+      rate_limited: T("login.rateLimited"),
+      internal: T("common.serverError"),
+    }[data.error];
+    const detail = data.detail || codeMsg;
+    throw { code: data.error, detail, status: res.status, data };
   }
   if (!res.ok) throw { code: "edge_" + res.status, status: res.status, data };
   // Schedule mutations invalidate the cached week payloads (see schedGetWeek).
@@ -1043,11 +1079,21 @@ function dropSession() {
   state.schedWeekCache = {};
   if (state.sched) state.sched.avail = null;
 }
+/** 401/expired session: remember where the user was, show an explanatory
+ *  notice on the PIN screen, and return them after re-login. */
+function sessionExpired() {
+  const h = String(location.hash || "");
+  if (h && h !== "#/login" && h !== "#/set-pin") state.returnTo = h;
+  state.loginNotice = T("login.expired");
+  dropSession();
+  go("#/login");
+}
 
 /** Boot: restore session from localStorage, verify it with a cheap
  *  call (areas.list works for any role). On 401 -> drop + login. */
 async function boot() {
   try { state.lang = localStorage.getItem(LANG_KEY) || "en"; } catch (e) { state.lang = "en"; }
+  try { document.documentElement.lang = state.lang === "es" ? "es" : "en"; } catch (e) { /* noop */ }
   startSessionWatchers(); // self-guarded; registered before any auth path below
   const raw = localStorage.getItem(SESSION_KEY);
   if (raw) {
@@ -1063,15 +1109,14 @@ async function boot() {
       // (No return here — falls through to router(), which shows the login
       // screen once the session is dropped.)
       if (idlePastLimit()) {
-        dropSession();
-        location.hash = "#/login";
+        sessionExpired();
       } else if (state.session.profile && state.session.profile.must_change_pin) {
         location.hash = "#/set-pin";
         return;
       }
     } catch (e) {
       if (e && e.code === "app_disabled") { state.killed = true; showKilled(); return; }
-      dropSession(); // bad/expired token -> force login
+      dropSession(); state.loginNotice = T("login.expired"); // bad/expired token -> force login
     }
   }
   router();
@@ -1082,6 +1127,31 @@ async function boot() {
   document.addEventListener("click", (e) => {
     const t = e.target.closest('[data-act="nav-home"]');
     if (t) go("#/home");
+  });
+  // Physical keyboard support for the on-screen PIN pads (F-219): typing
+  // digits, Backspace, or Enter drives the same pad buttons.
+  document.addEventListener("keydown", (e) => {
+    const pad = document.getElementById("pin-pad");
+    if (!pad) return;
+    const tap = (k) => { const b = pad.querySelector(`[data-k="${k}"]`); if (b) b.click(); };
+    if (/^[0-9]$/.test(e.key)) { tap(e.key); e.preventDefault(); }
+    else if (e.key === "Backspace") { tap("back"); e.preventDefault(); }
+    else if (e.key === "Enter") {
+      const goBtn = document.getElementById("pin-go") || document.getElementById("pin-next");
+      if (goBtn) { goBtn.click(); e.preventDefault(); }
+    }
+  });
+  // Pasting a PIN while the pad is on screen types it in digit by digit.
+  document.addEventListener("paste", (e) => {
+    const pad = document.getElementById("pin-pad");
+    if (!pad || !e.clipboardData) return;
+    const digits = String(e.clipboardData.getData("text") || "").replace(/\D/g, "").slice(0, 8);
+    if (!digits) return;
+    e.preventDefault();
+    for (const d of digits) {
+      const b = pad.querySelector(`[data-k="${d}"]`);
+      if (b) b.click();
+    }
   });
   // Language toggle (EN/ES) in the top bar — re-render the current view.
   document.addEventListener("click", (e) => {
@@ -1107,6 +1177,7 @@ async function boot() {
 /** Logout: tell the server, then wipe local session. */
 async function logout() {
   try { await edge("logout"); } catch (e) { /* best effort */ }
+  state.returnTo = null; state.loginNotice = null;
   dropSession();
   location.hash = "#/login";
 }
@@ -1174,7 +1245,21 @@ function router() {
   else renderLogin();
 
   if (state.session) refreshNotifBadge();
+  measureStickyTops();
 }
+
+/** F-201/F-203: measure the real sticky header heights at runtime and expose
+ *  them as CSS vars, so sticky bars sit exactly below the topnav (incl. notch)
+ *  instead of hardcoding 57px. */
+function measureStickyTops() {
+  const nav = document.querySelector(".topnav");
+  if (nav) document.documentElement.style.setProperty("--sticky-top", nav.offsetHeight + "px");
+  const mode = document.querySelector(".mode-toggle");
+  if (mode) document.documentElement.style.setProperty(
+    "--sticky-top2", ((nav ? nav.offsetHeight : 57) + mode.offsetHeight) + "px");
+}
+window.addEventListener("resize", measureStickyTops);
+window.addEventListener("orientationchange", () => setTimeout(measureStickyTops, 100));
 
 function go(h) { if (location.hash === h) router(); else location.hash = h; }
 
@@ -1183,11 +1268,11 @@ function navHtml(title) {
   const p = state.session ? state.session.profile : {};
   const isSuper = p.role === "superadmin";
   return `<div class="topnav no-print">
-    <div><button class="brand-btn" data-act="nav-home" aria-label="Home"><span class="brand"><span class="logo-badge nav-logo"><img src="logo.png" alt=""></span>Sumo Sushi Warm Springs</span></button></div>
+    <div><button class="brand-btn" data-act="nav-home" aria-label="${esc(T("nav.homeAria"))}"><span class="brand"><span class="logo-badge nav-logo"><img src="logo.png" alt=""></span>Sumo Sushi Warm Springs</span></button></div>
     <div class="user">${esc(p.name || "")} · ${esc(roleLabel(p.role))}</div>
     <div style="display:flex;gap:4px;align-items:center">
-      ${isSuper ? "" : `<button class="btn btn-small btn-ghost" data-act="nav-lang" aria-label="Language" title="English / Español">🌐 ${lang() === "es" ? "EN" : "ES"}</button>`}
-      ${state.session && canSchedView() ? `<button class="btn btn-small btn-ghost" data-act="nav-notif" aria-label="${esc(T("sched.notif"))}" style="position:relative">🔔<span id="notif-badge" style="display:none;position:absolute;top:-6px;right:-6px;background:#c0392b;color:#fff;font-size:10px;font-weight:700;min-width:16px;height:16px;line-height:16px;border-radius:9px;text-align:center;padding:0 4px"></span></button>` : ""}
+      ${isSuper ? "" : `<button class="btn btn-small btn-ghost" data-act="nav-lang" aria-label="${esc(T("nav.langAria"))}" title="English / Español">🌐 ${lang() === "es" ? "EN" : "ES"}</button>`}
+      ${state.session && canSchedView() ? `<button class="btn btn-small btn-ghost" data-act="nav-notif" aria-label="${esc(T("sched.notif"))}" style="position:relative">🔔<span id="notif-badge" style="display:none;position:absolute;top:-6px;right:-6px;background:#c0392b;color:#fff;font-size:11px;font-weight:700;min-width:18px;height:18px;line-height:18px;border-radius:9px;text-align:center;padding:0 4px"></span></button>` : ""}
       <button class="btn btn-small btn-ghost" data-act="nav-home" aria-label="${esc(T("nav.homeAria"))}">⌂</button>
       <button class="btn btn-small btn-ghost" data-act="nav-logout" aria-label="${esc(T("nav.logoutAria"))}">⎋</button>
     </div>
@@ -1217,7 +1302,7 @@ async function renderNotif() {
   <div class="view">
     <h1>${esc(T("sched.notif"))}</h1>
     <div style="margin-bottom:12px" class="no-print"><button class="btn btn-small" id="notif-read-all">${esc(T("sched.markAllRead"))}</button></div>
-    <div id="notif-body"><div class="loading">${esc(T("count.loading"))}</div></div>
+    <div id="notif-body"><div class="loading">${esc(T("sched.loadingNotif"))}</div></div>
     <div style="margin-top:16px" class="no-print"><button class="btn" data-act="back-home">${esc(T("common.back"))}</button></div>
   </div>`;
   $app().querySelector('[data-act="back-home"]').onclick = () => go("#/home");
@@ -1232,7 +1317,7 @@ async function renderNotif() {
     const r = await edge("notif.list");
     const ns = r.notifications || [];
     body.innerHTML = ns.length ? ns.map(n => `
-      <div class="admin-card" data-notif="${esc(n.id)}" style="margin-bottom:10px;cursor:pointer;${n.read_at ? "" : "border-left:3px solid var(--accent);"}">
+      <div class="admin-card" data-notif="${esc(n.id)}" data-ref="${esc(n.ref_type || "")}" style="margin-bottom:10px;cursor:pointer;${n.read_at ? "" : "border-left:3px solid var(--accent);"}" role="button" tabindex="0">
         <div class="card-head"><div><strong>${esc(n.title)}</strong>
           ${n.body ? `<div class="muted" style="font-size:13px;margin-top:2px">${esc(n.body)}</div>` : ""}
           <div class="muted" style="font-size:12px;margin-top:4px">${esc(fmtWhen(n.created_at))}</div></div>
@@ -1244,12 +1329,16 @@ async function renderNotif() {
       try { await edge("notif.read", {}); } catch (e) { /* best effort */ }
       router();
     };
-    body.querySelectorAll("[data-notif]").forEach(c => c.onclick = async () => {
-      try { await edge("notif.read", { id: c.dataset.notif }); } catch (e) { /* best effort */ }
-      go("#/sched/swaps");
+    body.querySelectorAll("[data-notif]").forEach(c => {
+      const open = async () => {
+        try { await edge("notif.read", { id: c.dataset.notif }); } catch (e) { /* best effort */ }
+        go(c.dataset.ref === "schedule" ? "#/sched/my" : "#/sched/swaps");
+      };
+      c.onclick = open;
+      c.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } };
     });
   } catch (e) {
-    if (e.status === 401 || e.code === "unauthorized") { dropSession(); go("#/login"); return; }
+    if (e.status === 401 || e.code === "unauthorized") { sessionExpired(); return; }
     body.innerHTML = `<div class="error">${esc(e.detail || e.code || "Error")}</div>`;
   }
 }
@@ -1269,16 +1358,24 @@ function closeModal() {
   if (m) m.remove();
 }
 
-/** Promise-based confirm dialog with custom text. */
-function confirmDialog(title, message, confirmLabel = null, cancelLabel = null) {
+/** Promise-based confirm dialog with custom text. Stacks ABOVE any open modal
+ *  (its own overlay) so cancelling never destroys the underlying editor.
+ *  Pass danger=false for non-destructive confirms so the button isn't red. */
+function confirmDialog(title, message, confirmLabel = null, cancelLabel = null, danger = true) {
   return new Promise((resolve) => {
-    showModal(`<h3>${esc(title)}</h3><p>${esc(message)}</p>
+    const back = document.createElement("div");
+    back.className = "modal-back no-print";
+    back.id = "modal-confirm";
+    back.innerHTML = `<div class="modal"><h3>${esc(title)}</h3><p>${esc(message)}</p>
       <div class="modal-actions">
         <button class="btn" id="cf-no">${esc(cancelLabel || T("common.cancel"))}</button>
-        <button class="btn btn-danger" id="cf-yes">${esc(confirmLabel || T("common.confirm"))}</button>
-      </div>`);
-    document.getElementById("cf-no").onclick = () => { closeModal(); resolve(false); };
-    document.getElementById("cf-yes").onclick = () => { closeModal(); resolve(true); };
+        <button class="btn ${danger ? "btn-danger" : "btn-primary"}" id="cf-yes">${esc(confirmLabel || T("common.confirm"))}</button>
+      </div></div>`;
+    const done = (v) => { back.remove(); resolve(v); };
+    back.addEventListener("click", (e) => { if (e.target === back) done(false); });
+    document.body.appendChild(back);
+    document.getElementById("cf-no").onclick = () => done(false);
+    document.getElementById("cf-yes").onclick = () => done(true);
   });
 }
 
@@ -1294,10 +1391,6 @@ function flashError(msg) {
   }
   el.textContent = msg;
   el.scrollIntoView();
-}
-function clearFlash() {
-  const el = document.getElementById("flash");
-  if (el) el.remove();
 }
 
 /* ====================== VIEW: LOGIN ============================ */
@@ -1317,9 +1410,9 @@ function renderLogin() {
     <div id="login-err"></div>
     <div class="pin-pad" id="pin-pad">
       ${[1,2,3,4,5,6,7,8,9].map(n => `<button class="pin-key" data-k="${n}">${n}</button>`).join("")}
-      <button class="pin-key" data-k="clear" aria-label="Clear">⌫</button>
+      <button class="pin-key" data-k="clear" aria-label="${esc(T("login.clearKey"))}">⌫</button>
       <button class="pin-key" data-k="0">0</button>
-      <button class="pin-key" data-k="back" aria-label="Backspace">←</button>
+      <button class="pin-key" data-k="back" aria-label="${esc(T("login.backKey"))}">←</button>
     </div>
     <div style="margin-top:16px"><button class="btn btn-primary" id="pin-go" style="width:100%">${esc(T("login.signin"))}</button></div>
     <div style="text-align:center;margin-top:10px"><button class="btn btn-small btn-ghost" id="login-forgot">${esc(T("login.forgot"))}</button></div>
@@ -1342,6 +1435,10 @@ function renderLogin() {
   };
   document.getElementById("login-lang").onclick = () => { setLang(lang() === "es" ? "en" : "es"); renderLogin(); };
   pad.digits = ""; dots();
+  if (state.loginNotice) {
+    document.getElementById("login-err").innerHTML = `<div class="notice">${esc(state.loginNotice)}</div>`;
+    state.loginNotice = null;
+  }
 }
 
 async function doLogin(pin) {
@@ -1360,9 +1457,11 @@ async function doLogin(pin) {
     if (r.profile && r.profile.must_change_pin) { go("#/set-pin"); return; }
     const a = await edge("areas.list");
     state.areas = a.areas || a || [];
-    go("#/home");
+    const back = state.returnTo; state.returnTo = null;
+    go(back || "#/home");
   } catch (e) {
-    errBox.innerHTML = `<div class="error">${esc(e.detail || T("login.wrong"))}</div>`;
+    const msg = e.status === 429 ? T("login.rateLimited") : (e.detail || T("login.wrong"));
+    errBox.innerHTML = `<div class="error">${esc(msg)}</div>`;
     if (state._pad) { state._pad.digits = ""; document.getElementById("pin-dots").textContent = ""; }
   }
 }
@@ -1381,9 +1480,9 @@ function renderSetPin() {
     <div id="setpin-err"></div>
     <div class="pin-pad" id="pin-pad">
       ${[1,2,3,4,5,6,7,8,9].map(n => `<button class="pin-key" data-k="${n}">${n}</button>`).join("")}
-      <button class="pin-key" data-k="clear" aria-label="Clear">⌫</button>
+      <button class="pin-key" data-k="clear" aria-label="${esc(T("login.clearKey"))}">⌫</button>
       <button class="pin-key" data-k="0">0</button>
-      <button class="pin-key" data-k="back" aria-label="Backspace">←</button>
+      <button class="pin-key" data-k="back" aria-label="${esc(T("login.backKey"))}">←</button>
     </div>
     <div style="margin-top:16px"><button class="btn btn-primary" id="pin-next" style="width:100%">${esc(T("common.continue"))}</button></div>
   </div>`;
@@ -1435,7 +1534,7 @@ function renderSetPin() {
 /* Role-based menu. `view` role sees read-only cards only. */
 async function renderHome() {
   const p = state.session.profile;
-  $app().innerHTML = navHtml() + `<div class="view"><div class="loading">Loading…</div></div>`;
+  $app().innerHTML = navHtml() + `<div class="view"><div class="loading">${esc(T("common.loading"))}</div></div>`;
   try {
     const [s, v, it, sg] = await Promise.all([
       edge("sessions.list").catch(() => ({ sessions: [] })),
@@ -1451,7 +1550,7 @@ async function renderHome() {
     // itself here automatically instead of waiting for a banner tap.
     if (autoRefreshIfStale()) return;
   } catch (e) {
-    if (e.code === "unauthorized" || e.status === 401) { dropSession(); go("#/login"); return; }
+    if (e.code === "unauthorized" || e.status === 401) { sessionExpired(); return; }
   }
 
   const canManage = has("manage");
@@ -1459,7 +1558,7 @@ async function renderHome() {
 
   const cards = [];
   cards.push(`<button class="menu-card" data-go="#/inv"><span class="ico">📋</span>${esc(T("home.inventory"))}</button>`);
-  if (canSchedView()) cards.push(`<button class="menu-card" data-go="#/sched"><span class="ico">🗓️</span>${esc(T("sched.tab"))}</button>`);
+  if (canSchedView()) cards.push(`<button class="menu-card" data-go="#/sched"><span class="ico">🗓️</span>${esc(T("tour.schedT"))}</button>`);
   if (canManage) cards.push(`<button class="menu-card" data-go="#/admin/items"><span class="ico">🗃️</span>${esc(T("home.manage"))}</button>`);
   if (isSuper) cards.push(`<button class="menu-card" data-go="#/admin/io"><span class="ico">⚙️</span>Super Admin</button>`);
 
@@ -1467,7 +1566,7 @@ async function renderHome() {
   <div class="view">
     <h1>${esc(T("home.hi"))}, ${esc(p.name)}</h1>
     <div class="menu-grid no-print">${cards.join("")}</div>
-    ${isSuper ? "" : `<div style="text-align:center;margin-top:18px" class="no-print"><button class="btn btn-small btn-ghost" data-act="replay-tour">${esc(T("tour.replay"))}</button></div>`}
+    ${isSuper ? "" : `<div style="text-align:center;margin-top:18px" class="no-print"><button class="btn btn-small btn-ghost" data-act="replay-tour">${esc(T("home.replay"))}</button></div>`}
   </div>`;
 
   $app().querySelectorAll("[data-go]").forEach(b => b.onclick = () => go(b.dataset.go));
@@ -1490,7 +1589,7 @@ async function renderHome() {
 /* Section home for everything inventory: new counts, draft counts, order
  * history. Reached from the Inventory tile on the home screen. */
 async function renderInventory() {
-  $app().innerHTML = navHtml() + `<div class="view"><div class="loading">Loading…</div></div>`;
+  $app().innerHTML = navHtml() + `<div class="view"><div class="loading">${esc(T("common.loading"))}</div></div>`;
   try {
     const [s, v, it, sg] = await Promise.all([
       edge("sessions.list").catch(() => ({ sessions: [] })),
@@ -1504,7 +1603,7 @@ async function renderInventory() {
     if (sg.settings) state.settings = Object.assign({ store_name: "Sumo Sushi", show_prices: false }, sg.settings);
     if (autoRefreshIfStale()) return;
   } catch (e) {
-    if (e.code === "unauthorized" || e.status === 401) { dropSession(); go("#/login"); return; }
+    if (e.code === "unauthorized" || e.status === 401) { sessionExpired(); return; }
   }
 
   const drafts = state.sessions.filter(x => x.status === "draft");
@@ -1557,7 +1656,7 @@ async function renderInventory() {
   $app().querySelectorAll("[data-open-count]").forEach(b => b.onclick = () => go("#/count/" + b.dataset.openCount));
   $app().querySelectorAll("[data-open-review]").forEach(b => b.onclick = () => go("#/review/" + b.dataset.openReview));
   $app().querySelectorAll("[data-abandon]").forEach(b => b.onclick = async () => {
-    if (await confirmDialog(T("home.abandonTitle"), T("home.abandonMsg"), T("home.abandonYes"))) {
+    if (await confirmDialog(T("home.abandonTitle"), T("home.abandonMsg"), T("home.discard"))) {
       try { await edge("sessions.abandon", { session_id: b.dataset.abandon }); renderInventory(); }
       catch (e) { flashError(e.detail || T("home.abandonFail")); }
     }
@@ -1566,6 +1665,8 @@ async function renderInventory() {
 }
 
 async function startNewCount() {
+  if (startNewCount._busy) return; // double-tap guard: one draft per tap
+  startNewCount._busy = true;
   try {
     const r = await edge("sessions.create");
     const id = r.session_id || r.id || (r.session && r.session.id);
@@ -1573,6 +1674,8 @@ async function startNewCount() {
     go("#/count/" + id);
   } catch (e) {
     flashError(e.detail || T("home.startFail"));
+  } finally {
+    startNewCount._busy = false;
   }
 }
 
@@ -1674,7 +1777,7 @@ async function renderCount(sessionId) {
     state.items = it.items || it || [];
     state.vendors = v.vendors || v || [];
     state.areas = a.areas || a || [];
-  } catch (e) { if (e.status === 401 || e.code === "unauthorized") { dropSession(); go("#/login"); return; } }
+  } catch (e) { if (e.status === 401 || e.code === "unauthorized") { sessionExpired(); return; } }
 
   const editable = has("count");
   const highlight = new URLSearchParams(state.route.query || "").get("item");
@@ -1788,7 +1891,7 @@ function drawCount() {
     <div class="ai-bar no-print">
       <div class="ai-row">
         <input class="ai-input" id="ai-text" placeholder="${esc(T("count.aiPh"))}" aria-label="AI count input">
-        <button class="btn btn-small" id="ai-mic" aria-label="Dictate">🎤</button>
+        <button class="btn btn-small" id="ai-mic" aria-label="${esc(T("count.dictateAria"))}">🎤</button>
       </div>
       <div class="ai-row" style="margin-top:8px">
         <button class="btn btn-primary" id="ai-parse" style="flex:1">${esc(T("count.aiParse"))}</button>
@@ -1854,7 +1957,7 @@ function drawCount() {
   cards.addEventListener("change", onCardChange);
 
   // --- nav buttons ---
-  $app().querySelector('[data-act="back-home"]').onclick = () => go("#/home");
+  $app().querySelector('[data-act="back-home"]').onclick = () => go("#/inv");
   const toRev = $app().querySelector('[data-act="to-review"]');
   if (toRev) toRev.onclick = async () => {
     if (!(await flushEntrySaves())) { flashError(T("count.flushFail")); return; }
@@ -1958,7 +2061,7 @@ function countControlsHtml(item, areaId) {
       <button class="btn" data-cact="add05">+0.5</button>
       <button class="btn" data-cact="add075">+0.75</button>
       <button class="btn" data-cact="full">${esc(T("count.full"))}</button>
-      <button class="btn" data-cact="clear">${esc(T("count.clear"))}</button>
+      <button class="btn" data-cact="clear">${esc(T("login.clearKey"))}</button>
     </div>
     <div class="row2">
       <button class="btn" data-cact="markzero">${esc(T("count.markZero"))}</button>
@@ -2361,7 +2464,7 @@ function startTour(steps, onEnd) {
 
 function homeTourSteps() {
   const steps = [{ sel: null, title: T("tour.welcomeT"), body: T("tour.welcomeB") }];
-  steps.push({ sel: '[data-go="#/inv"]', title: T("tour.invT"), body: T("tour.invB") });
+  steps.push({ sel: '[data-go="#/inv"]', title: T("home.inventory"), body: T("tour.invB") });
   if (canSchedView()) steps.push({ sel: '[data-go="#/sched"]', title: T("tour.schedT"), body: T("tour.schedB") });
   steps.push({ sel: '[data-act="nav-lang"]', title: T("tour.langT"), body: T("tour.langB") });
   return steps;
@@ -2370,7 +2473,7 @@ function homeTourSteps() {
 function countTourSteps() {
   return [
     { sel: ".item-card .count-input", title: T("tour.c1T"), body: T("tour.c1B") },
-    { sel: ".area-tabs", title: T("tour.c2T"), body: T("tour.c2B") },
+    { sel: ".area-tabs", title: T("admin.areas"), body: T("tour.c2B") },
     { sel: ".item-card .quick-row", title: T("tour.c3T"), body: T("tour.c3B") },
   ];
 }
@@ -2407,7 +2510,7 @@ async function renderReview(sessionId) {
     state.areas = a.areas || a || [];
     state.pools = p.pools || p || [];
     if (sg.settings) state.settings = Object.assign({ store_name: "Sumo Sushi", show_prices: false }, sg.settings);
-  } catch (e) { if (e.status === 401 || e.code === "unauthorized") { dropSession(); go("#/login"); return; } }
+  } catch (e) { if (e.status === 401 || e.code === "unauthorized") { sessionExpired(); return; } }
 
   let rows = [];
   try {
@@ -2540,9 +2643,14 @@ function drawReview(notCounted, needsReview, partialItems, canApprove) {
   $app().innerHTML = navHtml() + `
   <div class="view">
     <h1>${esc(T("review.title"))}</h1>
+    <div class="sticky-action no-print">
+      <button class="btn" data-act="back-home-top" style="min-height:44px">← ${esc(T("common.back"))}</button>
+      ${c.sessionStatus === "draft" && canApprove
+        ? `<button class="btn btn-primary" id="approve-btn-top" style="flex:1;min-height:44px">${esc(T("review.approve"))}</button>` : ""}
+    </div>
     <div id="approve-err"></div>
 
-    <h2>${esc(T("review.notCounted"))} (${notCounted.length})</h2>
+    <h2>${esc(T("pill.not"))} (${notCounted.length})</h2>
     ${notCounted.length === 0
       ? (partialItems.length === 0
         ? `<p class="muted">${esc(T("review.allCounted"))}</p>`
@@ -2582,7 +2690,11 @@ function drawReview(notCounted, needsReview, partialItems, canApprove) {
   document.getElementById("ai-check").onclick = () => aiReview();
   const ap = document.getElementById("approve-btn");
   if (ap) ap.onclick = () => approveSession();
-  $app().querySelector('[data-act="back-home"]').onclick = () => go("#/home");
+  const apTop = document.getElementById("approve-btn-top");
+  if (apTop) apTop.onclick = () => approveSession();
+  const backTop = $app().querySelector('[data-act="back-home-top"]');
+  if (backTop) backTop.onclick = () => go("#/inv");
+  $app().querySelector('[data-act="back-home"]').onclick = () => go("#/inv");
   $app().querySelector('[data-act="nav-logout"]').onclick = logout;
   const goOrders = $app().querySelector('[data-act="go-orders"]');
   if (goOrders) goOrders.onclick = () => go("#/orders");
@@ -2723,29 +2835,30 @@ async function aiReview() {
 async function approveSession() {
   const c = state.review;
   const box = document.getElementById("approve-err");
-  const btn = document.getElementById("approve-btn");
-  if (btn && btn.disabled) return; // double-tap guard: one approve at a time
+  const btns = [document.getElementById("approve-btn"), document.getElementById("approve-btn-top")].filter(Boolean);
+  if (btns.some(b => b.disabled)) return; // double-tap guard: one approve at a time
   box.innerHTML = "";
   const entryCount = c._entryCount || 0;
   const lineCount = c._orderLineCount || 0;
   let ok;
   if (entryCount === 0) {
     // Nothing was counted — approving would silently generate zero orders.
-    ok = await confirmDialog(T("review.approveEmptyTitle"), T("review.approveEmptyMsg"), T("review.approveEmptyYes"), T("review.keepCounting"));
+    ok = await confirmDialog(T("review.approveEmptyTitle"), T("review.approveEmptyMsg"), T("review.approveEmptyYes"), T("review.keepCounting"), false);
   } else if (lineCount === 0) {
     // Counts exist but everything is at/above par — no orders will result.
-    ok = await confirmDialog(T("review.approveNoLinesTitle"), T("review.approveNoLinesMsg"), T("review.approveEmptyYes"), T("common.cancel"));
+    ok = await confirmDialog(T("review.approveNoLinesTitle"), T("review.approveNoLinesMsg"), T("review.approveEmptyYes"), T("common.cancel"), false);
   } else {
-    ok = await confirmDialog(T("review.approveTitle"), T("review.approveMsg"), T("review.approveYes"));
+    ok = await confirmDialog(T("review.approveTitle"), T("review.approveMsg"), T("review.approveYes"), null, false);
   }
   if (!ok) return;
-  if (btn) btn.disabled = true;
+  btns.forEach(b => b.disabled = true);
   try {
-    if (!(await flushEntrySaves())) { flashError(T("count.flushFail")); if (btn) btn.disabled = false; return; }
+    if (!(await flushEntrySaves())) { flashError(T("count.flushFail")); btns.forEach(b => b.disabled = false); return; }
     await edge("sessions.approve", { session_id: c.sessionId });
+    showSavedToast(T("review.approvedToast"));
     go("#/orders");
   } catch (e) {
-    if (btn) btn.disabled = false;
+    btns.forEach(b => b.disabled = false);
     if (e.code === "not_draft") {
       // Already approved (e.g. double-tap) — say so plainly, don't cry "needs review".
       c.sessionStatus = "approved";
@@ -3101,7 +3214,7 @@ async function renderOrders() {
     state.vendors = v.vendors || v || [];
     state.items = it.items || it || [];
     if (sg.settings) state.settings = Object.assign({ store_name: "Sumo Sushi", show_prices: false }, sg.settings);
-  } catch (e) { if (e.status === 401 || e.code === "unauthorized") { dropSession(); go("#/login"); return; } }
+  } catch (e) { if (e.status === 401 || e.code === "unauthorized") { sessionExpired(); return; } }
 
   const canManage = has("approve"); // manager+: mark sent/received
   const isSuper = has("superadmin"); // superadmin: delete test orders
@@ -3151,7 +3264,7 @@ async function renderOrders() {
             ${canManage && ord.status === "sent"
               ? `<button class="btn btn-small" data-received="${esc(ord.id)}">${esc(T("orders.markReceived"))}</button>` : ""}
             ${isSuper
-              ? `<button class="btn btn-small" data-delorder="${esc(ord.id)}" data-vendor="${esc(vendor.name)}">${esc(T("orders.delete"))}</button>` : ""}
+              ? `<button class="btn btn-small" data-delorder="${esc(ord.id)}" data-vendor="${esc(vendor.name)}">${esc(T("common.delete"))}</button>` : ""}
           </span>
         </div>
         <div class="order-edit no-print" data-editwrap="${esc(ord.id)}" hidden></div>
@@ -3182,7 +3295,7 @@ async function setOrderStatus(orderId, status) {
 /** Superadmin-only: permanently delete an order (for clearing test orders). */
 async function deleteOrder(orderId, vendorName) {
   if (!await confirmDialog(T("orders.deleteTitle"),
-    T("orders.deleteMsg").replace("{vendor}", vendorName || "?"), T("orders.delete"))) return;
+    T("orders.deleteMsg").replace("{vendor}", vendorName || "?"), T("common.delete"))) return;
   try {
     await edge("orders.delete", { order_id: orderId });
     showSavedToast(T("orders.deleted"));
@@ -3233,7 +3346,7 @@ function openQuickOrder() {
       <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
         ${vendors.map(v => `<button class="btn btn-small" data-qo-vendor="${esc(v.id)}">${esc(v.name)}</button>`).join("")}
       </div>
-      <button class="btn btn-small" data-qo-cancel>${esc(T("orders.cancel"))}</button>
+      <button class="btn btn-small" data-qo-cancel>${esc(T("common.cancel"))}</button>
     </div>`;
     wrap.querySelectorAll("[data-qo-vendor]").forEach(b => b.onclick = () => startSheet(b.dataset.qoVendor));
     wrap.querySelector("[data-qo-cancel]").onclick = () => { wrap.innerHTML = ""; };
@@ -3423,7 +3536,7 @@ function openOrderEditor(orderId) {
           <button class="btn btn-small" data-dstep="${i}|1">+</button>
           ${dHasCase(l) ? `<button class="btn btn-small" data-dunit="${i}">${esc(l.useCase ? l.case_label : (l.unit || "unit"))}</button>` : ""}
         </span>
-        <button class="btn btn-small" data-drm="${i}" aria-label="remove">&times;</button>
+        <button class="btn btn-small" data-drm="${i}" aria-label="${esc(T("common.removeAria"))}">&times;</button>
       </div>`).join("");
   const addHtml = () => {
     const opts = vendorItems();
@@ -3445,8 +3558,8 @@ function openOrderEditor(orderId) {
       ${addHtml()}
       <div data-derr></div>
       <div style="display:flex;gap:8px;margin-top:8px">
-        <button class="btn btn-primary" data-dsave style="flex:1">${esc(T("orders.save"))}</button>
-        <button class="btn" data-dcancel style="flex:1">${esc(T("orders.cancel"))}</button>
+        <button class="btn btn-primary" data-dsave style="flex:1">${esc(T("common.save"))}</button>
+        <button class="btn" data-dcancel style="flex:1">${esc(T("common.cancel"))}</button>
       </div>`;
     wire();
   }
@@ -3559,7 +3672,7 @@ async function renderAdmin(tab, arg2) {
     state.pools = pl.pools || pl || [];
     if (Array.isArray(sched.positions)) schedPositions = sched.positions.filter(x => typeof x === "string");
     if (sg.settings) state.settings = Object.assign({ store_name: "Sumo Sushi", show_prices: false }, sg.settings);
-  } catch (e) { if (e.status === 401 || e.code === "unauthorized") { dropSession(); go("#/login"); return; } }
+  } catch (e) { if (e.status === 401 || e.code === "unauthorized") { sessionExpired(); return; } }
 
   const allTabs = [["items", T("admin.items")], ["bulk", T("admin.bulkTitle")], ["areas", T("admin.areas")], ["vendors", T("admin.vendors")], ["capacity", T("admin.capacity")], ["users", T("admin.users")], ["io", "Import/Export"]];
   // Managers get Items/Areas/Vendors/Users; Import/Export is superadmin-only.
@@ -3576,7 +3689,7 @@ async function renderAdmin(tab, arg2) {
 
   $app().innerHTML = navHtml() + `
   <div class="view">
-    <h1>${tab === "io" ? "Super Admin" : esc(T("admin.manage"))}</h1>
+    <h1>${tab === "io" ? "Super Admin" : esc(T("home.manage"))}</h1>
     <div class="admin-tabs no-print">
       ${tabs.map(([id, label]) => `<button class="admin-tab ${tab === id ? "active" : ""}" data-atab="${id}">${label}</button>`).join("")}
     </div>
@@ -3614,21 +3727,21 @@ function vendorOpts(sel) {
 
 function adminItemsHtml() {
   return `<div class="admin-card">
-      <div class="field" style="margin-bottom:0"><input id="ai-search" placeholder="${esc(T("admin.searchItems"))}" value="${esc(adminItemSearch)}" autocomplete="off"></div>
+      <div class="field" style="margin-bottom:0"><input id="ai-search" placeholder="${esc(T("count.search"))}" value="${esc(adminItemSearch)}" autocomplete="off"></div>
     </div>
     <button class="btn btn-primary" id="ai-add-toggle" style="width:100%;margin-bottom:12px">＋ ${esc(T("admin.addItem"))}</button>
     <div class="admin-card" id="ai-add-form" hidden>
       <h3 style="margin-top:0">${esc(T("admin.addItem"))}</h3>
       <div class="field"><label>${esc(T("common.name"))}</label><input id="ni-name" placeholder="${esc(T("admin.exItem"))}"></div>
       <div class="form-row">
-        <div class="field"><label>${esc(T("admin.areasLabel"))}</label><div class="check-list" id="ni-areas">${areaChecks([])}</div>
+        <div class="field"><label>${esc(T("count.areasBtn"))}</label><div class="check-list" id="ni-areas">${areaChecks([])}</div>
           <div class="muted" style="font-size:12px">${esc(T("admin.areasHint"))}</div></div>
-        <div class="field"><label>${esc(T("admin.vendor"))}</label><select id="ni-vendor">${vendorOpts()}</select></div>
+        <div class="field"><label>${esc(T("count.sortVendor"))}</label><select id="ni-vendor">${vendorOpts()}</select></div>
       </div>
       <div class="form-row">
-        <div class="field"><label>Par</label><input id="ni-par" type="number" inputmode="decimal" min="0" step="0.25" placeholder="0"></div>
-        <div class="field"><label>${esc(T("admin.unit"))}</label><input id="ni-unit" placeholder="cs / lb / ea"></div>
-        <div class="field"><label>${esc(T("admin.price"))}</label><input id="ni-price" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00"></div>
+        <div class="field"><label>${esc(T("par.par"))}</label><input id="ni-par" type="number" inputmode="decimal" min="0" step="0.25" placeholder="0"></div>
+        <div class="field"><label>${esc(T("admin.unit"))}</label><input id="ni-unit" placeholder="${esc(T("par.unitPh"))}"></div>
+        <div class="field"><label>${esc(T("par.price"))}</label><input id="ni-price" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00"></div>
       </div>
       <div id="ni-err"></div>
       <button class="btn btn-primary" id="ni-add" style="width:100%">${esc(T("admin.addItem"))}</button>
@@ -3667,8 +3780,8 @@ function adminItemCardsHtml() {
         <div class="field"><label>${esc(T("admin.unit"))}</label><input data-f="unit" value="${esc(i.unit || "")}"></div>
       </div>
       <div class="form-row">
-        <div class="field"><label>Par</label><input data-f="par" type="number" inputmode="decimal" min="0" step="0.25" value="${Number(i.par) > 0 ? esc(i.par) : ""}" placeholder="—"></div>
-        <div class="field"><label>${esc(T("admin.price"))}</label><input data-f="price" type="number" inputmode="decimal" min="0" step="0.01" value="${Number(i.price) > 0 ? esc(i.price) : ""}" placeholder="—"></div>
+        <div class="field"><label>${esc(T("par.par"))}</label><input data-f="par" type="number" inputmode="decimal" min="0" step="0.25" value="${Number(i.par) > 0 ? esc(i.par) : ""}" placeholder="—"></div>
+        <div class="field"><label>${esc(T("par.price"))}</label><input data-f="price" type="number" inputmode="decimal" min="0" step="0.01" value="${Number(i.price) > 0 ? esc(i.price) : ""}" placeholder="—"></div>
       </div>
       <div class="form-row">
         <div class="field"><label>${esc(T("admin.mode"))}</label><select data-f="mode">
@@ -3684,9 +3797,9 @@ function adminItemCardsHtml() {
         <div class="field"><label>${esc(T("item.dailyUsage"))}</label><input data-f="daily_usage_manual" type="number" inputmode="decimal" min="0" step="0.1" value="${esc(i.daily_usage_manual ?? "")}" placeholder="${i.daily_usage != null && i.daily_usage !== "" ? esc(T("item.learned").replace("{x}", fmtCount(i.daily_usage))) : "—"}"></div>
         <div class="field"><label>${esc(T("item.maxOnHand"))}</label><input data-f="max_on_hand" type="number" inputmode="decimal" min="0" step="0.25" value="${esc(i.max_on_hand ?? "")}" placeholder="—"></div>
       </div>
-      <div class="field"><label>${esc(T("admin.areasLabel"))}</label><div class="check-list">${areaChecks(areaIdsOf(i))}</div>
+      <div class="field"><label>${esc(T("count.areasBtn"))}</label><div class="check-list">${areaChecks(areaIdsOf(i))}</div>
         <div class="muted" style="font-size:12px">${esc(T("admin.areasHint"))}</div></div>
-      <div class="field"><label>${esc(T("admin.vendor"))}</label><select data-f="vendor_id">${vendorOpts(i.vendor_id)}</select></div>
+      <div class="field"><label>${esc(T("count.sortVendor"))}</label><select data-f="vendor_id">${vendorOpts(i.vendor_id)}</select></div>
       <div class="field"><label>${esc(T("admin.altVendors"))}</label><div class="check-list">${altVendorChecks(i)}</div>
         <div class="muted" style="font-size:12px">${esc(T("admin.altVendorsHint"))}</div></div>
       <div class="field"><label>${esc(T("common.notes"))}</label><input data-f="notes" value="${esc(i.notes || "")}"></div>
@@ -3778,7 +3891,7 @@ function adminCapacityHtml() {
         <div class="field" style="margin-top:8px"><label>${esc(T("admin.capName"))}</label><input data-np-name placeholder="e.g. Ice cream"></div>
         <div class="form-row">
           <div class="field"><label>${esc(T("admin.capMax"))}</label><input data-np-max type="number" inputmode="decimal" min="0" step="1" placeholder="40"></div>
-          <div class="field"><label>${esc(T("admin.capUnit"))}</label><input data-np-unit placeholder="boxes"></div>
+          <div class="field"><label>${esc(T("admin.unit"))}</label><input data-np-unit placeholder="${esc(T("admin.boxesPh"))}"></div>
         </div>
         <div data-np-err></div>
         <button class="btn btn-small btn-primary" data-np-add style="width:100%">${esc(T("admin.capAdd"))}</button>
@@ -3801,7 +3914,7 @@ function poolCardHtml(p) {
       <div class="field"><label>${esc(T("admin.capName"))}</label><input data-pf="name" value="${esc(p.name)}"></div>
       <div class="field"><label>${esc(T("admin.capMax"))}</label><input data-pf="max_qty" type="number" inputmode="decimal" min="0" step="1" value="${esc(p.max_qty)}"></div>
     </div>
-    <div class="field"><label>${esc(T("admin.capUnit"))}</label><input data-pf="unit" value="${esc(p.unit || "")}" placeholder="boxes"></div>
+    <div class="field"><label>${esc(T("admin.unit"))}</label><input data-pf="unit" value="${esc(p.unit || "")}" placeholder="${esc(T("admin.boxesPh"))}"></div>
     <div class="field"><label>${esc(T("admin.capItems"))}</label>
       <div class="check-list">${areaItems.map(i =>
         `<label class="check"><input type="checkbox" data-pitem value="${esc(i.id)}" ${sel.has(String(i.id)) ? "checked" : ""}> ${esc(i.name)}</label>`).join("") || `<span class="muted">—</span>`}</div>
@@ -4040,7 +4153,7 @@ function adminVendorsHtml() {
         <div class="field"><label>${esc(T("admin.email"))}</label><input data-f="email" type="email" value="${esc(v.email || "")}"></div>
       </div>
       <div class="form-row">
-        <div class="field"><label>${esc(T("vendor.contactName"))}</label><input data-f="contact_name" value="${esc(v.contact_name || "")}" placeholder="e.g. Mike"></div>
+        <div class="field"><label>${esc(T("vendor.contactName"))}</label><input data-f="contact_name" value="${esc(v.contact_name || "")}" placeholder="${esc(T("vendor.contactNamePh"))}"></div>
         <div class="field"><label>${esc(T("vendor.contactPhone"))}</label><input data-f="contact_phone" inputmode="tel" value="${esc(v.contact_phone || "")}" placeholder="e.g. (702) 555-1234"></div>
       </div>
       <div class="field"><label>${esc(T("common.notes"))}</label><input data-f="notes" value="${esc(v.notes || "")}"></div>
@@ -4092,7 +4205,7 @@ function adminUsersHtml() {
               ? `<span class="muted" style="font-size:13px">${esc(T("admin.protected"))}</span>`
               : `<span class="muted" style="font-size:13px">${esc(T("admin.saLocked"))}</span>`)
           : `<button class="btn btn-small" data-u-toggle data-enable="${u.active === false ? "1" : ""}">${esc(u.active === false ? T("admin.enable") : T("admin.disable"))}</button>
-              ${isMe ? "" : `<button class="btn btn-small btn-danger" data-u-delete>${esc(T("users.delete"))}</button>`}`}
+              ${isMe ? "" : `<button class="btn btn-small btn-danger" data-u-delete>${esc(T("common.delete"))}</button>`}`}
         <span data-au-chev class="muted" style="font-size:18px;line-height:1">▾</span>
         </div>
       </div>
@@ -4212,15 +4325,15 @@ function parseCsv(text) {
    Save once. Only changed rows are sent. A side slider scrolls the list. */
 function adminBulkHtml(sub) {
   const subtab = (id, label) => `<button class="admin-tab ${sub === id ? "active" : ""}" data-bsub="${id}">${esc(label)}</button>`;
-  const head = `<div class="admin-tabs" style="margin-bottom:12px">${subtab("items", T("admin.bulkItems"))}${subtab("areas", T("admin.bulkAreas"))}</div>`;
+  const head = `<div class="admin-tabs" style="margin-bottom:12px">${subtab("items", T("admin.items"))}${subtab("areas", T("count.areasBtn"))}</div>`;
   return head + (sub === "areas" ? bulkAreasHtml() : bulkItemsHtml());
 }
 
 function bulkSliderHtml() {
   return `<div class="bulk-slider">
-    <button class="bulk-jump" data-jump="top" tabindex="-1" title="Top">▲</button>
+    <button class="bulk-jump" data-jump="top" tabindex="-1" title="${esc(T("bulk.jumpTop"))}">▲</button>
     <div class="bulk-track"><div class="bulk-thumb"></div></div>
-    <button class="bulk-jump" data-jump="bottom" tabindex="-1" title="Bottom">▼</button>
+    <button class="bulk-jump" data-jump="bottom" tabindex="-1" title="${esc(T("bulk.jumpBottom"))}">▼</button>
   </div>`;
 }
 
@@ -4245,11 +4358,11 @@ function bulkItemsHtml() {
       <div class="bulk-fields" hidden>
         <div class="form-row">
           <div class="field"><label>${esc(T("common.name"))}</label><input data-f="name" value="${esc(i.name)}"></div>
-          <div class="field"><label>${esc(T("admin.vendor"))}</label><select data-f="vendor_id">${vendorOpts(i.vendor_id)}</select></div>
+          <div class="field"><label>${esc(T("count.sortVendor"))}</label><select data-f="vendor_id">${vendorOpts(i.vendor_id)}</select></div>
         </div>
         <div class="form-row">
-          <div class="field"><label>Par</label><input data-f="par" type="number" inputmode="decimal" min="0" step="0.25" value="${Number(i.par) > 0 ? esc(i.par) : ""}" placeholder="—"></div>
-          <div class="field"><label>${esc(T("admin.price"))}</label><input data-f="price" type="number" inputmode="decimal" min="0" step="0.01" value="${Number(i.price) > 0 ? esc(i.price) : ""}" placeholder="—"></div>
+          <div class="field"><label>${esc(T("par.par"))}</label><input data-f="par" type="number" inputmode="decimal" min="0" step="0.25" value="${Number(i.par) > 0 ? esc(i.par) : ""}" placeholder="—"></div>
+          <div class="field"><label>${esc(T("par.price"))}</label><input data-f="price" type="number" inputmode="decimal" min="0" step="0.01" value="${Number(i.price) > 0 ? esc(i.price) : ""}" placeholder="—"></div>
         </div>
         <div class="form-row">
           <div class="field"><label>${esc(T("admin.unit"))}</label><input data-f="unit" value="${esc(i.unit || "")}"></div>
@@ -4263,7 +4376,7 @@ function bulkItemsHtml() {
           <div class="field"><label>${esc(T("item.maxOnHand"))}</label><input data-f="max_on_hand" type="number" inputmode="decimal" min="0" step="0.25" value="${esc(i.max_on_hand ?? "")}" placeholder="—"></div>
           <div class="field"><label>${esc(T("admin.bulkActive"))}</label><input data-f="active" type="checkbox" ${i.active !== false ? "checked" : ""} style="width:22px;height:22px"></div>
         </div>
-        <div class="field"><label>${esc(T("admin.areasLabel"))}</label><div class="check-list">${areaChecks(selIds)}</div></div>
+        <div class="field"><label>${esc(T("count.areasBtn"))}</label><div class="check-list">${areaChecks(selIds)}</div></div>
       </div>
     </div>`;
   }).join("");
@@ -4278,7 +4391,7 @@ function bulkItemsHtml() {
       <div id="csv-result" style="margin-top:10px"></div>
     </div>
     <div class="admin-card" id="bulk-items">
-      <div class="field" style="margin-top:0"><input id="bulk-search" placeholder="${esc(T("admin.bulkSearch"))}"></div>
+      <div class="field" style="margin-top:0"><input id="bulk-search" placeholder="${esc(T("count.search"))}"></div>
       <div class="bulk-wrap">
         <div class="bulk-scroll">${rows || `<div class="muted">${esc(T("count.noItems"))}</div>`}</div>
         ${bulkSliderHtml()}
@@ -4416,7 +4529,7 @@ function wireBulkItems() {
       msg.textContent = T("admin.itemNeedName"); msg.className = "error"; return;
     }
     saveBtn.disabled = true;
-    saveBtn.textContent = T("admin.bulkSaving");
+    saveBtn.textContent = T("common.saving");
     msg.textContent = ""; msg.className = "muted";
     let ok = 0, failed = 0;
     const results = await Promise.all(d.map(r =>
@@ -4471,7 +4584,7 @@ function wireBulkAreas() {
       msg.textContent = T("admin.areaNeedName"); msg.className = "error"; return;
     }
     saveBtn.disabled = true;
-    saveBtn.textContent = T("admin.bulkSaving");
+    saveBtn.textContent = T("common.saving");
     msg.textContent = ""; msg.className = "muted";
     let ok = 0, failed = 0;
     const results = await Promise.all(d.map(r =>
@@ -4771,7 +4884,7 @@ function wireAdmin(tab, arg2) {
       const pin = document.getElementById("nu-pin").value.trim();
       const err = document.getElementById("nu-err");
       if (!name) { err.innerHTML = `<div class="error">${esc(T("admin.userNeedName"))}</div>`; return; }
-      if (pin.length < 4) { err.innerHTML = `<div class="error">${esc(T("admin.pinNeed4"))}</div>`; return; }
+      if (pin.length < 4) { err.innerHTML = `<div class="error">${esc(T("setpin.min4"))}</div>`; return; }
       try {
         await edge("users.create", { name, role: document.getElementById("nu-role").value, pin });
         rerender(); showSavedToast();
@@ -4803,7 +4916,7 @@ function wireAdmin(tab, arg2) {
       const del = card.querySelector("[data-u-delete]");
       if (del) del.onclick = async () => {
         const nm = (card.querySelector(".card-head strong") || {}).textContent || "this user";
-        if (!await confirmDialog(T("users.deleteTitle"), T("users.deleteMsg").replace("{name}", nm.trim()), T("users.delete"))) return;
+        if (!await confirmDialog(T("users.deleteTitle"), T("users.deleteMsg").replace("{name}", nm.trim()), T("common.delete"))) return;
         try { await edge("users.delete", { user_id: id }); rerender(); }
         catch (e) { flashError(e.detail || T("users.deleteFail")); }
       };
@@ -4817,7 +4930,7 @@ function wireAdmin(tab, arg2) {
       if (pinBtn) pinBtn.onclick = async () => {
         const p1 = card.querySelector("[data-upin1]").value.trim();
         const p2 = card.querySelector("[data-upin2]").value.trim();
-        if (p1.length < 4) { flashError(T("admin.pinNeed4")); return; }
+        if (p1.length < 4) { flashError(T("setpin.min4")); return; }
         if (p1 !== p2) { flashError(T("admin.pinMismatch")); return; }
         try { await edge("users.set-pin", { user_id: id, pin: p1 }); flashSaved(card); }
         catch (e) { flashError(e.detail || T("admin.setPinFail")); }
@@ -4867,7 +4980,7 @@ function wireAdmin(tab, arg2) {
           return;
         }
       } else {
-        if (!await confirmDialog(T("admin.killTitle"), T("admin.killOn") + "?", T("admin.killOn"))) return;
+        if (!await confirmDialog(T("admin.killTitle"), T("admin.killOnMsg"), T("admin.killOn"))) return;
       }
       try {
         const r = await edge("admin.kill", { disabled: !killed });
@@ -5045,10 +5158,13 @@ function schedFmtTime(t) {
   if (p.some(isNaN)) return String(t);
   return new Date(2000, 0, 1, p[0], p[1] || 0).toLocaleTimeString(locale(), { hour: "numeric", minute: "2-digit" });
 }
-/** Compact chip time range: "5:00 PM–11:59 PM" -> "5:00–11:59 PM" (meridiem shown once when shared). */
+/** Compact chip time range: "5:00 PM–11:59 PM" -> "5:00–11:59 PM" (meridiem shown once when shared).
+ *  Locale-aware: also compacts es-US forms like "5:00 p.m.–11:59 p.m." and leaves 24h forms alone. */
 function schedFmtTimeRange(a, b) {
   const s = schedFmtTime(a), e = schedFmtTime(b);
-  if (/^[AP]M$/.test(s.slice(-2)) && s.slice(-2) === e.slice(-2)) return s.slice(0, -3) + "–" + e;
+  const mer = (x) => { const m = /(\s*[AP]M|\s*[ap]\.\s*m\.)$/i.exec(x); return m ? m[0] : ""; };
+  const ms = mer(s), me = mer(e);
+  if (ms && me && ms.toLowerCase() === me.toLowerCase()) return s.slice(0, s.length - ms.length) + "–" + e;
   return s + "–" + e;
 }
 /** Minutes in one shift (overnight-safe). */
@@ -5107,7 +5223,7 @@ async function renderSchedule(sub, arg2) {
 
   $app().innerHTML = navHtml() + `
   <div class="view">
-    <h1>${esc(T("sched.tab"))}</h1>
+    <h1>${esc(T("tour.schedT"))}</h1>
     <div class="admin-tabs no-print" style="margin-bottom:12px">
       ${tabs.map(([id, label]) => `<button class="admin-tab ${sub === id ? "active" : ""}" data-stab="${id}">${esc(label)}</button>`).join("")}
     </div>
@@ -5122,7 +5238,18 @@ async function renderSchedule(sub, arg2) {
     <div id="sched-body" style="min-height:40vh"><div class="loading">${esc(T("sched.loading"))}</div></div>
   </div>`;
 
-  $app().querySelectorAll("[data-stab]").forEach(b => b.onclick = () => go("#/sched/" + b.dataset.stab));
+  $app().querySelectorAll("[data-stab]").forEach(b => b.onclick = async () => {
+    if (b.dataset.stab === sub) return;
+    // Unsaved form edits OR an open editor modal would be lost on switch.
+    const modalOpen = !!document.getElementById("modal-back");
+    if (state.schedDirty || modalOpen) {
+      const ok = await confirmDialog(T("sched.dirtyTitle"), T("sched.dirtyMsg"), T("sched.discard"), null, false);
+      if (!ok) return;
+      state.schedDirty = false;
+      closeModal();
+    }
+    go("#/sched/" + b.dataset.stab);
+  });
   // The tab bar overflows on phones — keep the active tab visible.
   const activeStab = $app().querySelector('[data-stab].active');
   if (activeStab && activeStab.scrollIntoView) activeStab.scrollIntoView({ inline: "center", block: "nearest" });
@@ -5145,7 +5272,7 @@ async function renderSchedule(sub, arg2) {
     $app().querySelectorAll("[data-go]").forEach(b => b.onclick = () => go(b.dataset.go));
     wireSchedBody(sub, weekStart, body);
   } catch (e) {
-    if (e.status === 401 || e.code === "unauthorized") { dropSession(); go("#/login"); return; }
+    if (e.status === 401 || e.code === "unauthorized") { sessionExpired(); return; }
     body.innerHTML = `<div class="error">${esc(e.detail || e.code || "Error")}</div>`;
   }
 }
@@ -5230,7 +5357,7 @@ function schedCalRangeDialog() {
   showModal(`<h3>📅 ${esc(T("sched.addToCalendar"))}</h3>
     <p class="muted">${esc(T("sched.calRange"))}</p>
     <div class="modal-actions" style="flex-direction:column;align-items:stretch">
-      <button class="btn" data-cal-weeks="1">${esc(T("sched.calThisWeek"))}</button>
+      <button class="btn" data-cal-weeks="1">${esc(T("sched.thisWeek"))}</button>
       <button class="btn" data-cal-weeks="2">${esc(T("sched.cal2Weeks"))}</button>
       <button class="btn" data-cal-weeks="4">${esc(T("sched.cal4Weeks"))}</button>
     </div>`);
@@ -5259,21 +5386,30 @@ async function schedMyHtml(weekStart) {  const me = String(state.session.profile
   // Active swap listings keyed by shift id, so My Week shows the release
   // button or the current listing status per shift.
   const swapByShift = {};
+  let swapsFailed = false;
   try {
     const sw = await edge("swaps.list");
     for (const x of (sw.swaps || [])) {
       if (x && x.shift && !["approved", "denied", "cancelled"].includes(x.status)) swapByShift[String(x.shift.id)] = x;
     }
-  } catch (e) { /* board unavailable: no release buttons this render */ }
-  const todayLocal = schedIso(new Date());
-  return days.map(d => {
+  } catch (e) { swapsFailed = true; /* board unavailable: say so, don't silently drop Release buttons */ }
+  const nowLocal = new Date();
+  const nowIso = schedIso(nowLocal);
+  const nowHM = String(nowLocal.getHours()).padStart(2, "0") + ":" + String(nowLocal.getMinutes()).padStart(2, "0");
+  // Release only for future shifts: a later date, or today with a start time still ahead.
+  const canReleaseShift = (s) => {
+    const d = String(s.date || "").slice(0, 10);
+    if (d !== nowIso) return d > nowIso;
+    return String(s.start_time || "").slice(0, 5) > nowHM;
+  };
+  const body = days.map(d => {
     const ds = mine.filter(s => String(s.date || "").slice(0, 10) === d).sort(byStart);
     return `<div class="admin-card" style="margin-bottom:10px">
       <div class="card-head"><strong>${esc(schedDayName(d))}</strong><span class="muted">${esc(schedDayLabel(d))}</span></div>
       ${ds.length ? ds.map(s => {
         const swp = swapByShift[String(s.id)];
-        const relBtn = !swp && String(s.date || "").slice(0, 10) >= todayLocal
-          ? `<button class="btn btn-small btn-ghost" data-release-shift="${esc(s.id)}" style="margin-top:6px">🔄 ${esc(T("sched.release"))}</button>`
+        const relBtn = !swp && canReleaseShift(s)
+          ? `<button class="btn btn-small btn-ghost" data-release-shift="${esc(s.id)}" data-shift-label="${esc(schedDayLabel(s.date) + " " + schedFmtTime(s.start_time) + "–" + schedFmtTime(s.end_time))}" style="margin-top:6px">🔄 ${esc(T("sched.release"))}</button>`
           : swp ? `<div style="margin-top:6px">${schedSwapStatusPill(swp.status)}</div>` : "";
         return `
         <div style="padding:8px 0;border-top:1px solid var(--border)">
@@ -5284,6 +5420,8 @@ async function schedMyHtml(weekStart) {  const me = String(state.session.profile
         </div>`; }).join("") : `<p class="muted" style="margin:8px 0 0">${esc(T("sched.noShiftsDay"))}</p>`}
     </div>`;
   }).join("");
+  const warn = swapsFailed ? `<div class="banner" style="margin-bottom:10px">⚠️ ${esc(T("sched.swapsLoadFail"))}</div>` : "";
+  return warn + body;
 }
 
 /* ---------- shared week grid ---------- */
@@ -5320,7 +5458,7 @@ function schedGroupRows(items) {
   return out;
 }
 function schedGridHtml(days, rows, cellHtml, dayHeadExtra) {
-  const headCell = "position:sticky;top:0;background:var(--card);z-index:2;padding:8px;border-bottom:1px solid var(--border)";
+  const headCell = "position:sticky;top:var(--sticky-top, 57px);background:var(--card);z-index:2;padding:8px;border-bottom:1px solid var(--border)";
   const rowLabel = "padding:8px;font-weight:600;border-top:1px solid var(--border);position:sticky;left:0;background:var(--card);z-index:3";
   const groupHead = "grid-column:1/-1;padding:10px 8px 6px;font-weight:800;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent);border-top:1px solid var(--border);position:sticky;left:0;background:var(--card);z-index:3";
   return `<div class="sched-grid-fade"><div style="overflow-x:auto"><div style="min-width:780px">
@@ -5522,14 +5660,14 @@ async function schedBuilderHtml(weekStart) {
         : `<button class="btn btn-small btn-primary" id="sched-publish">${esc(T("sched.publish"))}</button>`}
       ${schedWeekStartSelectHtml()}
       <button class="btn btn-small" id="sched-positions">${esc(T("sched.positions"))}</button>
-      <button class="btn btn-small" id="sched-users">${esc(T("sched.users"))}</button>
+      <button class="btn btn-small" id="sched-users">${esc(T("admin.users"))}</button>
       <div style="display:flex;gap:4px" role="group" aria-label="${esc(T("sched.viewLabel"))}">
         <button class="btn btn-small${schedBuilderView !== "employees" ? " btn-primary" : ""}" id="sched-view-groups">${esc(T("sched.viewGroups"))}</button>
         <button class="btn btn-small${schedBuilderView === "employees" ? " btn-primary" : ""}" id="sched-view-employees">${esc(T("sched.viewEmployees"))}</button>
       </div>
     </div>
     ${rows.length ? schedGridHtml(days, rows, (row, d) => schedBuilderCell(row.id, d), (d) =>
-      `${schedCoverageHtml(d)}<button class="btn btn-small btn-ghost" data-add-open-shift="${esc(d)}" aria-label="${esc(T("sched.addOpenShift") + " — " + schedDayLabel(d))}" title="${esc(T("sched.addOpenShift"))}" style="margin-top:4px;min-width:44px;min-height:32px;opacity:.6">+</button>`) : ""}
+      `${schedCoverageHtml(d)}<button class="btn btn-small btn-ghost sched-add" data-add-open-shift="${esc(d)}" aria-label="${esc(T("sched.addOpenShift") + " — " + schedDayLabel(d))}" title="${esc(T("sched.addOpenShift"))}" style="margin-top:4px;min-width:44px;min-height:44px">+</button>`) : ""}
     ${rows.length
       ? `<p class="muted" style="font-size:13px;margin-top:8px">${esc(T("sched.builderHint"))}</p>`
       : `<p class="muted" style="margin-top:8px">${esc(T("sched.noPeople"))}</p>`}`;
@@ -5574,7 +5712,7 @@ function schedCoverageHtml(iso) {
     return `<span${short ? ' style="color:var(--danger);font-weight:700"' : ""}>${dp}${x.have}/${x.need}</span>`;
   };
   return [...byPos.values()].map(d =>
-    `<div style="font-size:11px;font-weight:600;margin-top:2px;white-space:nowrap">${esc(d.label.slice(0, 3))} ${seg("L", d.lunch)}${d.lunch && d.dinner ? " " : ""}${seg("D", d.dinner)}</div>`
+    `<div style="font-size:12px;font-weight:600;margin-top:2px;white-space:nowrap">${esc(d.label.slice(0, 3))} ${seg("L", d.lunch)}${d.lunch && d.dinner ? " " : ""}${seg("D", d.dinner)}</div>`
   ).join("");
 }
 
@@ -5628,7 +5766,7 @@ async function schedStaffingHtml() {
       ${positions.map((pos, pi) => `<tr><td style="font-weight:600;white-space:nowrap">${esc(pos)}</td>${
         wdays.map(w => {
           const v = tmap.get(w + "|" + dp + "|" + String(pos).toLowerCase());
-          return `<td><input type="number" min="0" max="99" inputmode="numeric" data-tg="${w}|${dp}|${pi}" value="${v == null ? "" : v}" style="width:56px" aria-label="${esc(pos + " " + schedShortWd(w) + " " + dp)}"></td>`;
+          return `<td><input type="number" min="0" max="99" inputmode="numeric" placeholder="—" data-tg="${w}|${dp}|${pi}" value="${v == null ? "" : v}" style="width:56px" aria-label="${esc(pos + " " + schedShortWd(w) + " " + dp)}"></td>`;
         }).join("")
       }</tr>`).join("")}
     </table></div>`;
@@ -5724,10 +5862,10 @@ function schedBuilderCell(pid, iso) {
   const addLabel = `${T("sched.addShift")} — ${person ? person.name : ""}, ${schedDayLabel(iso)}`;
   return `${shifts.map(s => `
       <button class="btn btn-small${conflict.has(key(s)) ? " shift-conflict" : ""}" data-edit-shift="${esc(s.id)}" style="display:block;width:100%;margin:2px 0;text-align:left;white-space:normal"${conflict.has(key(s)) ? ` title="${esc(T("sched.overlapWarn"))}"` : ""}>
-        <strong style="white-space:nowrap;font-size:12px">${esc(schedFmtTimeRange(s.start_time, s.end_time))}</strong>${s.position ? `<br><span class="muted">${esc(s.position)}</span>` : ""}
+        <strong style="white-space:nowrap;font-size:14px">${esc(schedFmtTimeRange(s.start_time, s.end_time))}</strong>${s.position ? `<br><span class="muted" style="font-size:12px">${esc(s.position)}</span>` : ""}
       </button>`).join("")}
     ${warns.length ? `<button class="btn btn-small" data-show-warns="${esc(pid)}|${esc(iso)}" aria-label="${esc(T("sched.warningsTitle"))}">⚠️</button>` : ""}
-    <button class="btn btn-small btn-ghost sched-add" data-add-shift="${esc(pid)}|${esc(iso)}" aria-label="${esc(addLabel)}" title="${esc(addLabel)}" style="width:100%;margin-top:2px;opacity:.4">+</button>`;
+    <button class="btn btn-small btn-ghost sched-add" data-add-shift="${esc(pid)}|${esc(iso)}" aria-label="${esc(addLabel)}" title="${esc(addLabel)}" style="width:100%;margin-top:2px;min-height:44px">+</button>`;
 }
 
 /** Map save_shifts warnings back onto the returned shifts (by id or client_id). */
@@ -5921,6 +6059,7 @@ async function schedTimeoffHtml() {
   const me = String(state.session.profile.id);
   const r = await edge("timeoff.list");
   const reqs = r.requests || [];
+  const todayLocal = schedIso(new Date());
   const byStart = (a, b) => String(a.start_date).localeCompare(String(b.start_date));
   const mine = reqs.filter(x => String(x.profile_id) === me).sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
   const pending = reqs.filter(x => x.status === "pending").sort(byStart);
@@ -5932,19 +6071,19 @@ async function schedTimeoffHtml() {
         ${schedReqStatusPill(x.status)}
       </div>
       ${inbox && x.status === "pending" ? `<div style="display:flex;gap:8px;margin-top:8px">
-        <button class="btn btn-small btn-primary" data-decide="approved" style="flex:1">${esc(T("sched.approve"))}</button>
+        <button class="btn btn-small btn-primary" data-decide="approved" style="flex:1">${esc(T("review.approveYes"))}</button>
         <button class="btn btn-small btn-danger" data-decide="denied" style="flex:1">${esc(T("sched.deny"))}</button>
       </div>` : ""}
       ${!inbox && x.status === "pending" ? `<button class="btn btn-small btn-ghost" data-req-cancel style="margin-top:8px">🗑️ ${esc(T("sched.cancelRequest"))}</button>` : ""}
     </div>`;
   return `
     ${canSchedManage() ? `<h2>${esc(T("sched.inbox"))}</h2>
-      ${pending.length ? pending.map(x => reqCard(x, true)).join("") : `<p class="muted">${esc(T("sched.noRequests"))}</p>`}` : ""}
+      ${pending.length ? pending.map(x => reqCard(x, true)).join("") : `<p class="muted">${esc(T("sched.noRequestsInbox"))}</p>`}` : ""}
     <div class="admin-card">
       <h3 style="margin-top:0">${esc(T("sched.requestOff"))}</h3>
       <div class="form-row">
-        <div class="field"><label>${esc(T("sched.from"))}</label><input id="to-start" type="date"></div>
-        <div class="field"><label>${esc(T("sched.to"))}</label><input id="to-end" type="date"></div>
+        <div class="field"><label>${esc(T("sched.from"))}</label><input id="to-start" type="date" min="${todayLocal}"></div>
+        <div class="field"><label>${esc(T("sched.to"))}</label><input id="to-end" type="date" min="${todayLocal}"></div>
       </div>
       <div class="field"><label>${esc(T("sched.reason"))}</label><input id="to-reason" placeholder="…"></div>
       <div id="to-err"></div>
@@ -5990,7 +6129,7 @@ async function schedSwapsHtml() {
         ? `<div class="muted" style="font-size:13px;margin-top:8px">${esc(T("sched.yourListing"))}</div>
            <button class="btn btn-small btn-ghost" data-swap-cancel style="margin-top:8px">${esc(T("sched.cancelSwap"))}</button>`
         : posOk
-          ? `<button class="btn btn-small btn-primary" data-claim style="width:100%;margin-top:8px">${esc(T("sched.pickup"))}</button>`
+          ? `<button class="btn btn-small btn-primary" data-claim data-shift-label="${esc(schedDayLabel(s.shift.date) + " " + schedFmtTime(s.shift.start_time) + "–" + schedFmtTime(s.shift.end_time))}" style="width:100%;margin-top:8px">${esc(T("sched.pickup"))}</button>`
           : `<div class="muted" style="font-size:13px;margin-top:8px">🔒 ${esc(T("sched.posOnlyShift").replace("{pos}", shiftPos))}</div>`}
     </div>`;
   };
@@ -6002,7 +6141,7 @@ async function schedSwapsHtml() {
         ${schedSwapStatusPill(s.status)}</div>
       ${warns.length ? `<div class="banner" style="margin-top:8px;font-size:13px">⚠️ ${esc(T("sched.swapWarnNote"))}<ul style="margin:4px 0 0;padding-left:18px">${warns.map(w => `<li>${esc(w)}</li>`).join("")}</ul></div>` : ""}
       <div style="display:flex;gap:8px;margin-top:8px">
-        <button class="btn btn-small btn-primary" data-swap-decide="approved" style="flex:1">${esc(T("sched.approve"))}</button>
+        <button class="btn btn-small btn-primary" data-swap-decide="approved" style="flex:1">${esc(T("review.approveYes"))}</button>
         <button class="btn btn-small btn-danger" data-swap-decide="denied" style="flex:1">${esc(T("sched.deny"))}</button>
       </div>
     </div>`;
@@ -6046,6 +6185,8 @@ async function schedAvailHtml() {
   const stOpts = (sel) => [["available", T("sched.available")], ["unavailable", T("sched.unavailable")], ["limited", T("sched.limited")], ["blocked", T("sched.blocked")]]
     .map(([v, l]) => `<option value="${v}" ${sel === v ? "selected" : ""}>${esc(l)}</option>`).join("");
   let html = `<div class="admin-card"><h3 style="margin-top:0">${esc(T("sched.avail"))}</h3>
+    <p class="muted" style="font-size:13px;margin:0 0 10px">${esc(T("sched.availExplainer"))}</p>
+    <div style="margin-bottom:10px"><button class="btn btn-small btn-ghost" id="av-apply-all">${esc(T("sched.availApplyAll"))}</button></div>
     ${[0, 1, 2, 3, 4, 5, 6].map(i => {
       const wd = (i + 1) % 7; // display Mon..Sun -> stored weekday 0=Sunday
       const cur = byDay[wd] || { status: "available" };
@@ -6083,7 +6224,12 @@ async function schedAvailHtml() {
         ${[0, 1, 2, 3, 4, 5, 6].map(i => {
           const r = rowOf[String(p.id) + "|" + ((i + 1) % 7)]; // display Mon..Sun -> stored 0=Sunday
           const st = r ? r.status : "available";
-          return `<td style="text-align:center;padding:6px;border-bottom:1px solid var(--border)" title="${cellTitle(r)}">${dot(st)}</td>`;
+          const times = (r && (r.status === "limited" || r.status === "blocked") && r.start_time && r.end_time)
+            ? `${String(r.start_time).slice(0, 5)}–${String(r.end_time).slice(0, 5)}` : "";
+          return `<td style="text-align:center;padding:2px;border-bottom:1px solid var(--border)">`
+            + `<button class="avail-cell" data-avail-name="${esc(p.name)}" data-avail-day="${esc(schedWeekdayName(i))}"`
+            + ` data-avail-status="${esc(schedAvailStatusLabel(st))}" data-avail-times="${esc(times)}" data-avail-note="${esc((r && r.note) || "")}"`
+            + ` aria-label="${esc(p.name + " · " + schedWeekdayName(i) + " · " + cellTitle(r))}">${dot(st)}</button></td>`;
         }).join("")}</tr>`).join("")}
       </table></div></div>`;
   }
@@ -6092,11 +6238,12 @@ async function schedAvailHtml() {
 
 /* ---------- schedule view wiring (after body HTML is set) ---------- */
 function wireSchedBody(sub, weekStart, body) {
+  state.schedDirty = false; // fresh form; set true on any edit below
   if (sub === "builder" && state.sched) {
     const wsSel = document.getElementById("sched-weekstart");
     if (wsSel) wsSel.onchange = async () => {
       const day = Number(wsSel.value);
-      if (!await confirmDialog(T("sched.weekStartOn"), T("sched.weekStartWarn"), T("common.confirm"))) {
+      if (!await confirmDialog(T("sched.weekStartOn"), T("sched.weekStartWarn"), T("common.confirm"), null, false)) {
         wsSel.value = String(schedWeekStartDayNum);
         return;
       }
@@ -6118,7 +6265,7 @@ function wireSchedBody(sub, weekStart, body) {
     if (veBtn) veBtn.onclick = () => { schedBuilderView = "employees"; router(); };
     const copyBtn = document.getElementById("sched-copy");
     if (copyBtn) copyBtn.onclick = async () => {
-      if (!await confirmDialog(T("sched.copyTitle"), T("sched.copyMsg"), T("sched.copyWeek"))) return;
+      if (!await confirmDialog(T("sched.copyTitle"), T("sched.copyMsg"), T("sched.copyWeek"), null, false)) return;
       copyBtn.disabled = true; // double-submit guard
       try {
         const r = await edge("schedule.copy_week", {
@@ -6132,7 +6279,7 @@ function wireSchedBody(sub, weekStart, body) {
       finally { copyBtn.disabled = false; }
     };
     const flip = async (btn, action, title, msg, confirmLabel, doneMsg) => {
-      if (!await confirmDialog(title, msg, confirmLabel)) return;
+      if (!await confirmDialog(title, msg, confirmLabel, null, false)) return;
       btn.disabled = true; // double-submit guard
       try {
         await edge(action, { schedule_id: state.sched.schedule.id });
@@ -6168,7 +6315,8 @@ function wireSchedBody(sub, weekStart, body) {
   }
   if (sub === "my") {
     body.querySelectorAll("[data-release-shift]").forEach(b => b.onclick = async () => {
-      if (!await confirmDialog(T("sched.releaseTitle"), T("sched.releaseMsg"), T("sched.release"))) return;
+      const lbl = b.dataset.shiftLabel ? b.dataset.shiftLabel + "\n" : "";
+      if (!await confirmDialog(T("sched.releaseTitle"), lbl + T("sched.releaseMsg"), T("sched.release"), null, false)) return;
       b.disabled = true; // double-submit guard
       try {
         await edge("swaps.release", { shift_id: b.dataset.releaseShift });
@@ -6181,7 +6329,8 @@ function wireSchedBody(sub, weekStart, body) {
     body.querySelectorAll("[data-claim]").forEach(b => b.onclick = async () => {
       const card = b.closest("[data-swap]");
       if (!card) return;
-      if (!await confirmDialog(T("sched.pickupTitle"), T("sched.pickupMsg"), T("sched.pickup"))) return;
+      const lbl = b.dataset.shiftLabel ? b.dataset.shiftLabel + "\n" : "";
+      if (!await confirmDialog(T("sched.pickupTitle"), lbl + T("sched.pickupMsg"), T("sched.pickup"), null, false)) return;
       b.disabled = true; // double-submit guard
       try {
         const r = await edge("swaps.claim", { swap_id: card.dataset.swap });
@@ -6193,6 +6342,9 @@ function wireSchedBody(sub, weekStart, body) {
     body.querySelectorAll("[data-swap-decide]").forEach(b => b.onclick = async () => {
       const card = b.closest("[data-swap]");
       if (!card) return;
+      const approved = b.dataset.swapDecide === "approved";
+      const label = approved ? T("review.approveYes") : T("sched.deny");
+      if (!await confirmDialog(T("sched.swapDecideTitle"), T("sched.swapDecideMsg"), label, null, approved)) return;
       b.disabled = true; // double-submit guard
       try {
         await edge("swaps.decide", { swap_id: card.dataset.swap, decision: b.dataset.swapDecide });
@@ -6203,7 +6355,7 @@ function wireSchedBody(sub, weekStart, body) {
     body.querySelectorAll("[data-swap-cancel]").forEach(b => b.onclick = async () => {
       const card = b.closest("[data-swap]");
       if (!card) return;
-      if (!await confirmDialog(T("sched.cancelTitle"), T("sched.cancelMsg"), T("sched.cancelSwap"))) return;
+      if (!await confirmDialog(T("sched.cancelTitle"), T("sched.cancelMsg"), T("sched.cancelSwap"), null, false)) return;
       b.disabled = true; // double-submit guard
       try {
         await edge("swaps.cancel", { swap_id: card.dataset.swap });
@@ -6221,11 +6373,18 @@ function wireSchedBody(sub, weekStart, body) {
     });
   }
   if (sub === "timeoff") {
+    const todayLocal = schedIso(new Date());
+    const fromEl = document.getElementById("to-start"), toEl = document.getElementById("to-end");
+    // Default the To date to the From date when picking the start (F-319).
+    if (fromEl && toEl) fromEl.onchange = () => { if (!toEl.value || toEl.value < fromEl.value) toEl.value = fromEl.value; };
     const sendBtn = document.getElementById("to-send");
     if (sendBtn) sendBtn.onclick = async () => {
       const s = document.getElementById("to-start").value, e = document.getElementById("to-end").value;
       const err = document.getElementById("to-err");
-      if (!s || !e) { err.innerHTML = `<div class="error">${esc(T("sched.needDates"))}</div>`; return; }
+      const fail = (msg) => { err.innerHTML = `<div class="error">${esc(msg)}</div>`; };
+      if (!s || !e) { fail(T("sched.needDates")); return; }
+      if (e < s) { fail(T("sched.badDates")); return; }
+      if (s < todayLocal) { fail(T("sched.pastDate")); return; }
       sendBtn.disabled = true; // double-submit guard
       try {
         await edge("timeoff.create", {
@@ -6258,7 +6417,7 @@ function wireSchedBody(sub, weekStart, body) {
               && s.date >= rs && s.date <= re));
           }
         } catch (e) { /* context is best-effort */ }
-        const verb = b.dataset.decide === "approved" ? T("sched.approve") : T("sched.deny");
+        const verb = b.dataset.decide === "approved" ? T("review.approveYes") : T("sched.deny");
         const when = card.dataset.reqStart === card.dataset.reqEnd
           ? schedDayLabel(card.dataset.reqStart)
           : schedDayLabel(card.dataset.reqStart) + " → " + schedDayLabel(card.dataset.reqEnd);
@@ -6269,7 +6428,7 @@ function wireSchedBody(sub, weekStart, body) {
             .map(s => `• ${schedDayLabel(s.date)} ${schedFmtTime(s.start_time)}–${schedFmtTime(s.end_time)}`)
             .join("\n");
         }
-        if (!confirm(msg)) { b.disabled = false; return; }
+        if (!await confirmDialog(T("sched.decideTitle"), msg, verb, null, b.dataset.decide !== "approved")) { b.disabled = false; return; }
         await edge("timeoff.decide", { id: card.dataset.req, decision: b.dataset.decide });
         if (state.sched) state.sched.avail = null; // picker candidates go stale
         showSavedToast(T("common.saved"));
@@ -6279,7 +6438,7 @@ function wireSchedBody(sub, weekStart, body) {
     body.querySelectorAll("[data-req-cancel]").forEach(b => b.onclick = async () => {
       const card = b.closest("[data-req]");
       if (!card) return;
-      if (!confirm(T("sched.cancelRequestConfirm"))) return;
+      if (!await confirmDialog(T("sched.cancelTitle"), T("sched.cancelRequestConfirm"), T("sched.cancelRequest"))) return;
       b.disabled = true; // double-submit guard
       try {
         await edge("timeoff.cancel", { id: card.dataset.req });
@@ -6290,10 +6449,39 @@ function wireSchedBody(sub, weekStart, body) {
     });
   }
   if (sub === "avail") {
+    const markDirty = () => { state.schedDirty = true; };
+    body.addEventListener("input", markDirty);
+    body.addEventListener("change", markDirty);
+    // Apply-to-all: copy Monday's row (first day row) to the other six days.
+    const applyAll = document.getElementById("av-apply-all");
+    if (applyAll) applyAll.onclick = () => {
+      const rows = [...body.querySelectorAll("[data-avail-day]")];
+      const src = rows[0];
+      if (!src) return;
+      const get = (sel) => src.querySelector(sel);
+      rows.slice(1).forEach(r => {
+        r.querySelector("[data-av-status]").value = get("[data-av-status]").value;
+        r.querySelector("[data-av-start]").value = get("[data-av-start]").value;
+        r.querySelector("[data-av-end]").value = get("[data-av-end]").value;
+        r.querySelector("[data-av-note]").value = get("[data-av-note]").value;
+        r.querySelector("[data-av-status]").dispatchEvent(new Event("change", { bubbles: true }));
+      });
+      state.schedDirty = true;
+    };
     body.querySelectorAll("[data-avail-day]").forEach(row => {
       const sel = row.querySelector("[data-av-status]");
       const times = row.querySelectorAll("[data-av-times]");
       sel.onchange = () => times.forEach(t => t.style.display = hasTimes(sel.value) ? "" : "none");
+    });
+    // Manager grid: tap a cell for the full availability detail.
+    body.querySelectorAll(".avail-cell").forEach(c => c.onclick = () => {
+      const d = c.dataset;
+      showModal(`<h3>${esc(d.availName)}</h3>
+        <p class="muted" style="margin-top:0">${esc(d.availDay)}</p>
+        <p><strong>${esc(d.availStatus)}</strong>${d.availTimes ? ` · ${esc(d.availTimes)}` : ""}</p>
+        ${d.availNote ? `<p>${esc(d.availNote)}</p>` : ""}
+        <div class="modal-actions"><button class="btn btn-primary" id="av-detail-ok" style="flex:1">${esc(T("common.close"))}</button></div>`);
+      document.getElementById("av-detail-ok").onclick = () => closeModal();
     });
     const avSave = document.getElementById("av-save");
     if (avSave) avSave.onclick = async () => {
@@ -6310,6 +6498,7 @@ function wireSchedBody(sub, weekStart, body) {
       try {
         await edge("availability.set", { rows });
         if (state.sched) state.sched.avail = null; // picker candidates go stale
+        state.schedDirty = false;
         showSavedToast();
         router();
       } catch (e) {
@@ -6321,6 +6510,9 @@ function wireSchedBody(sub, weekStart, body) {
   }
   if (sub === "staffing") {
     drawStaffingArrange();
+    const markDirty = () => { state.schedDirty = true; };
+    body.addEventListener("input", markDirty);
+    body.addEventListener("change", markDirty);
     const saveT = document.getElementById("staffing-save-targets");
     if (saveT) saveT.onclick = async () => {
       saveT.disabled = true; // double-submit guard
@@ -6336,6 +6528,7 @@ function wireSchedBody(sub, weekStart, body) {
         const tmap = new Map();
         for (const t of (r.targets || [])) tmap.set(t.weekday + "|" + t.daypart + "|" + String(t.position).toLowerCase(), t.required);
         if (state.staffing) state.staffing.tmap = tmap;
+        state.schedDirty = false;
         showSavedToast(T("sched.staffingSaved"));
       } catch (e) { flashError(e.detail || e.message || "Error"); }
       saveT.disabled = false;
@@ -6368,7 +6561,7 @@ function schedFlagsHtml(u, viewerIsSuper) {
         <option value="">—</option>
         <option value="FOH" ${u.department === "FOH" ? "selected" : ""}>FOH</option>
         <option value="BOH" ${u.department === "BOH" ? "selected" : ""}>BOH</option></select></div>
-      <div class="field"><label>${esc(T("sched.posLabel"))}</label>${schedPositionInputHtml('data-sf="position"', u.position)}</div>
+      <div class="field"><label>${esc(T("sched.position"))}</label>${schedPositionInputHtml('data-sf="position"', u.position)}</div>
       <div class="field"><label>${esc(T("sched.group"))}</label>
         <input data-sf="sched_group" list="sched-group-${u.id}" value="${esc(u.sched_group || "")}" maxlength="40" placeholder="—" autocomplete="off">
         <datalist id="sched-group-${u.id}">${schedGroupOptionsHtml()}</datalist></div>

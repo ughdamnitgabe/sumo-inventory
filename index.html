@@ -25,7 +25,10 @@
       s.src = "app.js?v=" + v;
       s.onerror = function () {
         var el = document.querySelector("#app .loading");
-        if (el) el.textContent = "Failed to load. Check your connection and reopen.";
+        var es = (navigator.language || "").toLowerCase().indexOf("es") === 0;
+        if (el) el.textContent = es
+          ? "No se pudo cargar. Revisa tu conexión y vuelve a abrir."
+          : "Failed to load. Check your connection and reopen.";
       };
       document.body.appendChild(s);
     })();
