@@ -85,7 +85,7 @@ en: {
   "common.saving": "Saving…", "common.checking": "Checking…",
   "common.item": "Item", "common.continue": "Continue",
   "nav.homeAria": "Home", "nav.logoutAria": "Log out",
-  "nav.langAria": "Language",
+  "nav.langAria": "Language", "nav.themeAria": "Toggle light / dark theme",
   "role.manager": "Manager", "role.staff": "Staff", "role.view": "View",
   "move.title": "Move to area", "move.current": "current",
   "login.prompt": "Enter your PIN to sign in", "login.signin": "Sign in",
@@ -311,6 +311,9 @@ en: {
   "tour.c3B": "0, fractions, Full, and ✓ Done speed things up. Mark Zero if the shelf is empty.", "sched.my": "My Week", "sched.team": "Team",
   "sched.builder": "Schedule Builder", "sched.timeoff": "Time Off", "sched.avail": "Availability",
   "sched.prevWeek": "Previous week", "sched.nextWeek": "Next week", "sched.thisWeek": "This week",
+  "sched.dayView": "Day", "sched.weekView": "Week",
+  "sched.prevDay": "Previous day", "sched.nextDay": "Next day", "sched.todayBtn": "Today",
+  "sched.pickDate": "Pick a date", "sched.noShiftsToday": "No shifts scheduled today.",
   "sched.addToCalendar": "Add to calendar", "sched.calRange": "Which weeks?", "sched.cal2Weeks": "Next 2 weeks", "sched.cal4Weeks": "Next 4 weeks",
   "sched.calDone": "Calendar file downloaded — open it to add your shifts.",
   "sched.calEmpty": "No shifts in that range.", "sched.loading": "Loading schedule…", "sched.overlapWarn": "Overlapping shifts",
@@ -447,7 +450,7 @@ es: {
   "common.saving": "Guardando…", "common.checking": "Revisando…",
   "common.item": "Artículo", "common.continue": "Continuar",
   "nav.homeAria": "Inicio", "nav.logoutAria": "Cerrar sesión",
-  "nav.langAria": "Idioma",
+  "nav.langAria": "Idioma", "nav.themeAria": "Cambiar entre tema claro y oscuro",
   "role.manager": "Gerente", "role.staff": "Personal", "role.view": "Lectura",
   "move.title": "Mover a área", "move.current": "actual",
   "login.prompt": "Ingresa tu PIN para entrar", "login.signin": "Entrar",
@@ -673,6 +676,9 @@ es: {
   "tour.c3B": "0, fracciones, Lleno y ✓ Listo aceleran el conteo. Marca cero si el estante está vacío.", "sched.my": "Mi semana", "sched.team": "Equipo",
   "sched.builder": "Crear horario", "sched.timeoff": "Días libres", "sched.avail": "Disponibilidad",
   "sched.prevWeek": "Semana anterior", "sched.nextWeek": "Semana siguiente", "sched.thisWeek": "Esta semana",
+  "sched.dayView": "Día", "sched.weekView": "Semana",
+  "sched.prevDay": "Día anterior", "sched.nextDay": "Día siguiente", "sched.todayBtn": "Hoy",
+  "sched.pickDate": "Elige una fecha", "sched.noShiftsToday": "Sin turnos programados hoy.",
   "sched.addToCalendar": "Añadir al calendario", "sched.calRange": "¿Qué semanas?", "sched.cal2Weeks": "Próximas 2 semanas", "sched.cal4Weeks": "Próximas 4 semanas",
   "sched.calDone": "Archivo descargado — ábrelo para añadir tus turnos.",
   "sched.calEmpty": "No hay turnos en ese rango.", "sched.loading": "Cargando horario…", "sched.overlapWarn": "Turnos superpuestos",
@@ -815,6 +821,22 @@ function setLang(l) {
   try { localStorage.setItem(LANG_KEY, state.lang); } catch (e) { /* noop */ }
   try { document.documentElement.lang = state.lang; } catch (e) { /* noop */ }
 }
+/* ---------- Theme: dark is the default look; light is a CSS-variable
+ *  override ([data-theme="light"] on <html>). Persisted per device. */
+const THEME_KEY = "sumoV2theme";
+/** "light" | "dark". Anything unrecognized falls back to dark. */
+function theme() { return state.theme === "light" ? "light" : "dark"; }
+function applyTheme() {
+  try {
+    if (theme() === "light") document.documentElement.setAttribute("data-theme", "light");
+    else document.documentElement.removeAttribute("data-theme");
+  } catch (e) { /* noop */ }
+}
+function setTheme(t) {
+  state.theme = t === "light" ? "light" : "dark";
+  try { localStorage.setItem(THEME_KEY, state.theme); } catch (e) { /* noop */ }
+  applyTheme();
+}
 /** Locale tag for date formatting, follows the UI language. */
 function locale() { return lang() === "es" ? "es-US" : "en-US"; }
 
@@ -861,6 +883,7 @@ const state = {
   settings: null,      // { store_name, show_prices } — loaded via settings.get
   cardData: {},        // order-card payloads keyed by card id (for image share)
   lang: "en",          // UI language: "en" | "es" (per device; orders always English)
+  theme: "dark",       // UI theme: "dark" (default) | "light" (per device)
 };
 // Live filter text for the Manage → Items list (module-level so it survives
 // tab re-renders while typing).
@@ -1100,6 +1123,8 @@ function sessionExpired() {
 async function boot() {
   try { state.lang = localStorage.getItem(LANG_KEY) || "en"; } catch (e) { state.lang = "en"; }
   try { document.documentElement.lang = state.lang === "es" ? "es" : "en"; } catch (e) { /* noop */ }
+  try { state.theme = localStorage.getItem(THEME_KEY) || "dark"; } catch (e) { state.theme = "dark"; }
+  applyTheme();
   startSessionWatchers(); // self-guarded; registered before any auth path below
   const raw = localStorage.getItem(SESSION_KEY);
   if (raw) {
@@ -1163,6 +1188,12 @@ async function boot() {
   document.addEventListener("click", (e) => {
     const t = e.target.closest('[data-act="nav-lang"]');
     if (t) { setLang(lang() === "es" ? "en" : "es"); router(); }
+  });
+  // Theme toggle (dark/light) in the top bar — CSS handles the swap, no
+  // re-render needed; the icon flips on the next render.
+  document.addEventListener("click", (e) => {
+    const t = e.target.closest('[data-act="nav-theme"]');
+    if (t) { setTheme(theme() === "light" ? "dark" : "light"); router(); }
   });
   // Notification bell in the top bar — opens the notifications inbox.
   document.addEventListener("click", (e) => {
@@ -1277,6 +1308,7 @@ function navHtml(title) {
     <div><button class="brand-btn" data-act="nav-home" aria-label="${esc(T("nav.homeAria"))}"><span class="brand"><span class="logo-badge nav-logo"><img src="logo.png" alt=""></span>Sumo Sushi Warm Springs</span></button></div>
     <div class="user">${esc(p.name || "")} · ${esc(roleLabel(p.role))}</div>
     <div style="display:flex;gap:4px;align-items:center">
+      <button class="btn btn-small btn-ghost" data-act="nav-theme" aria-label="${esc(T("nav.themeAria"))}" title="${esc(T("nav.themeAria"))}">${theme() === "light" ? "🌙" : "☀️"}</button>
       ${isSuper ? "" : `<button class="btn btn-small btn-ghost" data-act="nav-lang" aria-label="${esc(T("nav.langAria"))}" title="English / Español">🌐 ${lang() === "es" ? "EN" : "ES"}</button>`}
       ${state.session && canSchedView() ? `<button class="btn btn-small btn-ghost" data-act="nav-notif" aria-label="${esc(T("sched.notif"))}" style="position:relative">🔔<span id="notif-badge" style="display:none;position:absolute;top:-6px;right:-6px;background:#c0392b;color:#fff;font-size:11px;font-weight:700;min-width:18px;height:18px;line-height:18px;border-radius:9px;text-align:center;padding:0 4px"></span></button>` : ""}
       <button class="btn btn-small btn-ghost" data-act="nav-home" aria-label="${esc(T("nav.homeAria"))}">⌂</button>
@@ -5138,6 +5170,25 @@ function schedWeekStartFromRoute() {
   if (m && schedValidIso(m[1])) return m[1];
   return schedIso(schedWeekStart(new Date()));
 }
+/** Team tab mode: the week grid only when ?w= is present; otherwise the
+ *  single-day view (?d= or today). Default is the day view. */
+function schedTeamMode() {
+  const q = (state.route && state.route.query) || "";
+  return /(?:^|&)w=\d{4}-\d{2}-\d{2}(?:&|$)/.test(q) ? "week" : "day";
+}
+/** Day for the team day view: ?d=YYYY-MM-DD, else today (invalid -> today). */
+function schedTeamDay() {
+  const q = (state.route && state.route.query) || "";
+  const m = q.match(/(?:^|&)d=(\d{4}-\d{2}-\d{2})(?:&|$)/);
+  if (m && schedValidIso(m[1])) return m[1];
+  return schedIso(new Date());
+}
+/** Week start containing a day ISO, honoring the store's week-start day. */
+function schedWeekStartOfDay(dayIso) {
+  const p = String(dayIso).split("-").map(Number);
+  if (p.length !== 3 || p.some(x => !Number.isInteger(x))) return schedIso(schedWeekStart(new Date()));
+  return schedIso(schedWeekStart(new Date(p[0], p[1] - 1, p[2])));
+}
 /** "Mon 9/28" (locale-aware). */
 function schedDayLabel(iso) {
   const p = iso.split("-").map(Number);
@@ -5226,6 +5277,9 @@ async function renderSchedule(sub, arg2) {
   // All schedule tabs honor ?w= so managers and staff can page weeks. Availability
   // is recurring (Mon–Sun repeats), so it shows an explanatory label instead.
   const weekStart = schedWeekStartFromRoute();
+  // The Team tab defaults to the single-day view (?d= or today); ?w= keeps
+  // the week grid. teamDay is null unless the day view is active.
+  const teamDay = sub === "team" && schedTeamMode() === "day" ? schedTeamDay() : null;
 
   $app().innerHTML = navHtml() + `
   <div class="view">
@@ -5237,7 +5291,7 @@ async function renderSchedule(sub, arg2) {
       ? `<p class="muted" style="margin:0 0 12px">${esc(T("sched.availRecurring"))}</p>`
       : sub === "staffing"
         ? `<p class="muted" style="margin:0 0 12px">${esc(T("sched.staffingRecurring"))}</p>`
-        : schedWeekNav(sub, weekStart)}
+        : teamDay ? schedDayNavHtml(teamDay) : schedWeekNav(sub, weekStart)}
     ${sub === "my" ? `<div class="no-print" style="display:flex;margin-bottom:12px">
       <button class="btn btn-small" data-cal-export style="margin-left:auto">📅 ${esc(T("sched.addToCalendar"))}</button>
     </div>` : ""}
@@ -5265,11 +5319,14 @@ async function renderSchedule(sub, arg2) {
   if (navLang) navLang.onclick = () => { setLang(lang() === "es" ? "en" : "es"); router(); };
   const calBtn = $app().querySelector("[data-cal-export]");
   if (calBtn) calBtn.onclick = schedCalRangeDialog;
+  // Team day view: the native date picker jumps straight to that day.
+  const dayPick = $app().querySelector("[data-sched-day]");
+  if (dayPick) dayPick.onchange = () => { if (schedValidIso(dayPick.value)) go("#/sched/team?d=" + dayPick.value); };
 
   const body = $app().querySelector("#sched-body");
   try {
     if (sub === "my") body.innerHTML = await schedMyHtml(weekStart);
-    else if (sub === "team") body.innerHTML = await schedTeamHtml(weekStart);
+    else if (sub === "team") body.innerHTML = await schedTeamHtml(weekStart, teamDay);
     else if (sub === "swaps") body.innerHTML = await schedSwapsHtml();
     else if (sub === "builder") body.innerHTML = await schedBuilderHtml(weekStart);
     else if (sub === "staffing") body.innerHTML = await schedStaffingHtml();
@@ -5291,7 +5348,33 @@ function schedWeekNav(sub, weekStart) {
     <button class="btn btn-small" data-go="#/sched/${sub}?w=${prev}">← ${esc(T("sched.prevWeek"))}</button>
     <button class="btn btn-small" data-go="#/sched/${sub}?w=${cur}">${esc(T("sched.thisWeek"))}</button>
     <button class="btn btn-small" data-go="#/sched/${sub}?w=${next}">${esc(T("sched.nextWeek"))} →</button>
+    ${sub === "team" ? schedDayWeekToggle("week", weekStart) : ""}
     <strong style="margin-left:auto">${esc(schedWeekRangeLabel(weekStart))}</strong>
+  </div>`;
+}
+/** Day ⇄ Week segmented toggle for the Team tab. In week mode `ref` is the
+ *  week start (Day jumps to its first day); in day mode `ref` is the day
+ *  (Week jumps to the week containing it). */
+function schedDayWeekToggle(mode, ref) {
+  const dayHref = `#/sched/team?d=${mode === "week" ? ref : schedTeamDay()}`;
+  const weekHref = `#/sched/team?w=${schedWeekStartOfDay(ref)}`;
+  const btn = (m, href, labelKey) => m === mode
+    ? `<button class="btn btn-small btn-primary" disabled>${esc(T(labelKey))}</button>`
+    : `<button class="btn btn-small" data-go="${href}">${esc(T(labelKey))}</button>`;
+  return `<div style="display:flex;gap:4px" role="group" aria-label="${esc(T("sched.viewLabel"))}">${btn("day", dayHref, "sched.dayView")}${btn("week", weekHref, "sched.weekView")}</div>`;
+}
+/** Day nav: ← Previous day · Today · Next day → + a native date picker. */
+function schedDayNavHtml(day) {
+  const prev = schedAddIso(day, -1), next = schedAddIso(day, 1);
+  const today = schedIso(new Date());
+  return `${schedDayWeekToggle("day", day)}
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:12px 0" class="no-print">
+    <button class="btn btn-small" data-go="#/sched/team?d=${prev}">← ${esc(T("sched.prevDay"))}</button>
+    <button class="btn btn-small" data-go="#/sched/team?d=${today}">${esc(T("sched.todayBtn"))}</button>
+    <button class="btn btn-small" data-go="#/sched/team?d=${next}">${esc(T("sched.nextDay"))} →</button>
+    <input type="date" data-sched-day value="${esc(day)}" aria-label="${esc(T("sched.pickDate"))}" title="${esc(T("sched.pickDate"))}"
+      style="min-height:44px;font-size:16px;padding:8px 10px;border-radius:10px;border:1px solid var(--border);background:var(--bg2);color:var(--text)">
+    <strong style="margin-left:auto">${esc(schedDayName(day))} · ${esc(schedDayLabel(day))}</strong>
   </div>`;
 }
 
@@ -5476,18 +5559,27 @@ function schedGroupRows(items) {
 }
 function schedGridHtml(days, rows, cellHtml, dayHeadExtra) {
   const headCell = "position:sticky;top:var(--sticky-top, 57px);background:var(--card);z-index:2;padding:8px;border-bottom:1px solid var(--border)";
-  const rowLabel = "padding:8px;font-weight:600;border-top:1px solid var(--border);position:sticky;left:0;background:var(--card);z-index:3";
+  const rowLabelBase = "padding:8px;font-weight:600;border-top:1px solid var(--border);position:sticky;left:0;z-index:3";
+  const rowLabel = rowLabelBase + ";background:var(--card)";
+  const rowLabelZebra = rowLabelBase + ";background:var(--zebra-label)";
   const groupHead = "grid-column:1/-1;padding:10px 8px 6px;font-weight:800;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent);border-top:1px solid var(--border);position:sticky;left:0;background:var(--card);z-index:3";
+  // Zebra striping: alternate person rows get a subtle tint (label column +
+  // day cells) so a row is easy to track across the columns. Group headers
+  // stay untinted.
+  let alt = false;
+  const personRow = (row) => {
+    alt = !alt;
+    const cellBg = alt ? "background:var(--zebra-cell);" : "";
+    return `
+        <div style="${alt ? rowLabelZebra : rowLabel}">${esc(row.label)}${row.sub ? `<div class="muted" style="font-size:12px;font-weight:400">${esc(row.sub)}</div>` : ""}</div>
+        ${days.map(d => `<div style="padding:4px;border-top:1px solid var(--border);min-height:66px;${cellBg}">${cellHtml(row, d)}</div>`).join("")}
+      `;
+  };
   return `<div class="sched-grid-fade"><div style="overflow-x:auto"><div style="min-width:780px">
     <div style="display:grid;grid-template-columns:150px repeat(7,minmax(116px,1fr))">
       <div style="${headCell};left:0;z-index:4"></div>
       ${days.map(d => `<div style="${headCell};font-weight:700;text-align:center">${esc(schedDayLabel(d))}${dayHeadExtra ? `<div>${dayHeadExtra(d)}</div>` : ""}</div>`).join("")}
-      ${rows.map(row => row.header
-        ? `<div style="${groupHead}">${esc(row.header)}</div>`
-        : `
-        <div style="${rowLabel}">${esc(row.label)}${row.sub ? `<div class="muted" style="font-size:12px;font-weight:400">${esc(row.sub)}</div>` : ""}</div>
-        ${days.map(d => `<div style="padding:4px;border-top:1px solid var(--border);min-height:66px">${cellHtml(row, d)}</div>`).join("")}
-      `).join("")}
+      ${rows.map(row => row.header ? `<div style="${groupHead}">${esc(row.header)}</div>` : personRow(row)).join("")}
     </div>
   </div></div>`;
 }
@@ -5514,7 +5606,22 @@ async function schedTeamRows(names, hoursBy) {
 }
 
 /* ---------- Team (read-only; draft visible to managers with a banner) ---------- */
-async function schedTeamHtml(weekStart) {
+/** One read-only shift chip, shared by the Team week grid and the day view. */
+function schedShiftChipHtml(s) {
+  return `
+      <div style="padding:6px;border:1px solid var(--border);border-radius:8px;margin:2px 0">
+        <strong>${esc(schedFmtTimeRange(s.start_time, s.end_time))}</strong>
+        ${s.position ? `<div class="muted" style="font-size:12px">${esc(s.position)}${s.station ? " · " + esc(s.station) : ""}</div>` : ""}
+      </div>`;
+}
+/** Team tab dispatcher: the day view by default (?d= or today), the week
+ *  grid when ?w= is present. */
+async function schedTeamHtml(weekStart, teamDay) {
+  if (teamDay) return schedTeamDayHtml(teamDay);
+  return schedTeamWeekHtml(weekStart);
+}
+/** Week grid (behavior unchanged). */
+async function schedTeamWeekHtml(weekStart) {
   const r = await schedGetWeek(weekStart);
   if (!schedIsPublished(r.schedule) && !schedDraftView(r)) return schedNoPublishedHtml();
   const draft = schedDraftView(r);
@@ -5535,11 +5642,41 @@ async function schedTeamHtml(weekStart) {
   const rows = schedGroupRows(await schedTeamRows(names, hoursBy));
   if (!rows.length) return `<p class="muted">${esc(T("sched.noShifts"))}</p>`;
   const grid = schedGridHtml(days, rows, (row, d) =>
-    ((byCell[row.id + "|" + d] || []).sort(schedByStart).map(s => `
-      <div style="padding:6px;border:1px solid var(--border);border-radius:8px;margin:2px 0">
-        <strong>${esc(schedFmtTimeRange(s.start_time, s.end_time))}</strong>
-        ${s.position ? `<div class="muted" style="font-size:12px">${esc(s.position)}${s.station ? " · " + esc(s.station) : ""}</div>` : ""}
-      </div>`).join("")));  return (draft ? schedDraftBannerHtml() : "") + grid;
+    ((byCell[row.id + "|" + d] || []).sort(schedByStart).map(schedShiftChipHtml).join("")));
+  return (draft ? schedDraftBannerHtml() : "") + grid;
+}
+/** Single-day view: everyone working that day, grouped exactly like the week
+ *  grid, each person with their shift chips. Same published-only rule as the
+ *  week view (draft week -> banner for managers, dead end for staff), keyed
+ *  off the week containing the day. */
+async function schedTeamDayHtml(day) {
+  const r = await schedGetWeek(schedWeekStartOfDay(day));
+  if (!schedIsPublished(r.schedule) && !schedDraftView(r)) return schedNoPublishedHtml();
+  const draft = schedDraftView(r);
+  const ds = (r.shifts || []).filter(s => String(s.date || "").slice(0, 10) === day).sort(schedByStart);
+  const names = new Map();
+  for (const s of ds) {
+    const pid = String(s.profile_id);
+    if (!names.has(pid)) names.set(pid, s.profile_name || pid);
+  }
+  const hoursBy = {};
+  for (const s of ds) {
+    const pid = String(s.profile_id);
+    hoursBy[pid] = (hoursBy[pid] || 0) + schedShiftMinutes(s.start_time, s.end_time) / 60;
+  }
+  const rows = schedGroupRows(await schedTeamRows(names, hoursBy));
+  if (!rows.length) return (draft ? schedDraftBannerHtml() : "") + `<p class="muted">${esc(T("sched.noShiftsToday"))}</p>`;
+  let alt = false;
+  const body = rows.map(row => {
+    if (row.header) return `<div class="sched-day-group">${esc(row.header)}</div>`;
+    alt = !alt;
+    const mine = ds.filter(s => String(s.profile_id) === String(row.id));
+    return `<div class="admin-card${alt ? " sched-zebra" : ""}" style="margin:8px 0">
+      <div class="card-head"><strong>${esc(row.label)}</strong>${row.sub ? `<span class="muted">${esc(row.sub)}</span>` : ""}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${mine.map(schedShiftChipHtml).join("")}</div>
+    </div>`;
+  }).join("");
+  return (draft ? schedDraftBannerHtml() : "") + body;
 }
 
 /* ---------- Builder (manage only) ---------- */
@@ -5710,7 +5847,9 @@ function schedShiftDaypart(s) {
   if (e === "00:00") e = "24:00";
   return e && e <= "17:00" ? "lunch" : "dinner";
 }
-/** Coverage lines for one builder day column, e.g. "Srv L3/4 D5/6" — red when short. */
+/** Shortage line for one builder day column, e.g. "⚠ Ser L2/4 D5/6 · Bus D3/4".
+ *  Shortages-only (a single short line instead of a line per position) keeps
+ *  the sticky day headers compact so they can't grow over the shift chips. */
 function schedCoverageHtml(iso) {
   const targets = (state.sched && state.sched.targets) || [];
   const wd = new Date(iso + "T12:00:00").getDay();
@@ -5724,20 +5863,21 @@ function schedCoverageHtml(iso) {
     const k = schedShiftDaypart(s) + "|" + pos;
     have[k] = (have[k] || 0) + 1;
   }
-  const byPos = new Map();
+  const seen = new Set(), byPos = new Map();
   for (const t of need) {
     const pk = String(t.position).trim().toLowerCase();
-    if (!byPos.has(pk)) byPos.set(pk, { label: String(t.position).trim(), lunch: null, dinner: null });
-    byPos.get(pk)[t.daypart] = { need: t.required, have: have[t.daypart + "|" + pk] || 0 };
+    const key = t.daypart + "|" + pk;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const got = have[key] || 0;
+    if (got >= t.required) continue;
+    if (!byPos.has(pk)) byPos.set(pk, { label: String(t.position).trim().slice(0, 3), segs: [] });
+    byPos.get(pk).segs.push(`${t.daypart === "lunch" ? "L" : "D"}${got}/${t.required}`);
   }
-  const seg = (dp, x) => {
-    if (!x) return "";
-    const short = x.have < x.need;
-    return `<span${short ? ' style="color:var(--danger);font-weight:700"' : ""}>${dp}${x.have}/${x.need}</span>`;
-  };
-  return [...byPos.values()].map(d =>
-    `<div style="font-size:12px;font-weight:600;margin-top:2px;white-space:nowrap">${esc(d.label.slice(0, 3))} ${seg("L", d.lunch)}${d.lunch && d.dinner ? " " : ""}${seg("D", d.dinner)}</div>`
-  ).join("");
+  const bits = [...byPos.values()].map(d =>
+    `${d.label} ${d.segs.sort((a, b) => (a[0] === "L" ? 0 : 1) - (b[0] === "L" ? 0 : 1)).join(" ")}`);
+  if (!bits.length) return "";
+  return `<div class="sched-cov">⚠ ${esc(bits.join(" · "))}</div>`;
 }
 
 /* ---------- Staffing template + arrange order (manage only) ---------- */

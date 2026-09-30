@@ -17,7 +17,48 @@
   --danger: #e74c3c;
   --radius: 12px;
   --tap: 48px; /* minimum touch target */
+  /* Zebra striping for schedule grids: translucent tint for day cells,
+   * opaque tint for the sticky name column (must occlude scrolled cells). */
+  --zebra-cell: rgba(255,255,255,.045);
+  --zebra-label: #262626;
+  color-scheme: dark; /* native controls (date picker, scrollbars) match */
 }
+
+/* Light theme: variable overrides + light versions of the hardcoded dark
+ * tints. Dark stays the default — this block only applies with
+ * data-theme="light" on <html>. */
+[data-theme="light"] {
+  --bg: #f6f4ef;
+  --bg2: #ffffff;
+  --card: #ffffff;
+  --card2: #ece8df;
+  --text: #211d17;
+  --muted: #6f675b;
+  --border: #d9d2c4;
+  --accent: #c0392b;
+  --accent-hi: #d64541;
+  --ok: #1e8e4f;
+  --warn: #a86a12;
+  --info: #2471a3;
+  --danger: #c0392b;
+  --zebra-cell: rgba(33,29,23,.055);
+  --zebra-label: #efeadd;
+  color-scheme: light;
+}
+[data-theme="light"] .error { background: #fdecea; }
+[data-theme="light"] .notice { background: #e9f2fa; }
+[data-theme="light"] .banner { background: #fdf3e1; }
+[data-theme="light"] .warn-box { background: #fdf3e1; color: #7a5a12; }
+[data-theme="light"] .flag-warn { background: #fdf3e1; }
+[data-theme="light"] .flag-info { background: #e9f2fa; }
+[data-theme="light"] .area-tab.active,
+[data-theme="light"] .mode-toggle .mode-btn.active,
+[data-theme="light"] .sort-toggle .mode-btn.active,
+[data-theme="light"] .day-chip.active,
+[data-theme="light"] .admin-tab.active { background: #f7e3de; }
+[data-theme="light"] pre.email { background: #ffffff; }
+[data-theme="light"] .bulk-track { background: rgba(0,0,0,.12); }
+[data-theme="light"] #update-banner { background: #e1f2e6; color: #14532d; border-color: #2e7d32; }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
@@ -281,6 +322,13 @@ table.bulk-par input { width: 90px; min-height: 44px; font-size: 16px; text-alig
 /* Builder REQ chip: approved time off covering the cell's day (amber outline). */
 .req-chip { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
   color: var(--warn); border: 1.5px solid var(--warn); border-radius: 6px; padding: 1px 6px; }
+/* Builder shortage line: shortages-only, one compact line under the day label. */
+.sched-cov { font-size: 11px; font-weight: 700; color: var(--danger); line-height: 1.35; margin-top: 2px; }
+/* Team day view: group header + zebra-striped person cards. */
+.sched-day-group { padding: 10px 8px 6px; font-weight: 800; font-size: 13px; letter-spacing: .05em;
+  text-transform: uppercase; color: var(--accent); border-top: 1px solid var(--border); }
+.sched-day-group:first-child { border-top: 0; }
+.admin-card.sched-zebra { background: var(--zebra-label); }
 /* Visible keyboard focus on the dark theme. */
 :focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
 
