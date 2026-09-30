@@ -452,6 +452,16 @@ en: {
   "sched.applyFail": "Could not apply pinned patterns.",
   "sched.applyResultTitle": "Pinned patterns applied",
   "sched.applied": "Applied", "sched.skipped": "Skipped", "sched.skipTimeOff": "Approved time off", "sched.skipScheduled": "Already scheduled",
+  "sched.generate": "⚡ Generate draft", "sched.genTitle": "Generate draft schedule?",
+  "sched.genMsg": "This fills only the open staffing needs for this draft week. It never overwrites existing shifts, never schedules people with approved time off, and never publishes the schedule.",
+  "sched.genFail": "Couldn't generate the draft.",
+  "sched.genDone": "Draft generated — {n} shifts added",
+  "sched.genNoGaps": "All staffing needs are covered.",
+  "sched.gapsTitle": "Still unfilled",
+  "sched.gap_no_position_match": "No staff with this position", "sched.gap_unavailable": "All qualified staff unavailable",
+  "sched.gap_at_max_hours": "All qualified staff at max hours", "sched.gap_time_off": "All qualified staff requested off",
+  "sched.gap_overlap_rest": "Blocked by rest rules or overlapping shifts",
+  "sched.daypartLunch": "Lunch", "sched.daypartDinner": "Dinner", "sched.genNeeded": "needed",
 },
 es: {
   "common.cancel": "Cancelar", "common.confirm": "Confirmar", "common.back": "← Atrás",
@@ -833,6 +843,16 @@ es: {
   "sched.applyFail": "No se pudieron aplicar los patrones fijados.",
   "sched.applyResultTitle": "Patrones fijados aplicados",
   "sched.applied": "Aplicados", "sched.skipped": "Omitidos", "sched.skipTimeOff": "Descanso aprobado", "sched.skipScheduled": "Ya tiene turno",
+  "sched.generate": "⚡ Generar borrador", "sched.genTitle": "¿Generar borrador de horario?",
+  "sched.genMsg": "Esto solo cubre las necesidades de personal abiertas de esta semana en borrador. No sobrescribe turnos existentes, no programa a personas con descanso aprobado y no publica el horario.",
+  "sched.genFail": "No se pudo generar el borrador.",
+  "sched.genDone": "Borrador generado — {n} turnos agregados",
+  "sched.genNoGaps": "Todas las necesidades de personal están cubiertas.",
+  "sched.gapsTitle": "Sin cubrir todavía",
+  "sched.gap_no_position_match": "Nadie con este puesto", "sched.gap_unavailable": "Todo el personal calificado no disponible",
+  "sched.gap_at_max_hours": "Todo el personal calificado al máximo de horas", "sched.gap_time_off": "Todo el personal calificado pidió libre",
+  "sched.gap_overlap_rest": "Bloqueado por reglas de descanso o turnos superpuestos",
+  "sched.daypartLunch": "Almuerzo", "sched.daypartDinner": "Cena", "sched.genNeeded": "necesarios",
 }};
 
 /** Current UI language: "en" | "es". Persisted per device.
@@ -5941,7 +5961,8 @@ async function schedBuilderHtml(weekStart) {
         : `<button class="btn btn-small btn-primary" id="sched-publish">${esc(T("sched.publish"))}</button>`}
       ${!published && canSchedManage()
         ? `<button class="btn btn-small" id="sched-pin-week">${esc(T("sched.pinWeek"))}</button>
-           <button class="btn btn-small" id="sched-apply-pins">${esc(T("sched.applyPins"))}</button>` : ""}
+           <button class="btn btn-small" id="sched-apply-pins">${esc(T("sched.applyPins"))}</button>
+           <button class="btn btn-small" id="sched-generate">${esc(T("sched.generate"))}</button>` : ""}
       ${schedWeekStartSelectHtml()}
       <button class="btn btn-small" id="sched-positions">${esc(T("sched.positions"))}</button>
       <button class="btn btn-small" id="sched-users">${esc(T("admin.users"))}</button>
@@ -6064,6 +6085,22 @@ function schedApplyResultHtml(r) {
     ${skipped.length ? `<ul>${skipRows}</ul>` : ""}
     <div class="modal-actions"><button class="btn btn-primary" id="pins-apply-ok" style="min-height:44px">${esc(T("common.confirm"))}</button></div>`);
   document.getElementById("pins-apply-ok").onclick = () => { closeModal(); router(); };
+}
+
+/** Result modal for "Generate draft" (Job 5): shifts added + unfilled needs. */
+function schedGenerateResultHtml(r) {
+  const added = Number(r.added || 0);
+  const gaps = r.gaps || [];
+  const reasonText = (code) => {
+    const key = "sched.gap_" + code;
+    return STR.en && STR.en[key] != null ? T(key) : String(code || "");
+  };
+  const gapRows = gaps.map(g =>
+    `<li>${esc(schedDayLabel(String(g.date || "")))} · ${esc(T(g.daypart === "lunch" ? "sched.daypartLunch" : "sched.daypartDinner"))} · ${esc(String(g.position || ""))} (${esc(T("sched.genNeeded"))}: ${Number(g.needed || 0)}) — ${esc(reasonText(g.reason))}</li>`).join("");
+  showModal(`<h3>${esc(T("sched.genDone").replace("{n}", String(added)))}</h3>
+    ${gaps.length ? `<p><strong>${esc(T("sched.gapsTitle"))}</strong></p><ul>${gapRows}</ul>` : `<p>${esc(T("sched.genNoGaps"))}</p>`}
+    <div class="modal-actions"><button class="btn btn-primary" id="gen-result-ok" style="min-height:44px">${esc(T("common.confirm"))}</button></div>`);
+  document.getElementById("gen-result-ok").onclick = () => { closeModal(); router(); };
 }
 
 /* ---------- Staffing template + arrange order (manage only) ---------- */
@@ -6716,6 +6753,17 @@ function wireSchedBody(sub, weekStart, body) {
         schedApplyResultHtml(r); // modal; closing it refreshes the grid
       } catch (e) { flashError(e.detail || T("sched.applyFail")); }
       finally { applyBtn.disabled = false; }
+    };
+    // Auto-generate draft (Job 5): fills open staffing needs, never publishes.
+    const genBtn = document.getElementById("sched-generate");
+    if (genBtn) genBtn.onclick = async () => {
+      if (!await confirmDialog(T("sched.genTitle"), T("sched.genMsg"), T("sched.generate"), null, false)) return;
+      genBtn.disabled = true; // double-submit guard
+      try {
+        const r = await edge("schedule.generate", { schedule_id: state.sched.schedule.id });
+        schedGenerateResultHtml(r); // modal; closing it refreshes the grid
+      } catch (e) { flashError(e.detail || T("sched.genFail")); }
+      finally { genBtn.disabled = false; }
     };
     body.querySelectorAll("[data-unpin-pid]").forEach(b => b.onclick = async () => {
       const pid = b.dataset.unpinPid;
