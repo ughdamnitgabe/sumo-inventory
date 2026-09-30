@@ -440,6 +440,18 @@ en: {
   "sched.swapsLoadFail": "Couldn't load the swap board — shift release may be unavailable. Pull to refresh.",
   "sched.notif": "Notifications", "sched.notifEmpty": "No notifications yet.",
   "sched.markAllRead": "Mark all read",
+  "sched.pinWeek": "📌 Pin this week's pattern", "sched.pinTitle": "Pin this week's pattern?",
+  "sched.pinMsg": "This saves each person's unique shift pattern (weekday, times, position) from this week as their reusable pinned pattern. It replaces any pins they already have.",
+  "sched.pinnedDone": "Pinned patterns saved for {n} people.", "sched.pinFail": "Could not save pinned patterns.",
+  "sched.unpin": "Unpin", "sched.unpinTitle": "Unpin {name}?",
+  "sched.unpinMsg": "Their pinned weekly pattern will be removed.",
+  "sched.unpinnedDone": "Unpinned {name}.", "sched.unpinFail": "Could not unpin.",
+  "sched.pinnedCount": "{n} pinned patterns", "sched.pinnedSection": "Pinned weekly patterns",
+  "sched.applyPins": "Apply pinned", "sched.applyTitle": "Apply pinned patterns?",
+  "sched.applyMsg": "This fills the draft week with each person's pinned pattern.",
+  "sched.applyFail": "Could not apply pinned patterns.",
+  "sched.applyResultTitle": "Pinned patterns applied",
+  "sched.applied": "Applied", "sched.skipped": "Skipped", "sched.skipTimeOff": "Approved time off", "sched.skipScheduled": "Already scheduled",
 },
 es: {
   "common.cancel": "Cancelar", "common.confirm": "Confirmar", "common.back": "← Atrás",
@@ -809,6 +821,18 @@ es: {
   "sched.swapsLoadFail": "No se pudo cargar el tablero de cambios — es posible que no puedas publicar turnos. Desliza para actualizar.",
   "sched.notif": "Notificaciones", "sched.notifEmpty": "Aún no hay notificaciones.",
   "sched.markAllRead": "Marcar todo como leído",
+  "sched.pinWeek": "📌 Fijar el patrón de esta semana", "sched.pinTitle": "¿Fijar el patrón de esta semana?",
+  "sched.pinMsg": "Esto guarda el patrón de turnos de cada persona (día de la semana, horarios, puesto) de esta semana como su patrón fijado reutilizable. Reemplaza los patrones que ya tenga.",
+  "sched.pinnedDone": "Patrones fijados guardados para {n} personas.", "sched.pinFail": "No se pudieron guardar los patrones fijados.",
+  "sched.unpin": "Quitar", "sched.unpinTitle": "¿Quitar los patrones fijados de {name}?",
+  "sched.unpinMsg": "Se eliminará su patrón semanal fijado.",
+  "sched.unpinnedDone": "Patrones quitados para {name}.", "sched.unpinFail": "No se pudieron quitar los patrones.",
+  "sched.pinnedCount": "{n} patrones fijados", "sched.pinnedSection": "Patrones semanales fijados",
+  "sched.applyPins": "Aplicar fijados", "sched.applyTitle": "¿Aplicar patrones fijados?",
+  "sched.applyMsg": "Esto llena el borrador de la semana con el patrón fijado de cada persona.",
+  "sched.applyFail": "No se pudieron aplicar los patrones fijados.",
+  "sched.applyResultTitle": "Patrones fijados aplicados",
+  "sched.applied": "Aplicados", "sched.skipped": "Omitidos", "sched.skipTimeOff": "Descanso aprobado", "sched.skipScheduled": "Ya tiene turno",
 }};
 
 /** Current UI language: "en" | "es". Persisted per device.
@@ -5874,6 +5898,14 @@ async function schedBuilderHtml(weekStart) {
     const tq = await edge("timeoff.list", {});
     state.sched.reqs = tq.requests || [];
   } catch (e) { state.sched.reqs = []; /* REQ chips degrade to hidden */ }
+  // Pinned weekly patterns (Job 4): one schedule.get_pinned fetch per builder
+  // render, cached in state.sched like targets/reqs. Degrades to hidden if the
+  // backend op isn't deployed yet.
+  try {
+    const pr = await edge("schedule.get_pinned");
+    state.sched.pins = pr.pins || [];
+  } catch (e) { state.sched.pins = []; }
+  const pinnedIds = new Set((state.sched.pins || []).map(p => String(p.profile_id)));
   const published = schedIsPublished(schedule);
   const days = schedWeekDays(weekStart);
   // Closer coverage (Phase 1): a day with shifts needs >=1 approved closer on
@@ -5893,7 +5925,7 @@ async function schedBuilderHtml(weekStart) {
   }) : [];
   const items = people.map(p => ({
     id: String(p.id), group: p.sched_group,
-    label: p.name + (p.can_close ? " 🌙" : ""),
+    label: p.name + (p.can_close ? " 🌙" : "") + (pinnedIds.has(String(p.id)) ? " 📌" : ""),
     sub: schedHoursLabel(schedPersonHours(String(p.id))),
   }));
   const rows = schedBuilderView === "groups" ? schedGroupRows(items) : items;
@@ -5907,6 +5939,9 @@ async function schedBuilderHtml(weekStart) {
       ${published
         ? `<button class="btn btn-small" id="sched-unpublish">${esc(T("sched.unpublish"))}</button>`
         : `<button class="btn btn-small btn-primary" id="sched-publish">${esc(T("sched.publish"))}</button>`}
+      ${!published && canSchedManage()
+        ? `<button class="btn btn-small" id="sched-pin-week">${esc(T("sched.pinWeek"))}</button>
+           <button class="btn btn-small" id="sched-apply-pins">${esc(T("sched.applyPins"))}</button>` : ""}
       ${schedWeekStartSelectHtml()}
       <button class="btn btn-small" id="sched-positions">${esc(T("sched.positions"))}</button>
       <button class="btn btn-small" id="sched-users">${esc(T("admin.users"))}</button>
@@ -5914,9 +5949,12 @@ async function schedBuilderHtml(weekStart) {
         <button class="btn btn-small${schedBuilderView !== "employees" ? " btn-primary" : ""}" id="sched-view-groups">${esc(T("sched.viewGroups"))}</button>
         <button class="btn btn-small${schedBuilderView === "employees" ? " btn-primary" : ""}" id="sched-view-employees">${esc(T("sched.viewEmployees"))}</button>
       </div>
+      ${(state.sched.pins || []).length
+        ? `<span class="muted" style="font-size:13px;align-self:center" id="sched-pinned-count">📌 ${esc(T("sched.pinnedCount").replace("{n}", String(state.sched.pins.length)))}</span>` : ""}
     </div>
     ${rows.length ? schedGridHtml(days, rows, (row, d) => schedBuilderCell(row.id, d), (d) =>
       `${schedCoverageHtml(d)}<button class="btn btn-small btn-ghost sched-add" data-add-open-shift="${esc(d)}" aria-label="${esc(T("sched.addOpenShift") + " — " + schedDayLabel(d))}" title="${esc(T("sched.addOpenShift"))}" style="margin-top:4px;min-width:44px;min-height:44px">+</button>`) : ""}
+    ${schedPinsSectionHtml(state.sched.pins)}
     ${rows.length
       ? `<p class="muted" style="font-size:13px;margin-top:8px">${esc(T("sched.builderHint"))}</p>`
       : `<p class="muted" style="margin-top:8px">${esc(T("sched.noPeople"))}</p>`}`;
@@ -5966,6 +6004,66 @@ function schedCoverageHtml(iso) {
     `${d.label} ${d.segs.sort((a, b) => (a[0] === "L" ? 0 : 1) - (b[0] === "L" ? 0 : 1)).join(" ")}`);
   if (!bits.length) return "";
   return `<div class="sched-cov">⚠ ${esc(bits.join(" · "))}</div>`;
+}
+
+/* ---------- Pinned weekly patterns (Job 4) ---------- */
+/** Group this draft week's shifts into unique pinned rows per profile.
+ *  Returns a Map: profile_id -> [{weekday, start_time, end_time, position}].
+ *  Pure (reads only state.sched.shifts) so it's unit-testable. Open shifts
+ *  (no profile_id) are skipped — pins belong to a person. */
+function schedPinnedRowsFromWeek() {
+  const per = new Map();
+  for (const s of ((state.sched && state.sched.shifts) || [])) {
+    if (!s.profile_id) continue;
+    const pid = String(s.profile_id);
+    const date = String(s.date || "").slice(0, 10);
+    if (!date) continue;
+    const weekday = new Date(date + "T12:00:00").getDay();
+    const start = String(s.start_time || "").slice(0, 5);
+    const end = String(s.end_time || "").slice(0, 5);
+    const pos = String(s.position || "").trim();
+    const key = [weekday, start, end, pos].join("|");
+    if (!per.has(pid)) per.set(pid, new Map());
+    const rows = per.get(pid);
+    if (!rows.has(key)) rows.set(key, { weekday, start_time: start, end_time: end, position: pos || null });
+  }
+  return new Map([...per.entries()].map(([pid, rows]) => [pid, [...rows.values()]]));
+}
+/** Pins section under the builder grid: each pinned employee with an Unpin
+ *  control (manager-only, like the rest of the builder). */
+function schedPinsSectionHtml(pins) {
+  if (!pins || !pins.length) return "";
+  const byProfile = new Map();
+  for (const p of pins) {
+    const pid = String(p.profile_id);
+    if (!byProfile.has(pid)) byProfile.set(pid, { name: p.profile_name || pid, count: 0 });
+    byProfile.get(pid).count++;
+  }
+  const rows = [...byProfile.entries()].map(([pid, v]) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--border)">
+      <div style="flex:1">📌 <strong>${esc(v.name)}</strong>
+        <span class="muted" style="font-size:13px">${esc(T("sched.pinnedCount").replace("{n}", String(v.count)))}</span></div>
+      <button class="btn btn-small btn-ghost" data-unpin-pid="${esc(pid)}" aria-label="${esc(T("sched.unpin") + " — " + v.name)}">✕ ${esc(T("sched.unpin"))}</button>
+    </div>`).join("");
+  return `<div class="no-print" style="margin-top:16px"><h3 style="margin:0 0 4px">${esc(T("sched.pinnedSection"))}</h3>${rows}</div>`;
+}
+/** In-app result summary for schedule.apply_pinned: applied N, skipped M with
+ *  reasons. Closing the modal refreshes the week grid. */
+function schedApplyResultHtml(r) {
+  const applied = Number(r.applied || 0);
+  const skipped = r.skipped || [];
+  const nameOf = (pid) => {
+    const p = ((state.sched && state.sched.people) || []).find(x => String(x.id) === String(pid));
+    return p ? p.name : String(pid);
+  };
+  const skipReason = (r) => r === "time_off" ? T("sched.skipTimeOff") : r === "already_scheduled" ? T("sched.skipScheduled") : String(r || "");
+  const skipRows = skipped.map(s =>
+    `<li>${esc(nameOf(s.profile_id))} — ${esc(String(s.date || ""))}: ${esc(skipReason(s.reason))}</li>`).join("");
+  showModal(`<h3>${esc(T("sched.applyResultTitle"))}</h3>
+    <p>${esc(T("sched.applied"))}: <strong>${applied}</strong> · ${esc(T("sched.skipped"))}: <strong>${skipped.length}</strong></p>
+    ${skipped.length ? `<ul>${skipRows}</ul>` : ""}
+    <div class="modal-actions"><button class="btn btn-primary" id="pins-apply-ok" style="min-height:44px">${esc(T("common.confirm"))}</button></div>`);
+  document.getElementById("pins-apply-ok").onclick = () => { closeModal(); router(); };
 }
 
 /* ---------- Staffing template + arrange order (manage only) ---------- */
@@ -6592,6 +6690,44 @@ function wireSchedBody(sub, weekStart, body) {
     if (pubBtn) pubBtn.onclick = () => flip(pubBtn, "schedule.publish", T("sched.publishTitle"), T("sched.publishMsg"), T("sched.publish"), T("sched.published"));
     const unpubBtn = document.getElementById("sched-unpublish");
     if (unpubBtn) unpubBtn.onclick = () => flip(unpubBtn, "schedule.unpublish", T("sched.unpublishTitle"), T("sched.unpublishMsg"), T("sched.unpublish"), T("sched.unpublished"));
+    // Pinned weekly patterns (Job 4): pin this week's pattern, apply pins, unpin.
+    const pinBtn = document.getElementById("sched-pin-week");
+    if (pinBtn) pinBtn.onclick = async () => {
+      if (!await confirmDialog(T("sched.pinTitle"), T("sched.pinMsg"), T("sched.pinWeek"), null, false)) return;
+      pinBtn.disabled = true; // double-submit guard
+      try {
+        const per = schedPinnedRowsFromWeek();
+        let n = 0;
+        for (const [pid, rows] of per) {
+          await edge("schedule.set_pinned", { profile_id: pid, rows });
+          n++;
+        }
+        showSavedToast(T("sched.pinnedDone").replace("{n}", String(n)));
+        router();
+      } catch (e) { flashError(e.detail || T("sched.pinFail")); }
+      finally { pinBtn.disabled = false; }
+    };
+    const applyBtn = document.getElementById("sched-apply-pins");
+    if (applyBtn) applyBtn.onclick = async () => {
+      if (!await confirmDialog(T("sched.applyTitle"), T("sched.applyMsg"), T("sched.applyPins"), null, false)) return;
+      applyBtn.disabled = true; // double-submit guard
+      try {
+        const r = await edge("schedule.apply_pinned", { schedule_id: state.sched.schedule.id });
+        schedApplyResultHtml(r); // modal; closing it refreshes the grid
+      } catch (e) { flashError(e.detail || T("sched.applyFail")); }
+      finally { applyBtn.disabled = false; }
+    };
+    body.querySelectorAll("[data-unpin-pid]").forEach(b => b.onclick = async () => {
+      const pid = b.dataset.unpinPid;
+      const name = (((state.sched.people || []).find(x => String(x.id) === String(pid))) || {}).name || pid;
+      if (!await confirmDialog(T("sched.unpinTitle").replace("{name}", name), T("sched.unpinMsg"))) return;
+      b.disabled = true; // double-submit guard
+      try {
+        await edge("schedule.clear_pinned", { profile_id: pid });
+        showSavedToast(T("sched.unpinnedDone").replace("{name}", name));
+        router();
+      } catch (e) { flashError(e.detail || T("sched.unpinFail")); b.disabled = false; }
+    });
     body.querySelectorAll("[data-add-shift]").forEach(b => b.onclick = () => {
       const [pid, iso] = b.dataset.addShift.split("|");
       schedShiftEditor(pid, iso, null);
