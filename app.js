@@ -1358,7 +1358,7 @@ function navHtml(title) {
   const isSuper = p.role === "superadmin";
   return `<div class="topnav no-print">
     <div><button class="brand-btn" data-act="nav-home" aria-label="${esc(T("nav.homeAria"))}"><span class="brand"><span class="logo-badge nav-logo"><img src="logo.png" alt=""></span>Sumo Sushi Warm Springs</span></button></div>
-    <div class="user">${esc(p.name || "")} · ${esc(roleLabel(p.role))}</div>
+    <div class="user"><span class="user-name">${esc(p.name || "")}</span><span class="user-role"> · ${esc(roleLabel(p.role))}</span></div>
     <div style="display:flex;gap:4px;align-items:center">
       <button class="btn btn-small btn-ghost" data-act="nav-theme" aria-label="${esc(T("nav.themeAria"))}" title="${esc(T("nav.themeAria"))}">${theme() === "light" ? "🌙" : "☀️"}</button>
       ${isSuper ? "" : `<button class="btn btn-small btn-ghost" data-act="nav-lang" aria-label="${esc(T("nav.langAria"))}" title="English / Español">🌐 ${lang() === "es" ? "EN" : "ES"}</button>`}
