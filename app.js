@@ -1005,11 +1005,17 @@ function saveSession(s) {
   // NOTE: PIN is never stored — only the opaque token + profile.
   state.session = s;
   localStorage.setItem(SESSION_KEY, JSON.stringify(s));
+  // A fresh login must never inherit the previous user's cached schedule data.
+  state.schedWeekCache = {};
+  if (state.sched) state.sched.avail = null;
 }
 
 function dropSession() {
   state.session = null;
   localStorage.removeItem(SESSION_KEY);
+  // Never leak one user's cached schedule payloads into the next session.
+  state.schedWeekCache = {};
+  if (state.sched) state.sched.avail = null;
 }
 
 /** Boot: restore session from localStorage, verify it with a cheap
@@ -5430,8 +5436,9 @@ async function schedBuilderHtml(weekStart) {
   const published = schedIsPublished(schedule);
   const days = schedWeekDays(weekStart);
   // Closer coverage (Phase 1): a day with shifts needs >=1 approved closer on
-  // a shift running to close (end >= 23:00). Only evaluated when the backend
-  // serves the flags; otherwise the feature degrades to no warning.
+  // a shift running to close (end 23:59 or 00:00 — Sumo closes at midnight).
+  // Only evaluated when the backend serves the flags; otherwise the feature
+  // degrades to no warning.
   const flagsLive = people.some(p => "can_close" in p);
   const pById = new Map(people.map(p => [String(p.id), p]));
   const noCloserDays = flagsLive ? days.filter(d => {
@@ -5439,7 +5446,8 @@ async function schedBuilderHtml(weekStart) {
     if (!ds.length) return false;
     return !ds.some(s => {
       const p = pById.get(String(s.profile_id));
-      return p && p.can_close && String(s.end_time).slice(0, 5) >= "23:00";
+      const et = String(s.end_time).slice(0, 5);
+      return p && p.can_close && (et === "23:59" || et === "00:00");
     });
   }) : [];
   const items = people.map(p => ({
@@ -6001,6 +6009,7 @@ function wireSchedBody(sub, weekStart, body) {
           start_date: s, end_date: e,
           reason: document.getElementById("to-reason").value.trim() || null,
         });
+        if (state.sched) state.sched.avail = null; // picker candidates go stale
         showSavedToast(T("sched.requestSent"));
         router();
       } catch (ex) { err.innerHTML = `<div class="error">${esc(ex.detail || T("sched.requestFail"))}</div>`; }
@@ -6011,13 +6020,20 @@ function wireSchedBody(sub, weekStart, body) {
       if (!card) return;
       b.disabled = true;
       try {
-        // Affected-shift context: pull the week containing the request start
-        // (best-effort — the confirm still works if the fetch fails).
+        // Affected-shift context: pull every week the request spans
+        // (best-effort — the confirm still works if a fetch fails).
         let affected = [];
         try {
-          const wk = await schedGetWeek(card.dataset.reqStart);
-          affected = (wk.shifts || []).filter(s => String(s.profile_id) === String(card.dataset.reqProfile)
-            && s.date >= card.dataset.reqStart && s.date <= card.dataset.reqEnd);
+          const rs = card.dataset.reqStart, re = card.dataset.reqEnd;
+          const seenWeeks = new Set();
+          for (let d = rs; d <= re; d = schedAddIso(d, 7)) {
+            const wk = await schedGetWeek(schedIso(schedWeekStart(new Date(d + "T12:00:00"))));
+            if (!wk || seenWeeks.has(wk.week_start)) continue;
+            seenWeeks.add(wk.week_start);
+            affected = affected.concat((wk.shifts || []).filter(s =>
+              String(s.profile_id) === String(card.dataset.reqProfile)
+              && s.date >= rs && s.date <= re));
+          }
         } catch (e) { /* context is best-effort */ }
         const verb = b.dataset.decide === "approved" ? T("sched.approve") : T("sched.deny");
         const when = card.dataset.reqStart === card.dataset.reqEnd
@@ -6032,6 +6048,7 @@ function wireSchedBody(sub, weekStart, body) {
         }
         if (!confirm(msg)) { b.disabled = false; return; }
         await edge("timeoff.decide", { id: card.dataset.req, decision: b.dataset.decide });
+        if (state.sched) state.sched.avail = null; // picker candidates go stale
         showSavedToast(T("common.saved"));
         router();
       } catch (e) { flashError(e.detail || T("sched.decideFail")); b.disabled = false; }
@@ -6043,6 +6060,7 @@ function wireSchedBody(sub, weekStart, body) {
       b.disabled = true; // double-submit guard
       try {
         await edge("timeoff.cancel", { id: card.dataset.req });
+        if (state.sched) state.sched.avail = null; // picker candidates go stale
         showSavedToast(T("common.saved"));
         router();
       } catch (e) { flashError(e.detail || e.message || T("sched.cancelRequestFail")); b.disabled = false; }
@@ -6068,6 +6086,7 @@ function wireSchedBody(sub, weekStart, body) {
       avSave.disabled = true; // double-submit guard
       try {
         await edge("availability.set", { rows });
+        if (state.sched) state.sched.avail = null; // picker candidates go stale
         showSavedToast();
         router();
       } catch (e) {
