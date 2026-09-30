@@ -95,6 +95,19 @@ body {
 .logo-badge.nav-logo img { width: 24px; height: 24px; }
 .topnav .brand-btn { background: none; border: 0; padding: 10px 8px; margin: -10px 0 -10px -8px; cursor: pointer; color: inherit; font: inherit; }
 .topnav .user { font-size: 13px; color: var(--muted); }
+/* Narrow phones: the brand + icon buttons can squeeze the user chip to
+   "Gabe · Su…". Let the brand text truncate instead and show the name only
+   (role suffix hidden), so the signed-in name is never cut off. */
+@media (max-width: 600px) {
+  .topnav { gap: 6px; padding-left: 10px; padding-right: 10px; }
+  .topnav > div:first-child { min-width: 0; flex: 0 1 auto; }
+  .topnav .brand-btn { max-width: 100%; overflow: hidden; }
+  .topnav .brand { font-size: 14px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .topnav .brand .nav-logo { flex: 0 0 auto; }
+  .topnav .user { flex: 0 1 auto; min-width: 0; }
+  .topnav .user-role { display: none; }
+  .topnav > div:last-child { flex: 0 0 auto; }
+}
 .btn {
   display: inline-flex; align-items: center; justify-content: center;
   min-height: var(--tap); min-width: var(--tap);
