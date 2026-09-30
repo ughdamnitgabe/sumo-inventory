@@ -278,6 +278,9 @@ table.bulk-par input { width: 90px; min-height: 44px; font-size: 16px; text-alig
 }
 /* Builder conflict highlight: overlapping shifts get a red edge. */
 .shift-conflict { border-left: 3px solid var(--danger) !important; }
+/* Visible keyboard focus on the dark theme. */
+:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
+
 /* Builder "+" cells: thumb-sized tap targets. */
 .sched-add { min-height: 44px; }
 .modal .area-opt { display: block; width: 100%; text-align: left; margin: 6px 0; }

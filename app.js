@@ -315,6 +315,7 @@ en: {
   "sched.calDone": "Calendar file downloaded — open it to add your shifts.",
   "sched.calEmpty": "No shifts in that range.", "sched.loading": "Loading schedule…", "sched.overlapWarn": "Overlapping shifts",
   "sched.availRecurring": "Your availability repeats every week — set it once.",
+  "sched.removePosition": "Remove position", "sched.checkSwaps": "Check the Swap Board for open shifts.",
   "sched.weekStartOn": "Week starts on",
   "sched.weekStartWarn": "Existing schedules will be re-grouped into the new weeks. Shift dates don't change. Applies to the whole team.",
   "sched.weekStartSaved": "Week start updated.",
@@ -647,6 +648,7 @@ es: {
   "sched.calDone": "Archivo descargado — ábrelo para añadir tus turnos.",
   "sched.calEmpty": "No hay turnos en ese rango.", "sched.loading": "Cargando horario…", "sched.overlapWarn": "Turnos superpuestos",
   "sched.availRecurring": "Tu disponibilidad se repite cada semana — configúrala una vez.",
+  "sched.removePosition": "Eliminar puesto", "sched.checkSwaps": "Revisa el Tablón de cambios para ver turnos disponibles.",
   "sched.weekStartOn": "La semana empieza el",
   "sched.weekStartWarn": "Los horarios existentes se reagruparán en las nuevas semanas. Las fechas de los turnos no cambian. Aplica a todo el equipo.",
   "sched.weekStartSaved": "Inicio de semana actualizado.",
@@ -1067,11 +1069,19 @@ function showKilled() {
 
 function router() {
   if (state.killed) { showKilled(); return; }
-  // A toast belongs to the screen that raised it — never carry it onto the next one.
-  const st = document.getElementById("saved-toast");
-  if (st) st.classList.remove("show");
-  if (typeof savedToastTimer !== "undefined" && savedToastTimer) { clearTimeout(savedToastTimer); savedToastTimer = null; }
   let hash = location.hash || "#/login";
+  const routeChanged = state.lastHash === undefined || state.lastHash !== hash;
+  // A toast belongs to the route that raised it: hide it when the route really
+  // changed (but NOT on same-route re-renders, e.g. save -> showSavedToast ->
+  // router() — the toast must survive those). Stale-route toasts never linger.
+  const st = document.getElementById("saved-toast");
+  if (st && st.dataset.route !== undefined && st.dataset.route !== hash) {
+    st.classList.remove("show");
+    st.setAttribute("aria-hidden", "true");
+    if (typeof savedToastTimer !== "undefined" && savedToastTimer) { clearTimeout(savedToastTimer); savedToastTimer = null; }
+  }
+  if (routeChanged) state.lastNavAt = Date.now();
+  state.lastHash = hash;
   const needAuth = !hash.startsWith("#/login") && !hash.startsWith("#/set-pin");
 
   if (needAuth && !state.session) { location.hash = "#/login"; return; }
@@ -4867,11 +4877,17 @@ let savedToastTimer = null;
 function showSavedToast(msg) {
   let el = document.getElementById("saved-toast");
   if (!el) { el = document.createElement("div"); el.id = "saved-toast"; document.body.appendChild(el); }
+  // Race guard: if the user navigated within the last 1.5s (e.g. tapped Save
+  // then switched tabs before the save resolved), the toast belongs to the old
+  // screen — drop it instead of flashing "Saved" somewhere unexpected.
+  if (Date.now() - (state.lastNavAt || 0) < 1500) return;
   el.textContent = msg || T("common.saved");
+  el.dataset.route = location.hash;
+  el.removeAttribute("aria-hidden");
   // Restart the slide-down animation + dismissal timer on repeat saves.
   el.classList.remove("show"); void el.offsetWidth; el.classList.add("show");
   clearTimeout(savedToastTimer);
-  savedToastTimer = setTimeout(() => el.classList.remove("show"), 2500);
+  savedToastTimer = setTimeout(() => { el.classList.remove("show"); el.setAttribute("aria-hidden", "true"); }, 2500);
 }
 
 /* ======================= SCHEDULE (Phase 1) ======================== */
@@ -5123,9 +5139,14 @@ function schedCalRangeDialog() {
 }
 
 /* ---------- My Week ---------- */
+/** Unpublished-week dead end: explain + point at the swap board instead. */
+function schedNoPublishedHtml() {
+  return `<p class="muted">${esc(T("sched.noPublished"))}</p>
+    <p><a href="#/sched/swaps">${esc(T("sched.checkSwaps"))}</a></p>`;
+}
 async function schedMyHtml(weekStart) {  const me = String(state.session.profile.id);
   const r = await edge("schedule.get_week", { week_start: weekStart });
-  if (!schedIsPublished(r.schedule)) return `<p class="muted">${esc(T("sched.noPublished"))}</p>`;
+  if (!schedIsPublished(r.schedule)) return schedNoPublishedHtml();
   const days = [];
   for (let i = 0; i < 7; i++) days.push(schedAddIso(weekStart, i));
   const mine = (r.shifts || []).filter(s => String(s.profile_id) === me);
@@ -5187,7 +5208,7 @@ function schedByStart(a, b) { return String(a.start_time || "").localeCompare(St
 /* ---------- Team (read-only, published only) ---------- */
 async function schedTeamHtml(weekStart) {
   const r = await edge("schedule.get_week", { week_start: weekStart });
-  if (!schedIsPublished(r.schedule)) return `<p class="muted">${esc(T("sched.noPublished"))}</p>`;
+  if (!schedIsPublished(r.schedule)) return schedNoPublishedHtml();
   const days = schedWeekDays(weekStart);
   const names = new Map();
   const byCell = {};
@@ -5242,7 +5263,7 @@ function schedPositionsModal() {
     box.innerHTML = list.length ? list.map((p, i) =>
       `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
         <span style="flex:1">${esc(p)}</span>
-        <button class="btn btn-small btn-ghost" data-pos-del="${i}">✕</button>
+        <button class="btn btn-small btn-ghost" data-pos-del="${i}" aria-label="${esc(T("sched.removePosition"))}: ${esc(p)}">✕</button>
       </div>`).join("") : `<p class="muted">${esc(T("sched.noPositions"))}</p>`;
     box.querySelectorAll("[data-pos-del]").forEach(b => b.onclick = () => {
       list.splice(Number(b.dataset.posDel), 1);
@@ -5343,7 +5364,7 @@ function schedBuilderCell(pid, iso) {
   const addLabel = `${T("sched.addShift")} — ${person ? person.name : ""}, ${schedDayLabel(iso)}`;
   return `${shifts.map(s => `
       <button class="btn btn-small${conflict.has(key(s)) ? " shift-conflict" : ""}" data-edit-shift="${esc(s.id)}" style="display:block;width:100%;margin:2px 0;text-align:left;white-space:normal"${conflict.has(key(s)) ? ` title="${esc(T("sched.overlapWarn"))}"` : ""}>
-        <strong>${esc(schedFmtTime(s.start_time))}–${esc(schedFmtTime(s.end_time))}</strong>${s.position ? `<br><span class="muted">${esc(s.position)}</span>` : ""}
+        <strong style="white-space:nowrap">${esc(schedFmtTime(s.start_time))}–${esc(schedFmtTime(s.end_time))}</strong>${s.position ? `<br><span class="muted">${esc(s.position)}</span>` : ""}
       </button>`).join("")}
     ${warns.length ? `<button class="btn btn-small" data-show-warns="${esc(pid)}|${esc(iso)}" aria-label="${esc(T("sched.warningsTitle"))}">⚠️</button>` : ""}
     <button class="btn btn-small btn-ghost sched-add" data-add-shift="${esc(pid)}|${esc(iso)}" aria-label="${esc(addLabel)}" title="${esc(addLabel)}" style="width:100%;margin-top:2px;opacity:.4">+</button>`;
