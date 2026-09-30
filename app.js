@@ -1583,7 +1583,7 @@ function vendorsUsed() {
 /* #/count/:sessionId — the counting screen.
  * Status pills: not counted / counted / zero confirmed / done / needs review. */
 async function renderCount(sessionId) {
-  $app().innerHTML = navHtml() + `<div class="view"><div class="loading">${esc(T("count.loading"))}</div></div>`;
+  $app().innerHTML = navHtml() + `<div class="view" style="min-height:40vh"><div class="loading">${esc(T("count.loading"))}</div></div>`;
   try {
     const [it, v, a] = await Promise.all([
       edge("items.list").catch(() => ({ items: state.items })),
@@ -3460,7 +3460,7 @@ async function renderAdmin(tab, arg2) {
     $app().querySelector('[data-act="nav-logout"]').onclick = logout;
     return;
   }
-  $app().innerHTML = navHtml() + `<div class="view"><div class="loading">Loading admin…</div></div>`;
+  $app().innerHTML = navHtml() + `<div class="view" style="min-height:40vh"><div class="loading">Loading admin…</div></div>`;
   try {
     const [it, a, v, u, pl, sg, sched] = await Promise.all([
       edge("items.list").catch(() => ({ items: state.items })),
@@ -3655,7 +3655,8 @@ function wireItemCards(root, rerender) {
 
 /* ---------------- Areas tab ---------------- */
 function adminAreasHtml() {
-  return `<div class="admin-card">
+  return `<button class="btn btn-primary" id="aa-add-toggle" style="width:100%;margin-bottom:12px">＋ ${esc(T("admin.addArea"))}</button>
+    <div class="admin-card" id="aa-add-form" hidden>
       <h3 style="margin-top:0">${esc(T("admin.addArea"))}</h3>
       <div class="field"><label>${esc(T("common.name"))}</label><input id="na-name" placeholder="e.g. Walk-in"></div>
       <div id="na-err"></div>
@@ -3663,10 +3664,16 @@ function adminAreasHtml() {
     </div>
     ${state.areas.map(a => `
     <div class="admin-card" data-area-row="${esc(a.id)}">
-      <div class="field"><label>${esc(T("admin.areaName"))}</label><input data-aname value="${esc(a.name)}"></div>
-      <div style="display:flex;gap:8px">
-        <button class="btn btn-small btn-primary" data-arename style="flex:1">${esc(T("admin.rename"))}</button>
-        <button class="btn btn-small btn-danger" data-adelete>${esc(T("common.delete"))}</button>
+      <div class="card-head" data-aa-head style="cursor:pointer">
+        <div><strong>${esc(a.name)}</strong></div>
+        <span data-aa-chev class="muted" style="font-size:18px;line-height:1">▾</span>
+      </div>
+      <div data-aa-body hidden>
+        <div class="field" style="margin-top:8px"><label>${esc(T("admin.areaName"))}</label><input data-aname value="${esc(a.name)}"></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-small btn-primary" data-arename style="flex:1">${esc(T("admin.rename"))}</button>
+          <button class="btn btn-small btn-danger" data-adelete>${esc(T("common.delete"))}</button>
+        </div>
       </div>
     </div>`).join("")}`;
 }
@@ -3685,13 +3692,16 @@ function adminCapacityHtml() {
     return `<div class="admin-card" data-cap-area="${esc(a.id)}">
       <h3 style="margin-top:0">${esc(a.name)}</h3>
       ${pools.map(poolCardHtml).join("")}
-      <div class="field"><label>${esc(T("admin.capName"))}</label><input data-np-name placeholder="e.g. Ice cream"></div>
-      <div class="form-row">
-        <div class="field"><label>${esc(T("admin.capMax"))}</label><input data-np-max type="number" inputmode="decimal" min="0" step="1" placeholder="40"></div>
-        <div class="field"><label>${esc(T("admin.capUnit"))}</label><input data-np-unit placeholder="boxes"></div>
+      <button class="btn btn-small" data-np-toggle style="width:100%">＋ ${esc(T("admin.capAdd"))}</button>
+      <div data-np-form hidden>
+        <div class="field" style="margin-top:8px"><label>${esc(T("admin.capName"))}</label><input data-np-name placeholder="e.g. Ice cream"></div>
+        <div class="form-row">
+          <div class="field"><label>${esc(T("admin.capMax"))}</label><input data-np-max type="number" inputmode="decimal" min="0" step="1" placeholder="40"></div>
+          <div class="field"><label>${esc(T("admin.capUnit"))}</label><input data-np-unit placeholder="boxes"></div>
+        </div>
+        <div data-np-err></div>
+        <button class="btn btn-small btn-primary" data-np-add style="width:100%">${esc(T("admin.capAdd"))}</button>
       </div>
-      <div data-np-err></div>
-      <button class="btn btn-small" data-np-add>${esc(T("admin.capAdd"))}</button>
     </div>`;
   }).join("");
 }
@@ -3699,7 +3709,14 @@ function poolCardHtml(p) {
   const sel = new Set((p.item_ids || []).map(String));
   const areaItems = state.items.filter(i => i.active !== false && areaIdsOf(i).includes(String(p.area_id)));
   return `<div class="cap-pool" data-pool="${esc(p.id)}" style="border:1px solid var(--border);border-radius:10px;padding:10px;margin:10px 0">
-    <div class="form-row">
+    <div class="card-head" data-ap-head style="cursor:pointer">
+      <div><strong>${esc(p.name)}</strong>
+        <div class="muted" style="font-size:13px">${esc(T("admin.capMax"))}: ${esc(p.max_qty)}${p.unit ? " " + esc(p.unit) : ""} · ${sel.size} ${esc(T("admin.capItems")).toLowerCase()}</div>
+      </div>
+      <span data-ap-chev class="muted" style="font-size:18px;line-height:1">▾</span>
+    </div>
+    <div data-ap-body hidden>
+    <div class="form-row" style="margin-top:8px">
       <div class="field"><label>${esc(T("admin.capName"))}</label><input data-pf="name" value="${esc(p.name)}"></div>
       <div class="field"><label>${esc(T("admin.capMax"))}</label><input data-pf="max_qty" type="number" inputmode="decimal" min="0" step="1" value="${esc(p.max_qty)}"></div>
     </div>
@@ -3713,6 +3730,7 @@ function poolCardHtml(p) {
       <button class="btn btn-small btn-danger" data-p-del>${esc(T("common.delete"))}</button>
     </div>
     <div class="muted" data-p-msg style="font-size:13px;margin-top:6px"></div>
+    </div>
   </div>`;
 }
 
@@ -3917,7 +3935,8 @@ function timeOpts(current) {
   return opts.join("");
 }
 function adminVendorsHtml() {
-  return `<div class="admin-card">
+  return `<button class="btn btn-primary" id="av-add-toggle" style="width:100%;margin-bottom:12px">＋ ${esc(T("admin.addVendor"))}</button>
+    <div class="admin-card" id="av-add-form" hidden>
       <h3 style="margin-top:0">${esc(T("admin.addVendor"))}</h3>
       <div class="form-row">
         <div class="field"><label>${esc(T("common.name"))}</label><input id="nv-name" placeholder="e.g. True World Foods"></div>
@@ -3928,7 +3947,14 @@ function adminVendorsHtml() {
     </div>
     ${state.vendors.map(v => `
     <div class="admin-card" data-vendor="${esc(v.id)}">
-      <div class="form-row">
+      <div class="card-head" data-av-head style="cursor:pointer">
+        <div><strong>${esc(v.name)}</strong>
+          <div class="muted" style="font-size:13px">${[v.email, v.order_days].filter(Boolean).map(esc).join(" · ") || "—"}</div>
+        </div>
+        <span data-av-chev class="muted" style="font-size:18px;line-height:1">▾</span>
+      </div>
+      <div data-av-body hidden>
+      <div class="form-row" style="margin-top:8px">
         <div class="field"><label>${esc(T("common.name"))}</label><input data-f="name" value="${esc(v.name)}"></div>
         <div class="field"><label>${esc(T("admin.email"))}</label><input data-f="email" type="email" value="${esc(v.email || "")}"></div>
       </div>
@@ -3944,6 +3970,7 @@ function adminVendorsHtml() {
       <div class="field"><label>${esc(T("vendor.deliveryDays"))}</label>${dayChips("delivery_days", v.delivery_days)}</div>
       <div class="field"><label>${esc(T("vendor.orderDays"))} · ${esc(T("vendor.daysWorth"))}</label><div data-coverage-wrap>${coverageEditor(v)}</div></div>
       <button class="btn btn-primary btn-small" data-vsave style="width:100%">${esc(T("common.save"))}</button>
+      </div>
     </div>`).join("")}`;
 }
 
@@ -3958,7 +3985,8 @@ function adminUsersHtml() {
     .map(r => `<option value="${r}" ${r === sel ? "selected" : ""}>${roleLabel(r)}</option>`).join("");
   // Managers see only managers and staff — superadmin rows are hidden from them.
   const visibleUsers = state.users.filter(u => viewerIsSuper || u.role !== "superadmin");
-  return `<div class="admin-card">
+  return `<button class="btn btn-primary" id="au-add-toggle" style="width:100%;margin-bottom:12px">＋ ${esc(T("admin.addUser"))}</button>
+    <div class="admin-card" id="au-add-form" hidden>
       <h3 style="margin-top:0">${esc(T("admin.addUser"))}</h3>
       <div class="form-row">
         <div class="field"><label>${esc(T("common.name"))}</label><input id="nu-name" placeholder="e.g. Kenji"></div>
@@ -3973,19 +4001,21 @@ function adminUsersHtml() {
     const isMe = String(u.id) === String(me);
     return `
     <div class="admin-card" data-user="${esc(u.id)}">
-      <div class="card-head">
+      <div class="card-head" data-au-head style="cursor:pointer">
         <div><strong>${esc(u.name)}</strong>${isMe ? ` <span class="pill pill-counted">${esc(T("admin.you"))}</span>` : ""}
           ${isSA ? ' <span class="pill pill-counted">Super Admin</span>' : ""}
-          <div class="muted" style="font-size:13px">${esc(u.active === false ? T("admin.disabled") : T("admin.active"))}</div></div>
+          <div class="muted" style="font-size:13px">${esc(roleLabel(u.role))} · ${esc(u.active === false ? T("admin.disabled") : T("admin.active"))}</div></div>
+        <div style="display:flex;align-items:center;gap:8px;flex:none">
         ${isSA
           ? (viewerIsSuper
               ? `<span class="muted" style="font-size:13px">${esc(T("admin.protected"))}</span>`
               : `<span class="muted" style="font-size:13px">${esc(T("admin.saLocked"))}</span>`)
-          : `<div style="display:flex;gap:8px">
-              <button class="btn btn-small" data-u-toggle data-enable="${u.active === false ? "1" : ""}">${esc(u.active === false ? T("admin.enable") : T("admin.disable"))}</button>
-              ${isMe ? "" : `<button class="btn btn-small btn-danger" data-u-delete>${esc(T("users.delete"))}</button>`}
-            </div>`}
+          : `<button class="btn btn-small" data-u-toggle data-enable="${u.active === false ? "1" : ""}">${esc(u.active === false ? T("admin.enable") : T("admin.disable"))}</button>
+              ${isMe ? "" : `<button class="btn btn-small btn-danger" data-u-delete>${esc(T("users.delete"))}</button>`}`}
+        <span data-au-chev class="muted" style="font-size:18px;line-height:1">▾</span>
+        </div>
       </div>
+      <div data-au-body hidden>
       ${isSA
         ? `<div class="field" style="margin-top:8px"><label>${esc(T("admin.role"))}</label><div><strong>Super Admin</strong></div></div>`
         : `<div class="form-row" style="margin-top:8px">
@@ -4000,6 +4030,7 @@ function adminUsersHtml() {
         </div></div>
       <button class="btn btn-small" data-u-pin style="width:100%">${esc(T("admin.setPinBtn"))}</button>`}
       ${schedFlagsHtml(u, viewerIsSuper)}
+      </div>
     </div>`;
     }).join("")}`;
 }
@@ -4007,7 +4038,8 @@ function adminUsersHtml() {
 /* ---------------- Import / Export tab ---------------- */
 function adminIOHtml() {
   const killed = !!(state.settings && state.settings.app_disabled);
-  return `<div class="admin-card" style="border:2px solid #c62828">
+  // Most-used first; the kill switch sits last so a scroll can't land on it by accident.
+  const killCard = `<div class="admin-card" style="border:2px solid #c62828">
       <h3 style="margin-top:0">${esc(T("admin.killTitle"))}</h3>
       <p class="muted">${esc(T("admin.killHelp"))}</p>
       <div style="margin:10px 0;font-size:16px">${killed ? "🔴" : "🟢"} <strong>${esc(killed ? T("admin.killDead") : T("admin.killLive"))}</strong></div>
@@ -4016,8 +4048,8 @@ function adminIOHtml() {
       <div id="kill-err"></div>
       <button class="btn ${killed ? "" : "btn-danger"}" id="kill-toggle" style="width:100%">
         ${esc(killed ? T("admin.killOn") : T("admin.killOff"))}</button>
-    </div>
-    <div class="admin-card">
+    </div>`;
+  return `<div class="admin-card">
       <h3 style="margin-top:0">${esc(T("update.pushTitle"))}</h3>
       <p class="muted">${esc(T("update.pushHelp"))}</p>
       <div id="push-msg"></div>
@@ -4050,7 +4082,8 @@ function adminIOHtml() {
       <div id="io-err"></div>
       <button class="btn btn-danger" id="io-import" style="width:100%">Import JSON</button>
       <div id="io-result" style="margin-top:10px"></div>
-    </div>`;
+    </div>
+    ${killCard}`;
 }
 
 /* ---------------- Admin wiring ---------------- */
@@ -4476,6 +4509,9 @@ function wireAdmin(tab, arg2) {
   }
 
   if (tab === "areas") {
+    const aaToggle = document.getElementById("aa-add-toggle");
+    const aaForm = document.getElementById("aa-add-form");
+    if (aaToggle && aaForm) aaToggle.onclick = () => { aaForm.hidden = !aaForm.hidden; };
     document.getElementById("na-add").onclick = async () => {
       const name = document.getElementById("na-name").value.trim();
       const err = document.getElementById("na-err");
@@ -4485,6 +4521,14 @@ function wireAdmin(tab, arg2) {
     };
     body.querySelectorAll("[data-area-row]").forEach(card => {
       const id = card.dataset.areaRow;
+      const head = card.querySelector("[data-aa-head]");
+      const abody = card.querySelector("[data-aa-body]");
+      const chev = card.querySelector("[data-aa-chev]");
+      if (head && abody) head.onclick = () => {
+        const opening = abody.hidden;
+        abody.hidden = !opening;
+        if (chev) chev.textContent = opening ? "▴" : "▾";
+      };
       card.querySelector("[data-arename]").onclick = async () => {
         const name = card.querySelector("[data-aname]").value.trim();
         if (!name) { flashError(T("admin.areaNeedName")); return; }
@@ -4502,6 +4546,9 @@ function wireAdmin(tab, arg2) {
   }
 
   if (tab === "vendors") {
+    const avToggle = document.getElementById("av-add-toggle");
+    const avForm = document.getElementById("av-add-form");
+    if (avToggle && avForm) avToggle.onclick = () => { avForm.hidden = !avForm.hidden; };
     document.getElementById("nv-add").onclick = async () => {
       const name = document.getElementById("nv-name").value.trim();
       const err = document.getElementById("nv-err");
@@ -4513,6 +4560,14 @@ function wireAdmin(tab, arg2) {
     };
     body.querySelectorAll("[data-vendor]").forEach(card => {
       const id = card.dataset.vendor;
+      const head = card.querySelector("[data-av-head]");
+      const vbody = card.querySelector("[data-av-body]");
+      const chev = card.querySelector("[data-av-chev]");
+      if (head && vbody) head.onclick = () => {
+        const opening = vbody.hidden;
+        vbody.hidden = !opening;
+        if (chev) chev.textContent = opening ? "▴" : "▾";
+      };
       // Day chips: toggle + keep the hidden data-f input canonical ("Tue, Thu").
       // Toggling order days re-renders the per-day coverage editor (unsaved edits kept).
       card.querySelectorAll("[data-daychips]").forEach(wrap => {
@@ -4559,6 +4614,9 @@ function wireAdmin(tab, arg2) {
   if (tab === "capacity") {
     body.querySelectorAll("[data-cap-area]").forEach(card => {
       const areaId = card.dataset.capArea;
+      const npToggle = card.querySelector("[data-np-toggle]");
+      const npForm = card.querySelector("[data-np-form]");
+      if (npToggle && npForm) npToggle.onclick = () => { npForm.hidden = !npForm.hidden; };
       const addBtn = card.querySelector("[data-np-add]");
       addBtn.onclick = async () => {
         if (addBtn.disabled) return; // double-tap guard: one create at a time
@@ -4582,6 +4640,15 @@ function wireAdmin(tab, arg2) {
     });
     body.querySelectorAll("[data-pool]").forEach(card => {
       const id = card.dataset.pool;
+      const head = card.querySelector("[data-ap-head]");
+      const pbody = card.querySelector("[data-ap-body]");
+      const chev = card.querySelector("[data-ap-chev]");
+      if (head && pbody) head.onclick = (e) => {
+        if (e.target.closest("[data-p-save],[data-p-del]")) return; // action buttons handle their own tap
+        const opening = pbody.hidden;
+        pbody.hidden = !opening;
+        if (chev) chev.textContent = opening ? "▴" : "▾";
+      };
       const msg = m => { card.querySelector("[data-p-msg]").textContent = m || ""; };
       card.querySelector("[data-p-save]").onclick = async (ev) => {
         const btn = ev.currentTarget;
@@ -4615,6 +4682,9 @@ function wireAdmin(tab, arg2) {
   }
 
   if (tab === "users") {
+    const auToggle = document.getElementById("au-add-toggle");
+    const auForm = document.getElementById("au-add-form");
+    if (auToggle && auForm) auToggle.onclick = () => { auForm.hidden = !auForm.hidden; };
     document.getElementById("nu-add").onclick = async () => {
       const name = document.getElementById("nu-name").value.trim();
       const pin = document.getElementById("nu-pin").value.trim();
@@ -4628,6 +4698,15 @@ function wireAdmin(tab, arg2) {
     };
     body.querySelectorAll("[data-user]").forEach(card => {
       const id = card.dataset.user;
+      const head = card.querySelector("[data-au-head]");
+      const ubody = card.querySelector("[data-au-body]");
+      const chev = card.querySelector("[data-au-chev]");
+      if (head && ubody) head.onclick = (e) => {
+        if (e.target.closest("[data-u-toggle],[data-u-delete]")) return; // enable/disable + delete handle their own tap
+        const opening = ubody.hidden;
+        ubody.hidden = !opening;
+        if (chev) chev.textContent = opening ? "▴" : "▾";
+      };
       // The superadmin row omits some controls (read-only for managers);
       // guard each wiring so one missing button can't break the rest.
       const tgl = card.querySelector("[data-u-toggle]");

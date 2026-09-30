@@ -23,6 +23,10 @@
 
 html, body { margin: 0; padding: 0; }
 
+/* Double-tap zoom off (pinch zoom still works): rapid taps on steppers and
+ * cards must never zoom the page. */
+html { touch-action: manipulation; }
+
 body {
   background: var(--bg);
   color: var(--text);
