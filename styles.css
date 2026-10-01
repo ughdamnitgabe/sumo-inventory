@@ -259,6 +259,9 @@ select.oedit-name { white-space: normal; min-height: 44px; border-radius: 8px;
 .par-edit { display: flex; gap: 6px; align-items: center; }
 .par-edit input { width: 80px; min-height: 44px; font-size: 16px; text-align: center;
   border-radius: 8px; border: 1px solid var(--border); background: var(--bg2); color: var(--text); }
+.unit-edit { display: flex; gap: 6px; align-items: center; }
+.unit-edit select { min-height: 44px; font-size: 16px; padding: 0 8px; max-width: 110px;
+  border-radius: 8px; border: 1px solid var(--border); background: var(--bg2); color: var(--text); }
 
 /* ---------- AI bar ---------- */
 .ai-bar { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius);
