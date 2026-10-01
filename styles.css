@@ -274,11 +274,17 @@ select.oedit-name { white-space: normal; min-height: 44px; border-radius: 8px;
 .unit-edit select { min-height: 52px; font-size: 17px; padding: 0 12px; max-width: 150px;
   border-radius: 8px; border: 1px solid var(--border); background: var(--bg2); color: var(--text); }
 /* Unit picker button (replaces the native <select>, whose picker would not
- * open on iOS). Tapping opens the bottom-sheet unit menu. */
+ * open on iOS). Tapping opens the bottom-sheet unit menu.
+ * 2026-10-01: user-select:none is REQUIRED on iOS — without it, Safari treats
+ * taps on the button text as text-selection gestures (Copy/Look Up menu)
+ * instead of firing click, so the button appears dead. */
 .unit-btn { display: inline-flex; align-items: center; gap: 10px; min-height: 52px;
   font-size: 17px; padding: 0 14px; min-width: 110px; justify-content: space-between;
   border-radius: 8px; border: 1px solid var(--border); background: var(--bg2);
-  color: var(--text); cursor: pointer; }
+  color: var(--text); cursor: pointer;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.unit-edit { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.oedit-metalab { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 .unit-btn .unit-chev { opacity: .7; font-size: 14px; }
 /* Bottom-sheet presentation for the unit picker modal. */
 .sheet-back { align-items: flex-end; padding: 0; }
