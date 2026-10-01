@@ -270,7 +270,7 @@ select.oedit-name { white-space: normal; min-height: 44px; border-radius: 8px;
 .par-edit { display: flex; gap: 8px; align-items: center; cursor: pointer; padding: 4px 2px; }
 .par-edit input { width: 96px; min-height: 52px; font-size: 17px; text-align: center;
   border-radius: 8px; border: 1px solid var(--border); background: var(--bg2); color: var(--text); }
-.unit-edit { display: flex; gap: 8px; align-items: center; cursor: pointer; padding: 4px 2px; }
+.unit-edit { display: flex; gap: 8px; align-items: center; padding: 4px 2px; }
 .unit-edit select { min-height: 52px; font-size: 17px; padding: 0 12px; max-width: 150px;
   border-radius: 8px; border: 1px solid var(--border); background: var(--bg2); color: var(--text); }
 /* Unit picker button (replaces the native <select>, whose picker would not
