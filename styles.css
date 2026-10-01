@@ -264,11 +264,11 @@ select.oedit-name { white-space: normal; min-height: 44px; border-radius: 8px;
 .readonly-count { font-size: 24px; font-weight: 800; margin-top: 10px; }
 .admin-extras { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--border);
   display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-.par-edit { display: flex; gap: 6px; align-items: center; }
-.par-edit input { width: 80px; min-height: 44px; font-size: 16px; text-align: center;
+.par-edit { display: flex; gap: 8px; align-items: center; cursor: pointer; padding: 4px 2px; }
+.par-edit input { width: 96px; min-height: 52px; font-size: 17px; text-align: center;
   border-radius: 8px; border: 1px solid var(--border); background: var(--bg2); color: var(--text); }
-.unit-edit { display: flex; gap: 6px; align-items: center; }
-.unit-edit select { min-height: 44px; font-size: 16px; padding: 0 8px; max-width: 110px;
+.unit-edit { display: flex; gap: 8px; align-items: center; cursor: pointer; padding: 4px 2px; }
+.unit-edit select { min-height: 52px; font-size: 17px; padding: 0 12px; max-width: 150px;
   border-radius: 8px; border: 1px solid var(--border); background: var(--bg2); color: var(--text); }
 
 /* ---------- AI bar ---------- */
