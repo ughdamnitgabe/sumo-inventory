@@ -219,6 +219,14 @@ select.oedit-name { white-space: normal; min-height: 44px; border-radius: 8px;
 .oedit-step input, input[data-daddqty] { width: 60px; min-height: 44px; text-align: center;
   font-size: 16px; border-radius: 8px; border: 1px solid var(--border);
   background: var(--bg); color: var(--text); }
+/* Per-line par/unit fixers inside order editing (edit-order + quick order). */
+.oedit-meta { display: flex; gap: 14px; align-items: center; margin: 2px 0 10px; padding-left: 2px;
+  font-size: 13px; color: var(--muted); }
+.oedit-metalab { display: flex; gap: 6px; align-items: center; }
+.oedit-meta input { width: 70px; min-height: 40px; text-align: center; font-size: 15px;
+  border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); }
+.oedit-meta select { min-height: 40px; font-size: 14px; max-width: 110px;
+  border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); }
 /* Review warnings (e.g. max-on-hand below one case) */
 .warn-box { border: 1px solid #b7791f; border-radius: 10px; background: #2e230f;
   color: #f5d78e; padding: 10px 12px; margin: 8px 0; font-size: 14px; }
