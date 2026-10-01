@@ -108,6 +108,9 @@ body {
   .topnav .user-role { display: none; }
   .topnav > div:last-child { flex: 0 0 auto; }
 }
+/* Tiny build stamp in the header so we can confirm which version a phone is
+ * actually running (PWA caching can delay updates). */
+.app-v { font-size: 10px; opacity: .45; margin-left: 6px; white-space: nowrap; }
 .btn {
   display: inline-flex; align-items: center; justify-content: center;
   min-height: var(--tap); min-width: var(--tap);
