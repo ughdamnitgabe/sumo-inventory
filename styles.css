@@ -271,21 +271,11 @@ select.oedit-name { white-space: normal; min-height: 44px; border-radius: 8px;
 .par-edit input { width: 96px; min-height: 52px; font-size: 17px; text-align: center;
   border-radius: 8px; border: 1px solid var(--border); background: var(--bg2); color: var(--text); }
 .unit-edit { display: flex; gap: 8px; align-items: center; padding: 4px 2px; }
-.unit-edit select { min-height: 52px; font-size: 17px; padding: 0 12px; max-width: 150px;
-  border-radius: 8px; border: 1px solid var(--border); background: var(--bg2); color: var(--text); }
-/* Unit picker button (replaces the native <select>, whose picker would not
- * open on iOS). Tapping opens the bottom-sheet unit menu.
- * 2026-10-01: user-select:none is REQUIRED on iOS — without it, Safari treats
+/* 2026-10-01: user-select:none is REQUIRED on iOS — without it, Safari treats
  * taps on the button text as text-selection gestures (Copy/Look Up menu)
  * instead of firing click, so the button appears dead. */
-.unit-btn { display: inline-flex; align-items: center; gap: 10px; min-height: 52px;
-  font-size: 17px; padding: 0 14px; min-width: 110px; justify-content: space-between;
-  border-radius: 8px; border: 1px solid var(--border); background: var(--bg2);
-  color: var(--text); cursor: pointer;
-  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 .unit-edit { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 .oedit-metalab { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
-.unit-btn .unit-chev { opacity: .7; font-size: 14px; }
 /* Bottom-sheet presentation for the unit picker modal. */
 .sheet-back { align-items: flex-end; padding: 0; }
 .sheet-back .modal { max-width: 560px; width: 100%; border-radius: 18px 18px 0 0;
@@ -317,20 +307,11 @@ select.oedit-name { white-space: normal; min-height: 44px; border-radius: 8px;
   padding: 12px; margin: 8px 0; }
 .flag-warn { background: #2a1c10; border-left: 4px solid var(--warn); padding: 10px 12px; margin: 8px 0; border-radius: 8px; }
 .flag-info { background: #14232e; border-left: 4px solid var(--info); padding: 10px 12px; margin: 8px 0; border-radius: 8px; }
-table.order-table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 8px 0; }
-table.order-table th, table.order-table td { text-align: right; padding: 8px 6px; border-bottom: 1px solid var(--border); }
-table.order-table th:first-child, table.order-table td:first-child { text-align: left; }
-table.order-table tfoot td { font-weight: 800; border-top: 2px solid var(--border); }
 pre.email { background: #0d0d0d; border: 1px solid var(--border); border-radius: var(--radius);
   padding: 12px; font-size: 13px; white-space: pre-wrap; word-wrap: break-word; max-height: 260px; overflow: auto; }
-.vendor-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
-  padding: 14px; margin: 12px 0; }
-.vendor-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 6px; }
-.vendor-name { font-size: 18px; font-weight: 800; }
-.vendor-email { font-size: 13px; color: var(--muted); }
 .pill-draft { color: var(--muted); } .pill-sent { color: var(--info); border-color: var(--info); }
 .pill-received { color: var(--ok); border-color: var(--ok); }
-.order-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+
 
 /* ---------- Admin ---------- */
 .admin-tabs { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 12px; }
@@ -386,7 +367,6 @@ table.bulk-par input { width: 90px; min-height: 44px; font-size: 16px; text-alig
 
 /* Builder "+" cells: thumb-sized tap targets. */
 .sched-add { min-height: 44px; }
-.modal .area-opt { display: block; width: 100%; text-align: left; margin: 6px 0; }
 .modal-actions { display: flex; gap: 10px; margin-top: 16px; }
 .modal-actions .btn { flex: 1; }
 
@@ -395,7 +375,7 @@ table.bulk-par input { width: 90px; min-height: 44px; font-size: 16px; text-alig
   .topnav, .no-print, .btn, button, .ai-bar, .area-tabs, .searchbar { display: none !important; }
   body { background: #fff; color: #000; }
   #app { max-width: 100%; }
-  .vendor-card, .item-card, pre.email, .order-card { background: #fff; color: #000; border-color: #999; }
+  .item-card, pre.email, .order-card { background: #fff; color: #000; border-color: #999; }
   .order-card-head { background: #fff !important; color: #000; border-bottom: 2px solid #000; }
   .order-card-qty { color: #000; }
   pre.email { max-height: none; overflow: visible; border: none; padding: 0; font-size: 14px; }
