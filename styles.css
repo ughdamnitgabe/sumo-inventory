@@ -541,6 +541,9 @@ table.bulk-par input { width: 90px; min-height: 44px; font-size: 16px; text-alig
 /* Quick actions: 0 · Full · Clear (ES-safe, wet-hand friendly). */
 .qgrid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
 .qgrid3 .btn { min-height: 52px; font-size: 16px; font-weight: 700; padding: 8px 4px; }
+/* Fractional quick-add row: 6 compact buttons, numeric labels need no translation. */
+.qgrid6 { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-top: 10px; }
+.qgrid6 .btn { min-height: 48px; font-size: 14px; font-weight: 700; padding: 8px 2px; }
 /* Progress bar (count sticky footer). */
 .prog { height: 8px; border-radius: 4px; background: var(--card2); overflow: hidden; margin-top: 6px; }
 .prog i { display: block; height: 100%; background: var(--ok); border-radius: 4px; }
