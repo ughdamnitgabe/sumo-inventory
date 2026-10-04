@@ -619,3 +619,9 @@ details.dict summary::-webkit-details-marker { display: none; }
   .stickybar { margin-left: -24px; margin-right: -24px; padding-left: 24px; padding-right: 24px; }
   .stickybar-top { margin-left: -24px; margin-right: -24px; padding-left: 24px; padding-right: 24px; }
 }
+
+/* Hardening 5: draft progress bars + empty-draft badges. */
+.draft-progress { height: 6px; background: var(--line); border-radius: 3px; margin-top: 8px; overflow: hidden; }
+.draft-progress-bar { height: 100%; background: var(--ok); border-radius: 3px; transition: width .2s; }
+.badge-empty { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px;
+  background: var(--line); color: var(--muted); margin-left: 8px; vertical-align: middle; }
