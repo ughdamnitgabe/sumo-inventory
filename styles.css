@@ -585,7 +585,7 @@ table.bulk-par input { width: 90px; min-height: 44px; font-size: 16px; text-alig
   text-align: center; border-radius: 12px; border: 1px solid var(--border);
   background: var(--bg2); color: var(--text); font-family: inherit; }
 /* Quick actions: 0 · Full · Clear (ES-safe, wet-hand friendly). */
-.qgrid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
+.qgrid3 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; }
 .qgrid3 .btn { min-height: 52px; font-size: 16px; font-weight: 700; padding: 8px 4px; }
 /* Fractional quick-add row: 6 compact buttons, numeric labels need no translation. */
 .qgrid6 { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-top: 10px; }
