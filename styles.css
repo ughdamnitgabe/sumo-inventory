@@ -312,6 +312,12 @@ pre.email { background: #0d0d0d; border: 1px solid var(--border); border-radius:
 .urow-cost { font-weight: 700; font-size: 16px; white-space: nowrap; }
 .urow-total { background: var(--card2); }
 
+/* ---------- Count extras: skip tick + question box ---------- */
+.count-more { margin-top: 10px; }
+.count-more summary { cursor: pointer; font-weight: 600; color: var(--muted); }
+.skip-row { display: flex; align-items: center; gap: 8px; font-weight: 600; margin: 10px 0; cursor: pointer; }
+.skip-row input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--primary); }
+
 
 /* ---------- Admin ---------- */
 .admin-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
