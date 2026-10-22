@@ -475,6 +475,12 @@ table.bulk-par input { width: 90px; min-height: 44px; font-size: 16px; text-alig
   pointer-events: none; white-space: nowrap; }
 #saved-toast.show { transform: translate(-50%, 0); }
 
+/* Orders bulk-select: large checkbox targets on order rows. */
+.bulk-check { display: inline-flex; align-items: center; justify-content: center;
+  min-width: 48px; min-height: 48px; cursor: pointer; flex: none; }
+.bulk-check input { width: 26px; height: 26px; accent-color: var(--accent); cursor: pointer; }
+.order-wrap[data-bulkrow] { cursor: pointer; }
+
 /* Inline missing-count fix on the review/approve page: blocking items drop
  * down into per-location count inputs so the user never leaves the screen. */
 .block-fix-list { list-style: none; margin: 8px 0; padding: 0; }
