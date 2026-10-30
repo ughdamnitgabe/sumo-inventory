@@ -106,9 +106,10 @@ body {
   .topnav .user-role { display: none; }
   .topnav > div:last-child { flex: 0 0 auto; }
 }
-/* Tiny build stamp in the header so we can confirm which version a phone is
- * actually running (PWA caching can delay updates). */
-.app-v { font-size: 10px; opacity: .45; margin-left: 6px; white-space: nowrap; }
+/* Version stamp lives in the ••• menu footer now (not the header) so the
+ * top bar has room — still findable when confirming which version a phone
+ * is actually running (PWA caching can delay updates). */
+.pop-ver { font-size: 12px; opacity: .5; padding: 10px 14px 4px; border-top: 1px solid var(--border); margin-top: 6px; }
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   min-height: var(--tap); min-width: var(--tap);
@@ -377,10 +378,16 @@ table.bulk-par input { width: 90px; min-height: 44px; font-size: 16px; text-alig
 .modal-actions .btn { flex: 1; }
 
 /* ---------- Print ---------- */
+@page { size: landscape; }
 @media print {
   .topnav, .no-print, .btn, button { display: none !important; }
   body { background: #fff; color: #000; }
   #app { max-width: 100%; }
+  /* Builder packet: all 7 day columns must fit the printed page (the
+   * phone-width table used to clip Thu–Sat). Fixed layout + small print
+   * font + tight cells; landscape comes from @page above. */
+  .packet-table { width: 100% !important; table-layout: fixed; font-size: 11px; }
+  .packet-table th, .packet-table td { padding: 4px !important; overflow-wrap: break-word; }
   .item-card, pre.email, .order-card { background: #fff; color: #000; border-color: #999; }
   .order-card-head { background: #fff !important; color: #000; border-bottom: 2px solid #000; }
   .order-card-qty { color: #000; }
@@ -560,6 +567,13 @@ table.bulk-par input { width: 90px; min-height: 44px; font-size: 16px; text-alig
 .seg button.on { background: var(--card); color: var(--text); box-shadow: var(--shadow-1); font-weight: 700; }
 
 /* ---------- Chips (area/vendor tabs, filters) ---------- */
+/* Right-edge fade on the schedule tab row, same pattern as .sched-grid-fade,
+ * so the horizontal scrollability is visible on phones. */
+.chips-fade { position: relative; }
+@media (max-width: 860px) {
+  .chips-fade::after { content: ""; position: absolute; top: 0; right: 0; bottom: 0; width: 34px;
+    background: linear-gradient(to right, transparent, var(--bg)); pointer-events: none; }
+}
 .chips { display: flex; gap: 8px; overflow-x: auto; padding: 2px 0; }
 .chip { flex: none; min-height: 44px; padding: 8px 16px; border-radius: 999px; border: 0;
   background: var(--card); color: var(--muted); font-size: 14px; font-weight: 600;
