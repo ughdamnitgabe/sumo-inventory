@@ -370,6 +370,10 @@ table.bulk-par input { width: 90px; min-height: 44px; font-size: 16px; text-alig
 .sched-day-group { padding: 10px 8px 6px; font-weight: 800; font-size: 13px; letter-spacing: .05em;
   text-transform: uppercase; color: var(--accent); border-top: 1px solid var(--border); }
 .sched-day-group:first-child { border-top: 0; }
+/* Team Day compact rows: read-only, so no box affordance — slim rows. */
+.sched-day-card { padding: 8px 12px; margin: 8px 0; }
+.sched-day-card .item-name { font-size: 15px; }
+.sched-day-shift { font-size: 13px; margin-top: 2px; }
 .admin-card.sched-zebra, .card.sched-zebra { background: var(--zebra-label); }
 /* Visible keyboard focus on the dark theme. */
 :focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
