@@ -383,6 +383,10 @@ table.bulk-par input { width: 90px; min-height: 44px; font-size: 16px; text-alig
 @page { size: landscape; }
 @media print {
   .topnav, .no-print, .btn, button { display: none !important; }
+  /* Collapsed sections expand for print (belt-and-braces; the builder
+   * packet itself is never collapsed). Header buttons are hidden above,
+   * so only the bodies need forcing open. */
+  [data-collapse-body] { display: block !important; }
   body { background: #fff; color: #000; }
   #app { max-width: 100%; }
   /* Builder packet: all 7 day columns must fit the printed page (the
